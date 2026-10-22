@@ -3,7 +3,28 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+const KEYWORDS = {
+  'miss you': 'miss-you',
+  'missing you': 'miss-you',
+  'miss u': 'miss-you',
+  '🥺': 'miss-you',
+  kiss: 'kiss',
+  kisses: 'kiss',
+  kissy: 'kiss',
+  mwah: 'kiss',
+  '😘': 'kiss',
+  '💋': 'kiss',
+  hug: 'hug',
+  hugs: 'hug',
+  hugging: 'hug',
+  '🫂': 'hug',
+};
+
+// Bump when a default has to replace what's saved in existing config.json files (see migrate()).
+const CONFIG_VERSION = 2;
+
 const DEFAULT_CONFIG = {
+  version: CONFIG_VERSION,
   me: { id: '', name: '', character: 'brown' },
   partner: {
     id: '',
@@ -31,21 +52,12 @@ const DEFAULT_CONFIG = {
   awayAfterSec: 300,
   pauseWhenFullscreen: true,
   respectFocus: true,
+  // Wait while screen sharing, or while one of pauseApps is in front.
+  pauseDuringCalls: true,
   // Never play while one of these apps is in front (screen shares, calls, slideshows).
   pauseApps: ['zoom.us', 'Microsoft Teams', 'Webex', 'FaceTime', 'Keynote', 'Microsoft PowerPoint', 'Google Meet', 'Slack Huddle'],
-  keywords: {
-    'miss you': 'miss-you',
-    'missing you': 'miss-you',
-    'love you': 'love-you',
-    'goodnight': 'goodnight',
-    'good night': 'goodnight',
-    'gn': 'goodnight',
-    'good morning': 'good-morning',
-    'gm': 'good-morning',
-    'hungry': 'hungry',
-    '❤️': 'love-you',
-    '🥺': 'miss-you',
-  },
+  // Phrase in a text → animation. Kept to three on purpose; more can come later.
+  keywords: KEYWORDS,
   visitDate: '',
   morning: { enabled: true, afterHour: 5 },
   hugWindowSec: 20,
@@ -57,6 +69,7 @@ const DEFAULT_STATE = {
   lastHeardAt: 0,
   missingLevel: 0,
   partnerStatus: null, // { name, at }
+  myStatus: null, // { name, at }, the last status I sent
   partnerAsleep: false,
   noteJar: [],
   lastMorningDate: '',
@@ -80,10 +93,14 @@ function merge(defaults, value) {
 }
 
 class JsonFile {
-  constructor(file, defaults) {
+  // debounceMs > 0 batches writes (state changes on every relay message); call flush() before quitting.
+  constructor(file, defaults, { debounceMs = 0 } = {}) {
     this.file = file;
     this.defaults = defaults;
-    this.data = merge(structuredClone(defaults), this.read());
+    this.debounceMs = debounceMs;
+    this.timer = null;
+    this.raw = this.read();
+    this.data = merge(structuredClone(defaults), this.raw);
   }
   read() {
     try {
@@ -100,8 +117,21 @@ class JsonFile {
   }
   set(patch) {
     this.data = merge(this.data, patch);
+    if (!this.debounceMs) return this.save();
+    if (!this.timer) this.timer = setTimeout(() => this.flush(), this.debounceMs);
+  }
+  flush() {
+    clearTimeout(this.timer);
+    this.timer = null;
     this.save();
   }
+}
+
+// Brings an older config.json up to date. Version 2: only the three text triggers (miss you, kiss, hug).
+function migrate(config) {
+  if ((config.raw.version || 1) >= CONFIG_VERSION) return;
+  config.data.keywords = { ...KEYWORDS };
+  config.data.version = CONFIG_VERSION;
 }
 
 function slug(name) {
@@ -140,10 +170,11 @@ function decodePairing(code) {
 
 function openStores(dir) {
   const config = new JsonFile(path.join(dir, 'config.json'), DEFAULT_CONFIG);
-  const state = new JsonFile(path.join(dir, 'state.json'), DEFAULT_STATE);
-  if (!config.data.relay.topic) config.set({ relay: { topic: newTopic() } });
-  else config.save(); // write out any newly added default keys so they are easy to edit
+  const state = new JsonFile(path.join(dir, 'state.json'), DEFAULT_STATE, { debounceMs: 500 });
+  migrate(config);
+  if (!config.data.relay.topic) config.data.relay.topic = newTopic();
+  config.save(); // also writes out newly added default keys so they are easy to edit
   return { config, state };
 }
 
-module.exports = { openStores, JsonFile, DEFAULT_CONFIG, DEFAULT_STATE, merge, slug, newTopic, encodePairing, decodePairing };
+module.exports = { openStores, JsonFile, DEFAULT_CONFIG, DEFAULT_STATE, KEYWORDS, merge, migrate, slug, newTopic, encodePairing, decodePairing };

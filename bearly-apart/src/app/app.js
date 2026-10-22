@@ -1,0 +1,274 @@
+const $ = (id) => document.getElementById(id);
+let data = null; // from ba.get(): config, statuses, sendables, scenes, …
+let live = null; // pushed by the app whenever something changes
+
+function el(tag, props = {}, ...children) {
+  const e = document.createElement(tag);
+  Object.assign(e, props);
+  e.append(...children);
+  return e;
+}
+
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function ago(ms) {
+  const m = Math.round((Date.now() - ms) / 60_000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  return h < 24 ? `${h}h ago` : `${Math.round(h / 24)}d ago`;
+}
+
+const partner = () => data.config.partner.name || 'your love';
+const timeOf = (ms) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+// ---------- tabs ------------------------------------------------------------
+
+function showTab(name) {
+  if (!document.querySelector(`[data-page="${name}"]`)) name = 'send';
+  for (const b of document.querySelectorAll('.tabs button')) b.classList.toggle('on', b.dataset.tab === name);
+  for (const s of document.querySelectorAll('[data-page]')) s.classList.toggle('on', s.dataset.page === name);
+  if (name === 'send' && location.hash === '#send') $('note').focus();
+}
+for (const b of document.querySelectorAll('.tabs button')) b.addEventListener('click', () => showTab(b.dataset.tab));
+window.ba.onShowTab((tab) => {
+  showTab(tab);
+  if (tab === 'send') $('note').focus();
+});
+
+// ---------- live parts (header, banner, status, recent) ----------------------
+
+function renderLive() {
+  const c = data.config;
+  const s = data.statuses;
+  $('partner-name').textContent = live.paired ? partner() : 'Not paired yet';
+  const ps = live.partnerStatus && s[live.partnerStatus.name];
+  $('partner-sub').textContent = ps
+    ? `${ps.emoji} ${ps.short} · ${ago(live.partnerStatus.at)}`
+    : live.paired && live.lastHeardAt
+      ? `Last heard from ${ago(live.lastHeardAt)}`
+      : '';
+  $('conn').textContent = live.connected ? '● Connected' : '○ Connecting…';
+  $('conn').className = `conn ${live.connected ? 'on' : 'off'}`;
+
+  // One banner at a time, most important first.
+  const banner = $('banner');
+  banner.replaceChildren();
+  let msg = null;
+  let action = null;
+  if (!live.paired) [msg, action] = ['Not paired yet: open Pairing in Settings.', ['Open Settings', () => showTab('settings')]];
+  else if (live.imessage === 'no-access') [msg, action] = ['Texts can’t be seen yet: give Bearly Apart Full Disk Access.', ['Open that setting', () => window.ba.open('fda')]];
+  else if (live.snoozedUntil) [msg, action] = [`🔕 Bears are snoozed until ${timeOf(live.snoozedUntil)}.`, ['Resume', () => window.ba.snooze(0)]];
+  else if (live.paused) msg = `⏸ Bears are waiting because ${data.pauseReasons[live.paused] || (live.paused.startsWith('app:') ? `${live.paused.slice(4)} is in front` : live.paused)}. They’ll play as soon as that’s over.`;
+  banner.hidden = !msg;
+  if (msg) {
+    banner.append(el('span', { textContent: msg }));
+    if (action) banner.append(el('button', { className: 'ghost small', textContent: action[0], onclick: action[1] }));
+  }
+
+  for (const b of document.querySelectorAll('.send-btn')) b.disabled = !live.paired;
+  $('note-send').disabled = $('note-later').disabled = !live.paired;
+
+  const mine = live.myStatus && s[live.myStatus.name];
+  $('my-status').textContent = mine ? `You: ${mine.emoji} ${mine.short} · set ${ago(live.myStatus.at)}` : 'You haven’t set a status.';
+  $('status-clear').hidden = !mine;
+  for (const chip of document.querySelectorAll('.chip')) {
+    chip.classList.toggle('on', chip.dataset.status === live.myStatus?.name);
+    chip.disabled = !live.paired;
+  }
+  $('note-hint').textContent =
+    `“Save for their morning” keeps it a secret until the first time ${partner()} is at the computer the next day.` +
+    (live.noteJar ? ` ${partner()} saved ${live.noteJar} note${live.noteJar > 1 ? 's' : ''} for your morning 🫙` : '');
+
+  const list = $('activity');
+  list.replaceChildren(
+    ...(live.activity.length
+      ? live.activity.map((a) => {
+          const mark = a.dir === 'in' ? '' : a.state === 'sent' ? ' ✓' : a.state === 'failed' ? ' ✗ not sent' : ' …';
+          return el(
+            'li',
+            {},
+            el('span', { className: a.dir === 'in' ? 'in' : a.state, textContent: `${a.text}${mark}`, title: a.error || '' }),
+            el('span', { className: 'meta', textContent: ago(a.at) }),
+          );
+        })
+      : [el('li', { className: 'empty', textContent: 'Nothing yet.' })]),
+  );
+}
+
+// ---------- send tab ----------------------------------------------------------
+
+function buildSend() {
+  $('send-hint').textContent = `Plays on ${partner()}’s screen right away. If they’re away or busy it waits, then shows up when they’re back.`;
+  $('send-grid').replaceChildren(
+    ...Object.entries(data.sendables).map(([type, s]) => {
+      const b = el('button', { className: 'send-btn' }, el('span', { className: 'emoji', textContent: s.emoji }), el('span', { className: 'lbl', textContent: s.short }), el('span', { className: 'tick' }));
+      b.addEventListener('click', async () => {
+        b.className = 'send-btn sending';
+        b.querySelector('.tick').textContent = '';
+        const r = await window.ba.send(type);
+        b.className = `send-btn ${r.ok ? 'sent' : 'failed'}`;
+        b.querySelector('.tick').textContent = r.ok ? '✓' : '✗';
+        if (!r.ok) toast(`Couldn’t send: ${r.error}`);
+        setTimeout(() => (b.className = 'send-btn'), 2500);
+      });
+      return b;
+    }),
+  );
+
+  $('status-hint').textContent = `Let ${partner()} know what you’re up to. Their bear acts it out on their screen once, and it stays next to your name in their 💗 menu until you change or clear it.`;
+  $('status-chips').replaceChildren(
+    ...Object.entries(data.statuses).map(([name, s]) => {
+      const chip = el('button', { className: 'chip', textContent: `${s.emoji} ${s.short}` });
+      chip.dataset.status = name;
+      chip.addEventListener('click', () => setStatus(name, `${s.emoji} ${s.short}`));
+      return chip;
+    }),
+  );
+}
+
+async function setStatus(name, text) {
+  const r = await window.ba.send('status', name);
+  toast(r.ok ? (name === 'clear' ? 'Status cleared' : `Status set: ${text}`) : `Couldn’t send: ${r.error}`);
+}
+$('status-clear').addEventListener('click', () => setStatus('clear'));
+
+async function sendNote(later) {
+  const text = $('note').value.trim();
+  if (!text) return toast('Write something first 🙂');
+  const buttons = [$('note-send'), $('note-later')];
+  buttons.forEach((b) => (b.disabled = true));
+  toast('Sending…');
+  const r = await window.ba.note(text, later);
+  buttons.forEach((b) => (b.disabled = false));
+  if (r.ok) {
+    $('note').value = '';
+    toast(later ? `Saved for ${partner()}’s morning 🫙` : 'Delivered 💌');
+  } else toast(`Couldn’t send: ${r.error}. Your note is still here.`);
+}
+$('note-send').addEventListener('click', () => sendNote(false));
+$('note-later').addEventListener('click', () => sendNote(true));
+
+// ---------- animations tab ----------------------------------------------------
+
+function buildGallery() {
+  $('gallery').replaceChildren(
+    ...data.scenes.map((sc) => {
+      const play = el('button', { className: 'ghost small', textContent: '▶ Play' });
+      play.addEventListener('click', () => window.ba.preview(sc.name));
+      return el('div', { className: 'tile', title: sc.name }, sc.thumb ? el('img', { src: sc.thumb, alt: '' }) : '', el('b', { textContent: sc.title }), el('small', { textContent: sc.when }), play);
+    }),
+  );
+}
+
+// ---------- settings tab ----------------------------------------------------
+
+function fillZones(selected) {
+  const zones = Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone') : [];
+  $('partner-tz').replaceChildren(new Option('(not set)', ''), ...zones.map((z) => new Option(z.replace(/_/g, ' '), z)));
+  $('partner-tz').value = selected || '';
+}
+
+function fillSettings() {
+  const c = data.config;
+  $('me-name').value = c.me.name;
+  $('me-character').value = c.me.character;
+  $('partner-name-input').value = c.partner.name;
+  $('partner-character').value = c.partner.character;
+  fillZones(c.partner.timezone);
+  $('handles').value = (c.partner.imessageHandles || []).join('\n');
+  $('imessage-block').hidden = data.platform !== 'darwin';
+  $('fda-warn').hidden = live.imessage !== 'no-access';
+  $('quiet-start').value = c.quietHours.start;
+  $('quiet-end').value = c.quietHours.end;
+  $('calls').checked = c.pauseDuringCalls;
+  $('fullscreen').checked = c.pauseWhenFullscreen;
+  $('focus').checked = c.respectFocus;
+  $('scale').value = c.scale;
+  $('cooldown').value = c.cooldownSec;
+  $('visit').value = c.visitDate;
+  c.missing.slice(0, 3).forEach((m, i) => ($(`miss-${i}`).value = m.hours));
+  $('login').checked = c.launchAtLogin;
+  $('my-code').textContent = c.me.name ? data.pairing : 'Save your name first';
+  $('pair-summary').textContent = c.partner.id ? `Pairing · paired with ${partner()} 💞` : 'Pairing · not paired yet';
+  $('profile').textContent = data.profileDir;
+  $('sc-url').textContent = `${c.relay.server.replace(/\/+$/, '')}/${c.relay.topic}`;
+  const id = c.me.id || '(save your name first)';
+  $('sc-tags').textContent = [
+    ...Object.entries(data.sendables).map(([type, s]) => `${s.emoji} ${type.padEnd(9)} ba,e.${type},f.${id}`),
+    ...Object.entries(data.statuses).map(([name, s]) => `${s.emoji} ${name.padEnd(9)} ba,e.status,s.${name},f.${id}`),
+  ].join('\n');
+}
+
+function collect() {
+  const c = data.config;
+  return {
+    me: { name: $('me-name').value.trim(), character: $('me-character').value },
+    partner: {
+      name: $('partner-name-input').value.trim(),
+      character: $('partner-character').value,
+      timezone: $('partner-tz').value,
+      imessageHandles: $('handles').value.split(/\n|,/).map((s) => s.trim()).filter(Boolean),
+    },
+    quietHours: { start: $('quiet-start').value, end: $('quiet-end').value },
+    pauseDuringCalls: $('calls').checked,
+    pauseWhenFullscreen: $('fullscreen').checked,
+    respectFocus: $('focus').checked,
+    scale: Number($('scale').value),
+    cooldownSec: Number($('cooldown').value) || 0,
+    visitDate: $('visit').value,
+    missing: c.missing.map((m, i) => ({ ...m, hours: Number($(`miss-${i}`)?.value) || m.hours })),
+    launchAtLogin: $('login').checked,
+  };
+}
+
+async function reload() {
+  data = await window.ba.get();
+  live = data.live;
+  buildSend();
+  buildGallery();
+  fillSettings();
+  renderLive();
+}
+
+$('save').addEventListener('click', async () => {
+  if (!$('me-name').value.trim()) return toast('Add your name first 🙂');
+  await window.ba.save(collect());
+  await reload();
+  toast('Saved 💕');
+});
+$('copy-code').addEventListener('click', () => {
+  navigator.clipboard.writeText($('my-code').textContent);
+  toast('Copied. Send it to them!');
+});
+$('pair').addEventListener('click', async () => {
+  if (!$('me-name').value.trim()) return toast('Add your name first 🙂');
+  await window.ba.save(collect());
+  const r = await window.ba.pair($('their-code').value);
+  if (!r.ok) return toast(r.error);
+  $('their-code').value = '';
+  await reload();
+  toast('Paired! 💞');
+});
+$('reset').addEventListener('click', async () => {
+  if (!confirm('Make a brand-new code? You will need to pair again.')) return;
+  await window.ba.resetPairing();
+  await reload();
+});
+$('open-fda').addEventListener('click', () => window.ba.open('fda'));
+$('open-profile').addEventListener('click', () => window.ba.open('profile'));
+$('open-gifs').addEventListener('click', () => window.ba.open('gifs'));
+
+window.ba.onLive((l) => {
+  live = l;
+  if (data) renderLive();
+});
+setInterval(() => data && renderLive(), 30_000); // keeps "5m ago" fresh
+
+reload().then(() => showTab(location.hash.slice(1) || (data.config.me.name ? 'send' : 'settings')));

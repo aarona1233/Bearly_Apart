@@ -4,6 +4,7 @@ const { STATUSES, describe } = require('./catalog');
 const { inRange, timeInZone } = require('./guard');
 
 const HOUR = 3600_000;
+const KEYWORD_COOLDOWN_MS = 30_000;
 
 function dayKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -100,6 +101,7 @@ class Brain {
       case 'miss-you':
         return this.queue(ev.type, ev, { kiss: 5, hug: 6, poke: 4, 'miss-you': 5 }[ev.type]);
       case 'status': {
+        if (ev.status === 'clear') return this.setState({ partnerStatus: null });
         this.setState({ partnerStatus: { name: ev.status, at: ev.at } });
         const info = STATUSES[ev.status] || { emoji: '💬', label: `is ${ev.status}` };
         const scene = this.hasScene(`status-${ev.status}`) ? `status-${ev.status}` : 'status';
@@ -128,10 +130,11 @@ class Brain {
     const c = this.config();
     const t = this.now();
     for (const k of ev.keywords || []) {
-      const scene = `kw-${k}`;
-      if (!this.hasScene(scene)) continue;
-      // Each keyword animation at most every 10 minutes, so "miss you miss you" isn't spammy.
-      if (t - (this.lastKeywordAt[k] || 0) < 10 * 60_000) continue;
+      // "kw-kiss" if there's a text-only version, otherwise the same scene as the 💋 button.
+      const scene = [`kw-${k}`, k].find((s) => this.hasScene(s));
+      if (!scene) continue;
+      // Each keyword animation at most every 30 seconds, so "miss you miss you" isn't spammy.
+      if (t - (this.lastKeywordAt[k] || 0) < KEYWORD_COOLDOWN_MS) continue;
       this.lastKeywordAt[k] = t;
       this.lastMsgSceneAt = t;
       return this.queue(scene, ev, 4);
@@ -170,6 +173,8 @@ class Brain {
     if (type === 'hello') ev.character = c.me.character;
     const text = type === 'note' || type === 'jar' ? extra.text : describe(ev, c.me.name || 'Your love');
     await this.publish(ev, text);
+    // Only remember a status once it actually went out.
+    if (type === 'status') this.setState({ myStatus: extra.status === 'clear' ? null : { name: extra.status, at: this.now() } });
   }
 
   // ---- timers (call every ~30s) ------------------------------------------

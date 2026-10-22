@@ -101,9 +101,9 @@ class Guard {
     const idle = this.powerMonitor?.getSystemIdleTime?.() ?? 0;
     if (idle > cfg.awayAfterSec) return { ok: false, reason: 'away' };
     if (cfg.respectFocus && focusActive()) return { ok: false, reason: 'focus' };
-    if (await screenSharing()) return { ok: false, reason: 'screen-share' };
+    if (cfg.pauseDuringCalls && (await screenSharing())) return { ok: false, reason: 'screen-share' };
     const front = await frontWindow();
-    if (front?.app && cfg.pauseApps.some((a) => a.toLowerCase() === front.app.toLowerCase())) {
+    if (cfg.pauseDuringCalls && front?.app && cfg.pauseApps.some((a) => a.toLowerCase() === front.app.toLowerCase())) {
       return { ok: false, reason: `app:${front.app}` };
     }
     if (cfg.pauseWhenFullscreen && front?.bounds && this.screen) {

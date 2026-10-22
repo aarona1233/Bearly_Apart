@@ -19,6 +19,22 @@ function summarize(items) {
   return parts.join('  ');
 }
 
+// More than this many scenes arriving together become one summary scene.
+const MAX_IN_A_ROW = 4;
+
+// Five pokes in a row play once, captioned "×5", instead of five times.
+function mergeRepeats(items) {
+  const out = [];
+  for (const it of items) {
+    const last = out[out.length - 1];
+    if (last && last.scene === it.scene && it.scene !== 'note' && !it.preview) {
+      last.count = (last.count || 1) + 1;
+      last.vars = { ...last.vars, caption: `${last.label || it.label || ''} ×${last.count}`.trim() };
+    } else out.push({ ...it });
+  }
+  return out;
+}
+
 class Player {
   // render(req, front) -> Promise that resolves when the scene finishes
   // check() -> Promise<{ ok, reason, front }>
@@ -31,7 +47,9 @@ class Player {
     this.queue = [];
     this.playing = false;
     this.timer = null;
-    this.blockedReason = null;
+    this.blockedReason = null; // why scenes are waiting right now (shown in the app), or null
+    this.held = false; // scenes waited at least once since the last play
+    this.onBlocked = null;
   }
 
   // Returns a promise of whether it played; queued scenes resolve true when they eventually play.
@@ -60,23 +78,32 @@ class Player {
     // Previews are asked for on purpose, so they skip quiet hours, snooze, etc.
     const g = this.queue.every((i) => i.preview) ? { ok: true } : await this.check();
     if (!g.ok) {
-      if (g.reason !== this.blockedReason) this.log(`[player] holding ${this.queue.length} scene(s): ${g.reason}`);
-      this.blockedReason = g.reason;
+      if (g.reason !== this.blockedReason) {
+        this.log(`[player] holding ${this.queue.length} scene(s): ${g.reason}`);
+        this.blockedReason = g.reason;
+        this.onBlocked?.(g.reason);
+      }
+      this.held = true;
       this.schedule(this.retryMs);
       return;
     }
+    if (this.blockedReason) this.onBlocked?.(null);
     this.blockedReason = null;
     const items = this.queue.splice(0);
-    let plan = items;
-    if (items.filter((i) => !i.preview).length > 2) {
-      // Highest-priority scene wins (latest one on ties); notes are always shown after it.
-      const best = items.reduce((a, b) => (b.priority >= a.priority ? b : a));
-      const summary = { ...best, vars: { ...best.vars, caption: `While you were away: ${summarize(items)}` } };
-      const notes = items.filter((i) => i.scene === 'note' && i !== best);
-      plan = [summary, ...notes];
-    }
+    const plan = this.held || items.length > MAX_IN_A_ROW ? this.summaryPlan(items, this.held) : mergeRepeats(items);
+    this.held = false;
     await this.run(plan, g.front);
     if (this.queue.length) this.schedule(this.debounceMs);
+  }
+
+  // After a pause, or a flood, show one scene with a summary caption (plus any notes, which are never dropped).
+  summaryPlan(items, held) {
+    const real = items.filter((i) => !i.preview);
+    if (real.length <= 1) return items;
+    const best = real.reduce((a, b) => (b.priority >= a.priority ? b : a)); // latest one wins ties
+    const caption = `${held ? 'While you were away' : 'Lots of love incoming'}: ${summarize(real)}`;
+    const notes = real.filter((i) => i.scene === 'note' && i !== best);
+    return [{ ...best, vars: { ...best.vars, caption } }, ...notes];
   }
 
   async run(plan, front) {
@@ -94,4 +121,4 @@ class Player {
   }
 }
 
-module.exports = { Player, summarize };
+module.exports = { Player, summarize, mergeRepeats };

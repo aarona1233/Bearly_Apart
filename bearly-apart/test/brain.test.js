@@ -52,6 +52,28 @@ test('keyword scenes win over the plain message', () => {
   assert.deepStrictEqual(names(played), ['kw-miss-you']);
 });
 
+test('"kiss" and "hug" texts play the kiss and hug scenes, at most every 30 seconds each', () => {
+  const { brain, played, advance } = setup();
+  brain.onIMessage({ direction: 'in', type: 'message', keywords: ['kiss'], text: 'kisses' });
+  brain.onIMessage({ direction: 'in', type: 'message', keywords: ['hug'], text: 'I want to hug you' });
+  brain.onIMessage({ direction: 'in', type: 'message', keywords: ['hug'], text: 'hug!!' }); // too soon
+  advance(31_000);
+  brain.onIMessage({ direction: 'in', type: 'message', keywords: ['hug'], text: 'hug again' });
+  assert.deepStrictEqual(names(played).filter((n) => n !== 'message'), ['kiss', 'hug', 'hug']);
+});
+
+test('statuses I send are remembered, and clearing works both ways', async () => {
+  const { brain, played, state } = setup();
+  await brain.send('status', { status: 'work' });
+  assert.strictEqual(state().myStatus.name, 'work');
+  await brain.send('status', { status: 'clear' });
+  assert.strictEqual(state().myStatus, null);
+  brain.onRelayEvent({ type: 'status', status: 'gym', from: 'him' });
+  brain.onRelayEvent({ type: 'status', status: 'clear', from: 'him' });
+  assert.strictEqual(state().partnerStatus, null);
+  assert.deepStrictEqual(names(played), ['status']); // clearing plays nothing
+});
+
 test('her outgoing iMessage is forwarded without the text', () => {
   const { brain, published, played } = setup();
   brain.onIMessage({ direction: 'out', type: 'message', keywords: ['love-you'], text: 'secret words love you' });

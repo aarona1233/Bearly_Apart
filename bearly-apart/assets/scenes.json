@@ -6,9 +6,9 @@
     "wave-brown": "dudu-wave.png",
     "wave-cream": "bubu-happy.png",
     "sad-brown": "dudu-cry.png",
-    "sad-cream": "bear-sad-cream.svg",
-    "idle-brown": "dudu-idle.png",
-    "idle-cream": "bubu-happy.png"
+    "sad-cream": "pair-cling.png",
+    "dance-cream": "bubu-dance.png",
+    "dance-brown": "dudu-happy.png"
   },
   "message": {
     "actors": [
@@ -160,53 +160,16 @@
   },
   "miss-you": {
     "caption": "{partner} misses you 🥺",
-    "actors": [
-      {
-        "asset": "sad-{pc}",
-        "size": 180,
-        "at": [
-          "center",
-          "off-bottom"
-        ],
-        "pokeable": true,
-        "steps": [
-          {
-            "do": "move",
-            "y": "bottom",
-            "ms": 650,
-            "hop": false,
-            "ease": "ease-out"
-          },
-          {
-            "do": "say",
-            "text": "come back to me 🥺",
-            "ms": 2400
-          },
-          {
-            "do": "wait",
-            "ms": 3000
-          },
-          {
-            "do": "move",
-            "y": "off-bottom",
-            "ms": 600,
-            "hop": false,
-            "ease": "ease-in"
-          }
-        ]
-      }
-    ]
-  },
-  "kw-love-you": {
     "rain": {
       "src": "heart.svg",
-      "count": 34,
-      "ms": 4500
+      "count": 10,
+      "ms": 3500
     },
     "actors": [
       {
-        "asset": "pair-love-kiss.png",
-        "size": 240,
+        "asset": "card-miss-you.png",
+        "frame": true,
+        "size": 300,
         "at": [
           "center",
           "off-bottom"
@@ -215,137 +178,21 @@
         "steps": [
           {
             "do": "move",
-            "y": "bottom",
-            "ms": 650,
+            "y": "bottom-30",
+            "ms": 700,
             "hop": false,
             "ease": "ease-out"
           },
           {
-            "do": "say",
-            "text": "I love you!!! 💗",
-            "ms": 3000
-          },
-          {
-            "do": "jump",
-            "times": 2,
-            "height": 0.12
-          },
-          {
             "do": "wait",
-            "ms": 2400
+            "ms": 4200
           },
           {
             "do": "move",
             "y": "off-bottom",
-            "ms": 600,
+            "ms": 700,
             "hop": false,
             "ease": "ease-in"
-          }
-        ]
-      }
-    ]
-  },
-  "kw-goodnight": {
-    "actors": [
-      {
-        "asset": "bear-sleepy-{pc}.svg",
-        "size": 160,
-        "at": [
-          "right-off",
-          "bottom"
-        ],
-        "face": "left",
-        "steps": [
-          {
-            "do": "move",
-            "x": "70%",
-            "ms": 3200
-          },
-          {
-            "do": "say",
-            "text": "goodnight my love 🌙",
-            "ms": 3000,
-            "block": true
-          },
-          {
-            "do": "fade",
-            "ms": 1200
-          }
-        ]
-      }
-    ]
-  },
-  "kw-good-morning": {
-    "actors": [
-      {
-        "asset": "wave-{pc}",
-        "size": 190,
-        "at": [
-          "left+100",
-          "off-bottom"
-        ],
-        "pokeable": true,
-        "steps": [
-          {
-            "do": "move",
-            "y": "bottom",
-            "ms": 650,
-            "hop": false,
-            "ease": "ease-out"
-          },
-          {
-            "do": "say",
-            "text": "good morning ☀️",
-            "ms": 2600
-          },
-          {
-            "do": "wait",
-            "ms": 2800
-          },
-          {
-            "do": "move",
-            "y": "off-bottom",
-            "ms": 600,
-            "hop": false,
-            "ease": "ease-in"
-          }
-        ]
-      }
-    ]
-  },
-  "kw-hungry": {
-    "actors": [
-      {
-        "asset": "bear-hungry-{pc}.svg",
-        "size": 160,
-        "at": [
-          "left-off",
-          "bottom"
-        ],
-        "pokeable": true,
-        "steps": [
-          {
-            "do": "move",
-            "x": "center",
-            "ms": 1600
-          },
-          {
-            "do": "say",
-            "text": "so hungry… 🥺",
-            "ms": 2000,
-            "block": true
-          },
-          {
-            "do": "asset",
-            "src": "bear-burger-{pc}.svg"
-          },
-          {
-            "do": "jump"
-          },
-          {
-            "do": "move",
-            "x": "right-off",
-            "ms": 900
           }
         ]
       }
@@ -457,31 +304,43 @@
   "heart": {
     "caption": "{partner} sent you a heart 💗",
     "sub": "send one back quick for a hug!",
+    "rain": {
+      "src": "heart.svg",
+      "count": 16,
+      "ms": 3500
+    },
     "actors": [
       {
-        "asset": "heart.svg",
-        "size": 200,
+        "asset": "pair-i-love-you.png",
+        "size": 230,
         "at": [
           "center",
-          "center"
+          "off-bottom"
         ],
-        "hidden": true,
+        "pokeable": true,
         "steps": [
           {
-            "do": "show"
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
           },
           {
             "do": "jump",
-            "times": 3,
-            "height": 0.12
+            "times": 2,
+            "height": 0.1
           },
           {
             "do": "wait",
-            "ms": 800
+            "ms": 2200
           },
           {
-            "do": "fade",
-            "ms": 600
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
           }
         ]
       }
@@ -567,20 +426,19 @@
   "poke": {
     "actors": [
       {
-        "asset": "bubu-pounce.png",
-        "size": 190,
+        "asset": "pair-poke.png",
+        "size": 200,
         "at": [
-          "right-off",
-          "bottom"
+          "right-120",
+          "off-bottom"
         ],
-        "face": "left",
-        "faces": "left",
         "pokeable": true,
         "steps": [
           {
             "do": "move",
-            "x": "right",
-            "ms": 600,
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
             "ease": "ease-out"
           },
           {
@@ -590,12 +448,13 @@
           },
           {
             "do": "wait",
-            "ms": 1800
+            "ms": 2200
           },
           {
             "do": "move",
-            "x": "right-off",
-            "ms": 500,
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
             "ease": "ease-in"
           }
         ]
@@ -661,18 +520,19 @@
   "status-sleepy": {
     "actors": [
       {
-        "asset": "bear-sleepy-{pc}.svg",
-        "size": 160,
+        "asset": "pair-tuck-in.png",
+        "size": 200,
         "at": [
-          "right-off",
-          "bottom"
+          "75%",
+          "off-bottom"
         ],
-        "face": "left",
         "steps": [
           {
             "do": "move",
-            "x": "75%",
-            "ms": 3000
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
           },
           {
             "do": "say",
@@ -681,8 +541,15 @@
             "block": true
           },
           {
-            "do": "fade",
-            "ms": 1200
+            "do": "wait",
+            "ms": 600
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
           }
         ]
       }
@@ -693,28 +560,31 @@
     "sub": "sweet dreams",
     "actors": [
       {
-        "asset": "bear-sleepy-{pc}.svg",
-        "size": 160,
+        "asset": "dudu-dream.png",
+        "frame": true,
+        "size": 240,
         "at": [
-          "right-off",
-          "bottom"
+          "center",
+          "off-bottom"
         ],
-        "face": "left",
         "steps": [
           {
             "do": "move",
-            "x": "75%",
-            "ms": 3000
+            "y": "bottom-40",
+            "ms": 800,
+            "hop": false,
+            "ease": "ease-out"
           },
           {
-            "do": "say",
-            "text": "goodnight, love you 💤",
-            "ms": 2800,
-            "block": true
+            "do": "wait",
+            "ms": 4200
           },
           {
-            "do": "fade",
-            "ms": 1200
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 700,
+            "hop": false,
+            "ease": "ease-in"
           }
         ]
       }
@@ -761,37 +631,37 @@
   "status": {
     "actors": [
       {
-        "asset": "bear-run-{pc}.svg",
-        "size": 150,
+        "asset": "dance-{pc}",
+        "size": 190,
         "at": [
-          "left-off",
-          "bottom"
+          "30%",
+          "off-bottom"
         ],
         "pokeable": true,
         "steps": [
           {
             "do": "move",
-            "x": "30%",
-            "ms": 1300
-          },
-          {
-            "do": "asset",
-            "src": "bear-sign-{pc}.svg"
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
           },
           {
             "do": "say",
             "text": "{emoji} {partner} {statusLabel}",
-            "ms": 2800,
+            "ms": 3200,
             "block": true
           },
           {
-            "do": "asset",
-            "src": "bear-run-{pc}.svg"
+            "do": "wait",
+            "ms": 400
           },
           {
             "do": "move",
-            "x": "right-off",
-            "ms": 1800
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
           }
         ]
       }
@@ -800,45 +670,42 @@
   "note": {
     "actors": [
       {
-        "asset": "bear-letter-{pc}.svg",
-        "size": 150,
+        "asset": "wave-{pc}",
+        "size": 180,
         "at": [
-          "left-off",
-          "bottom"
+          "left+110",
+          "off-bottom"
         ],
         "pokeable": true,
         "steps": [
           {
             "do": "move",
-            "x": "center",
-            "ms": 1600
-          },
-          {
-            "do": "asset",
-            "src": "bear-wave-{pc}.svg"
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
           },
           {
             "do": "say",
             "text": "a note for you! 💌",
-            "ms": 1800
+            "ms": 1800,
+            "block": true
           },
           {
             "do": "card",
             "text": "{note}",
-            "ms": 12000
+            "ms": 15000
           },
           {
             "do": "wait",
-            "ms": 2200
-          },
-          {
-            "do": "asset",
-            "src": "bear-run-{pc}.svg"
+            "ms": 2500
           },
           {
             "do": "move",
-            "x": "right-off",
-            "ms": 1500
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
           }
         ]
       }
@@ -847,29 +714,32 @@
   "jar": {
     "actors": [
       {
-        "asset": "bear-letter-{pc}.svg",
-        "size": 120,
+        "asset": "wave-{pc}",
+        "size": 130,
         "at": [
-          "right-off",
-          "bottom"
+          "right-80",
+          "off-bottom"
         ],
-        "face": "left",
         "steps": [
           {
             "do": "move",
-            "x": "right",
-            "ms": 700
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
           },
           {
             "do": "say",
             "text": "a secret note for tomorrow morning 🫙🤫",
-            "ms": 2400,
+            "ms": 2600,
             "block": true
           },
           {
             "do": "move",
-            "x": "right-off",
-            "ms": 700
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
           }
         ]
       }
@@ -1330,8 +1200,8 @@
   "status-thinking": {
     "actors": [
       {
-        "asset": "idle-{pc}",
-        "size": 200,
+        "asset": "pair-together.png",
+        "size": 220,
         "at": [
           "center",
           "off-bottom"

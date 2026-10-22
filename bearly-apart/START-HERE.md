@@ -68,15 +68,15 @@ The same steps are in the zip as **READ ME FIRST.txt**.
 | Do this | What happens |
 |---|---|
 | Text her anything | A bear runs across her screen and kisses it 💋 |
-| Text "I miss you" / "love you" / "goodnight" | Special animations |
+| Text "I miss you", "kiss" or "I want to hug you" | That animation plays |
 | She texts you back | A bear shows up on **your** screen |
-| Settings → ✨ Try it → Send 💋 kiss | Kiss on her screen |
+| Bearly Apart window → Send → 💋 Kiss | Kiss on her screen (✓ when it went out) |
 | Both send 💗 heart within 20 seconds | Both screens get a hug |
 | Nobody texts for 6 hours | Bubu drags the sword across her window ⚔️ |
 
 **Nothing happening?** Bears wait during **quiet hours (11:30 p.m.–8 a.m.)**, while the screen is locked, while a
 full-screen app or video call is in front, or while she's away from the computer. They play when the coast is clear,
-as a "while you were away" summary. Change the hours in Settings. **✨ Try it → Play** always works, any time.
+as a "while you were away" summary. The yellow banner in the app says which one. Change the hours in Settings. **Animations → ▶ Play** always works, any time.
 
 ---
 

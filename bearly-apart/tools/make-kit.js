@@ -7,7 +7,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { JsonFile, DEFAULT_CONFIG, DEFAULT_STATE, merge, slug, newTopic } = require('../src/main/store');
+const { JsonFile, DEFAULT_CONFIG, DEFAULT_STATE, merge, migrate, slug, newTopic } = require('../src/main/store');
 const pkg = require('./package');
 
 function args() {
@@ -55,6 +55,7 @@ function defaultProfile() {
   // ---- your side ----
   const profile = o.profile || defaultProfile();
   const mine = new JsonFile(path.join(profile, 'config.json'), DEFAULT_CONFIG);
+  migrate(mine);
   const myName = o['my-name'] || mine.data.me.name;
   if (!myName) {
     console.error('Your name is not set yet: add --my-name "YourName".');

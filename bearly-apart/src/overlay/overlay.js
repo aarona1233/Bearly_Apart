@@ -106,6 +106,7 @@ class Actor {
     this.y = rel(y, baseY, this.size);
     this.place();
     if (def.hidden) this.el.style.opacity = '0';
+    if (def.frame) this.el.classList.add('framed');
     if (def.pokeable) {
       this.el.classList.add('pokeable');
       this.el.addEventListener('mouseenter', () => window.ba.setClickable(++hoverCount > 0));

@@ -1,9 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { Relay, toTags, fromNtfy } = require('../src/main/relay');
-const { Player, summarize } = require('../src/main/player');
+const { Player, summarize, mergeRepeats } = require('../src/main/player');
 const { createServer } = require('../tools/mock-relay');
-const { encodePairing, decodePairing, DEFAULT_CONFIG, merge } = require('../src/main/store');
+const { encodePairing, decodePairing, DEFAULT_CONFIG, KEYWORDS, JsonFile, merge, migrate } = require('../src/main/store');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 test('tags round-trip', () => {
   const ev = { type: 'status', from: 'him', status: 'hungry', keywords: ['x'] };
@@ -71,4 +74,53 @@ test('summarize keeps only the latest status', () => {
     { ev: { type: 'status' }, vars: { emoji: '😴' } },
   ]);
   assert.strictEqual(s, '😴');
+});
+
+test('publish gives up on a hung request, retries, and reports the error', async () => {
+  let calls = 0;
+  const relay = new Relay({
+    getConfig: () => ({ relay: { server: 'http://x', topic: 't', token: '' } }),
+    getSince: () => '',
+    setSince: () => {},
+    log: () => {},
+    publishTimeoutMs: 50,
+    retryDelaysMs: [10, 10],
+    // First two attempts hang until aborted, the third works.
+    publishFetch: (url, opts) =>
+      ++calls < 3 ? new Promise((_, reject) => opts.signal.addEventListener('abort', () => reject(opts.signal.reason))) : Promise.resolve(new Response('{"id":"1"}')),
+  });
+  assert.deepStrictEqual(await relay.publish({ type: 'kiss', from: 'him' }), { id: '1' });
+  assert.strictEqual(calls, 3);
+
+  const failing = new Relay({ getConfig: relay.getConfig, getSince: () => '', setSince: () => {}, log: () => {}, publishFetch: async () => new Response('', { status: 400 }) });
+  await assert.rejects(failing.publish({ type: 'kiss', from: 'him' }), /HTTP 400/);
+});
+
+test('a quick burst plays in order with repeats merged; only a real wait becomes a summary', async () => {
+  const rendered = [];
+  const p = new Player({ render: async (req) => rendered.push(req), check: async () => ({ ok: true }), debounceMs: 5 });
+  const req = (scene, label) => ({ scene, priority: 4, label, ev: { type: scene }, vars: {} });
+  p.play(req('kiss', '💋 Him sent you a kiss'));
+  p.play(req('poke', '👉 Him poked you'));
+  p.play(req('poke', '👉 Him poked you'));
+  p.play(req('heart', '💗'));
+  await new Promise((r) => setTimeout(r, 40));
+  assert.deepStrictEqual(rendered.map((r) => r.scene), ['kiss', 'poke', 'heart']);
+  assert.strictEqual(rendered[1].vars.caption, '👉 Him poked you ×2');
+  assert.strictEqual(mergeRepeats([req('note', 'a'), req('note', 'b')]).length, 2); // notes are never merged
+});
+
+test('old configs get the new text triggers', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ba-'));
+  const file = path.join(dir, 'config.json');
+  fs.writeFileSync(file, JSON.stringify({ me: { name: 'Her' }, keywords: { 'love you': 'love-you', gn: 'goodnight', 'miss you': 'miss-you' } }));
+  const c = new JsonFile(file, DEFAULT_CONFIG);
+  migrate(c);
+  assert.deepStrictEqual(c.data.keywords, KEYWORDS);
+  assert.strictEqual(c.data.me.name, 'Her');
+  c.save();
+  const again = new JsonFile(file, DEFAULT_CONFIG);
+  again.data.keywords.custom = 'x'; // edits made after the upgrade are left alone
+  migrate(again);
+  assert.strictEqual(again.data.keywords.custom, 'x');
 });

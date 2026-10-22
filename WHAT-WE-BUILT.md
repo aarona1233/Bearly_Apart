@@ -21,7 +21,7 @@ Bearly Appart/
     ├── README.md           ← full feature list, iPhone Shortcut guide, custom GIFs, advanced settings
     ├── requirements.txt    ← what each computer needs (spoiler: her Mac needs nothing)
     ├── setup-linux.sh      ← installs everything on your Linux PC, adds the app launcher
-    ├── src/                ← the app's code (main process, overlay, settings windows)
+    ├── src/                ← the app's code (main process, overlay, app window)
     ├── assets/             ← animations, drawn bears, icons, scenes.json (the choreography)
     ├── docs/SCENES.md      ← how to choreograph new animations
     ├── test/               ← 21 automated tests
@@ -45,7 +45,7 @@ Bearly Appart/
 - **iMessage → her screen.** macOS doesn't let apps read other apps' notifications, but her Mac keeps a local copy of
   her messages (`~/Library/Messages/chat.db`). The app reads it **read-only**, looking only at messages to and from your
   number. It never sends iMessages. Requires Full Disk Access, a single switch she turns on during install.
-- **Her texts → your screen.** Her Mac sends a tiny "she texted" signal (plus keyword names like `love-you`) to your
+- **Her texts → your screen.** Her Mac sends a tiny "she texted" signal (plus keyword names like `miss-you`) to your
   computer through the relay. **Her message text never leaves her Mac.**
 - **Relay.** [ntfy.sh](https://ntfy.sh): free, no account needed. Your private "topic" (in the pairing code) works like a
   shared password. Can be self-hosted later.
@@ -56,7 +56,7 @@ Bearly Appart/
 
 **Triggers**
 - 💬 You text her → Dudu runs onto the screen, turns into the Love-Kiss, zooms into the screen, and leaves a lipstick mark
-- 🔑 Keywords: "miss you", "love you", "goodnight", "good morning", "hungry", ❤️, 🥺 → special animations
+- 🔑 Texts with "miss you", "kiss" or "hug" (🥺, 😘, 💋, 🫂 too) → that animation (only these three for now)
 - 🔥 5 texts in 90 seconds → cuddle combo with heart rain (otherwise text animations have a 90-second cooldown)
 - 💞 ❤️ tapback on a message → cute kiss + hearts
 - ⚔️ **Silence:** 3h a sad bear peeks in, 6h **Bubu drags a sword across her front window leaving scratch marks**, 12h a MISSING poster drops in
@@ -78,8 +78,9 @@ Bearly Appart/
 - Snooze from the menu
 
 **App**
-- Menu-bar 💗 (Mac) / tray (Linux) with send, status, notes, snooze, preview-any-animation
-- Settings window with pairing, her phone number, time zones, timings, bear size, and a **✨ Try it** section (works without a tray icon)
+- One window with three tabs: **Send** (buttons with ✓/✗, love note, my status, recent activity), **Animations** (named, with
+  when each plays, and preview), **Settings**. A banner says when and why bears are waiting.
+- Menu-bar 💗 (Mac) / tray (Windows, Linux) with send, status, snooze, and open the window
 - Starts at login. Mac: menu-bar only, no Dock icon. Uses little memory, fine on her 8 GB Mac.
 
 ---
@@ -91,8 +92,13 @@ Your friend's 16 GIFs (`animations/`) were imported with `tools/import-gifs.js`:
   The importer removes it by flood-filling from the edges, so Bubu's white fur is kept.
 - **Format:** all were saved as transparent animated PNGs (smoother edges than GIF), and big ones were shrunk.
 - **Characters:** **brown bear = Dudu, white bear = Bubu**, picked per person in Settings.
-- **Fallback:** where only one character has a pose, hand-drawn placeholder bears fill in. The drawn bears also handle the
-  burger, sleepy, love-note, sign and MISSING-poster scenes.
+- **Second batch (Oct 22):** 8 more GIFs: Bubu dancing (its fading background is cut out pixel by pixel), Bubu clinging
+  to Dudu, "I LOVE YOU", Dudu on Bubu's head with hearts (poke), Dudu tucking Bubu in, both bears from behind, and two with
+  painted backgrounds (Dudu dreaming in bed, the "I Miss You" picture), which are shown framed like little photos.
+  `dudu-kiss.gif` is the same file as `bubu-dudu-kiss.gif`, so it was skipped.
+- **Placeholders:** the hand-drawn bears were replaced wherever a real animation fits (heart, poke, miss you, sleepy,
+  goodnight, generic status, love notes, sad). Only the **hungry** bear and the **MISSING poster** are still drawn.
+  Swap those out when GIFs for them come in.
 
 These are licensed to the two of you through your friend, so keep the app private and don't publish it.
 
@@ -117,7 +123,7 @@ These are licensed to the two of you through your friend, so keep the app privat
 
 ## How it was tested
 
-- **Automated tests (21, all passing):** the trigger logic (cooldowns, combos, keywords, hug timing, silence levels,
+- **Automated tests (26, all passing):** the trigger logic (cooldowns, combos, keywords, hug timing, silence levels,
   morning notes, countdown), iMessage reading against a fake message database (including the hidden-text format newer
   macOS uses), the relay (including catching up on messages sent while offline), the queue and summary, and the pairing codes.
 - **Two copies on your PC** ("you" and "her") through a local stand-in relay: kisses, statuses, iMessages in both
@@ -131,11 +137,20 @@ These are licensed to the two of you through your friend, so keep the app privat
 - **Invisible windows on your Wayland desktop:** the switch to X11 has to be made at launch, not inside the app. The app now
   launches with it and relaunches itself when needed.
 - **GPU crash on your AMD graphics under XWayland:** the GPU is turned off on Linux (the overlay doesn't need it).
-- **No tray icon on stock GNOME:** opening the app again now brings up Settings, which has **✨ Try it** with everything from the menu.
+- **No tray icon on stock GNOME:** opening the app again brings up its window, which has everything from the menu.
 - **Quiet hours blocked previews:** previews now always play.
 - **App-menu launcher couldn't find Node / Electron hadn't downloaded:** the launcher now runs Electron directly, and setup downloads it.
 - **Kit could ship an outdated Mac app:** it now rebuilds every time.
 - **GTK warning every minute:** came from the menu's Ctrl+Q shortcut, which is now removed.
+- **Sending was hit or miss (Oct 22):** a send on a dead connection could hang for minutes with no error (that's why the
+  love-note window took so long to close, and those notes never arrived). Every send now has an 8-second limit and two
+  retries, goes through Electron's network stack, and shows ✓ or ✗. On the Mac, App Nap is now prevented so the
+  menu-bar app doesn't get slowed down in the background.
+- **Bears merged into the wrong scene:** three or more things arriving close together became one "While you were away"
+  bear even when she was right there. Now that only happens after a real wait; a quick burst plays in order, and repeats
+  merge into one ("👉 poked you ×2").
+- **Repeated texts didn't animate:** each text trigger had a 10-minute cooldown, so testing "miss you" twice looked
+  broken. It's now 30 seconds.
 
 ---
 

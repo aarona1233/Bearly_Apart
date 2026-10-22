@@ -35,18 +35,27 @@ function fromNtfy(msg) {
   return ev;
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 class Relay extends EventEmitter {
-  constructor({ getConfig, getSince, setSince, log = console.log }) {
+  // fetch / publishFetch can be swapped: the app publishes through Electron's net.fetch (Chromium's
+  // network stack), which copes better with sleep, Wi-Fi changes and proxies than Node's.
+  constructor({ getConfig, getSince, setSince, log = console.log, fetch = globalThis.fetch, publishFetch = fetch, publishTimeoutMs = 8000, retryDelaysMs = [1000, 3000] }) {
     super();
     this.getConfig = getConfig;
     this.getSince = getSince;
     this.setSince = setSince;
     this.log = log;
+    this.fetch = fetch;
+    this.publishFetch = publishFetch;
+    this.publishTimeoutMs = publishTimeoutMs;
+    this.retryDelaysMs = retryDelaysMs;
     this.abort = null;
     this.stopped = true;
     this.backoff = 1000;
     this.watchdog = null;
     this.connected = false;
+    this.seen = new Set(); // recent message ids, so a reconnect overlap never plays one twice
   }
 
   base() {
@@ -102,7 +111,7 @@ class Relay extends EventEmitter {
     if (!this.getSince()) this.setSince(String(Math.floor(Date.now() / 1000)));
     const url = `${this.base()}/json?since=${encodeURIComponent(this.getSince())}`;
     try {
-      const res = await fetch(url, { headers: this.headers(), signal: ctrl.signal });
+      const res = await this.fetch(url, { headers: this.headers(), signal: ctrl.signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       this.setConnected(true);
       this.backoff = 1000;
@@ -139,25 +148,46 @@ class Relay extends EventEmitter {
       return;
     }
     if (msg.event !== 'message') return;
-    if (msg.id) this.setSince(msg.id);
+    if (msg.id) {
+      if (this.seen.has(msg.id)) return;
+      this.seen.add(msg.id);
+      if (this.seen.size > 200) this.seen.delete(this.seen.values().next().value);
+      this.setSince(msg.id);
+    }
     const ev = fromNtfy(msg);
     if (ev) this.emit('event', ev);
   }
 
+  // Each attempt gets a hard time limit: a request on a dead connection used to hang for minutes,
+  // which looked like "sending is random". Network errors, 429 and 5xx are retried; 4xx are not.
   async publish(ev, text) {
-    const res = await fetch(this.base(), {
-      method: 'POST',
-      headers: {
-        ...this.headers(),
-        Tags: toTags(ev).join(','),
-        Title: 'Bearly Apart',
-        // ntfy headers must be ASCII-safe; the body carries emoji fine.
-        'Content-Type': 'text/plain; charset=utf-8',
-      },
-      body: text || ev.text || ev.type,
-    });
-    if (!res.ok) throw new Error(`publish failed: HTTP ${res.status}`);
-    return res.json().catch(() => ({}));
+    const body = text || ev.text || ev.type;
+    const tags = toTags(ev).join(',');
+    let lastErr;
+    for (let attempt = 0; attempt <= this.retryDelaysMs.length; attempt++) {
+      if (attempt) await sleep(this.retryDelaysMs[attempt - 1]);
+      try {
+        const res = await this.publishFetch(this.base(), {
+          method: 'POST',
+          headers: {
+            ...this.headers(),
+            Tags: tags,
+            Title: 'Bearly Apart',
+            // ntfy headers must be ASCII-safe; the body carries emoji fine.
+            'Content-Type': 'text/plain; charset=utf-8',
+          },
+          body,
+          signal: AbortSignal.timeout(this.publishTimeoutMs),
+        });
+        if (res.ok) return res.json().catch(() => ({}));
+        lastErr = new Error(res.status === 429 ? 'the relay says too many messages, try again in a bit' : `relay answered HTTP ${res.status}`);
+        if (res.status < 500 && res.status !== 429) break;
+      } catch (err) {
+        lastErr = err.name === 'TimeoutError' ? new Error('the relay did not answer in time') : err;
+      }
+      this.log(`[relay] send ${ev.type} failed (${lastErr.message})${attempt < this.retryDelaysMs.length ? ', retrying' : ''}`);
+    }
+    throw lastErr;
   }
 }
 

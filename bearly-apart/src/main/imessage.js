@@ -87,6 +87,8 @@ class IMessageWatcher extends EventEmitter {
     this.log = log;
     this.timer = null;
     this.fsWatcher = null;
+    this.db = null; // one read-only connection, kept open between polls
+    this.query = null;
     this.status = 'stopped'; // stopped | ok | no-access | missing
   }
 
@@ -129,11 +131,10 @@ class IMessageWatcher extends EventEmitter {
     this.timer = setInterval(() => this.poll(), pollMs);
     try {
       // The WAL file changes the moment a message lands, so react faster than the poll.
-      let pending = null;
       this.fsWatcher = fs.watch(path.dirname(this.dbPath), (_, file) => {
         if (file && !String(file).startsWith('chat.db')) return;
-        clearTimeout(pending);
-        pending = setTimeout(() => this.poll(), 250);
+        clearTimeout(this.pending);
+        this.pending = setTimeout(() => this.poll(), 250);
       });
     } catch {
       /* polling alone is fine */
@@ -143,18 +144,34 @@ class IMessageWatcher extends EventEmitter {
   stop() {
     clearInterval(this.timer);
     clearTimeout(this.timer);
+    clearTimeout(this.pending);
     this.fsWatcher?.close();
     this.fsWatcher = null;
+    this.closeDb();
     this.setStatus('stopped');
+  }
+
+  closeDb() {
+    try {
+      this.db?.close();
+    } catch {
+      /* already closed */
+    }
+    this.db = null;
+    this.query = null;
   }
 
   poll() {
     let rows;
     try {
-      const db = this.open();
-      rows = db.prepare(QUERY).all(this.getLastRowId());
-      db.close();
+      if (!this.db) {
+        this.db = this.open();
+        this.query = this.db.prepare(QUERY);
+      }
+      rows = this.query.all(this.getLastRowId());
     } catch (err) {
+      // Reopen next time (Messages may have replaced the file, or access was revoked).
+      this.closeDb();
       this.log(`[imessage] poll failed: ${err.message}`);
       return;
     }

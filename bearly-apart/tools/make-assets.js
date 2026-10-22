@@ -189,20 +189,12 @@ function svg(viewBox, body) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}"><style>${STYLE}</style>${body}</svg>\n`;
 }
 
+// Drawn placeholder bears, only for scenes that don't have a real animation yet (hungry).
+// The rest were replaced by the Bubu & Dudu GIFs; drop a pose here once its scene gets one.
 const POSES = {
   run: { legs: 'run', arm: 'swing' },
-  kiss: { arm: 'down', eyes: 'happy', mouth: 'pucker', extra: ['hearts'] },
-  sword: { legs: 'walk', arm: 'drag', eyes: 'angry', mouth: 'sad', extra: ['sword'] },
   hungry: { arm: 'rub', eyes: 'big', mouth: 'drool' },
   burger: { legs: 'run', arm: 'hold', eyes: 'happy', mouth: 'open', item: 'burger' },
-  sleepy: { legs: 'walk', arm: 'down', eyes: 'closed', mouth: 'o', extra: ['nightcap'] },
-  sad: { arm: 'down', eyes: 'sad', mouth: 'sad' },
-  heart: { arm: 'hold', eyes: 'happy', item: 'heart', extra: ['hearts'] },
-  letter: { legs: 'run', arm: 'hold', eyes: 'happy', mouth: 'open', item: 'letter' },
-  wave: { arm: 'wave', eyes: 'happy', mouth: 'open' },
-  sign: { arm: 'hold', item: 'sign', eyes: 'dot' },
-  poke: { arm: 'point', eyes: 'happy' },
-  love: { arm: 'down', eyes: 'big', mouth: 'open', extra: ['hearts'] },
 };
 
 let count = 0;
@@ -231,23 +223,6 @@ for (const [cname, c] of Object.entries(PALETTES)) {
   );
 }
 
-// Two bears hugging: the first name is the one on the left.
-for (const a of Object.keys(PALETTES)) {
-  for (const b of Object.keys(PALETTES)) {
-    const pa = PALETTES[a];
-    const pb = PALETTES[b];
-    const pose = { arm: 'hug', eyes: 'happy', mouth: 'w' };
-    write(
-      `bears-hug-${a}-${b}.svg`,
-      svg(
-        '0 0 300 200',
-        `<g transform="translate(290,0) scale(-1,1)">${bear(pb, pose)}</g><g transform="translate(10,0)">${bear(pa, pose)}</g>
-        <path class="float" d="${heartPath(150, 36, 26)}" fill="#ff5c8a"/><path class="float d1" d="${heartPath(130, 30, 16)}" fill="#ff8fb1"/><path class="float d2" d="${heartPath(170, 26, 18)}" fill="#ff8fb1"/>`,
-      ),
-    );
-  }
-}
-
 write(
   'heart.svg',
   svg('0 0 120 110', `<path d="${heartPath(60, 58, 112)}" fill="#ff5c8a" stroke="#d63a68" stroke-width="3"/><ellipse cx="36" cy="34" rx="10" ry="6" fill="#fff" opacity=".6" transform="rotate(-30 36 34)"/>`),
@@ -263,7 +238,6 @@ write(
   ),
 );
 write('sparkle.svg', svg('0 0 100 100', `<path d="M50,4 C55,38 62,45 96,50 C62,55 55,62 50,96 C45,62 38,55 4,50 C38,45 45,38 50,4Z" fill="#ffd34d" stroke="#f0a400" stroke-width="2"/>`));
-write('burger.svg', svg('0 0 60 60', item('burger', PALETTES.brown).replace('translate(160,128)', 'translate(30,30)')));
 
 // ---- PNG icons (no image libraries needed) -----------------------------------
 

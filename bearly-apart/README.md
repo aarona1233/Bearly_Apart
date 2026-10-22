@@ -6,7 +6,7 @@ Little bears run across your partner's screen when you text, poke, or go quiet f
 
 - **You text her on iMessage** → a bear runs onto her Mac's screen and kisses it 💋
 - **She texts you** → her Mac notices and sends a bear to *your* computer
-- **"miss you", "love you", "goodnight", "hungry"…** in a text → special animations
+- **"miss you", "kiss" or "hug"** in a text (also 🥺, 😘, 💋, "mwah", 🫂) → that animation. Only these three for now.
 - **Nobody's texted for 3 / 6 / 12 hours** → a sad bear peeks in → a bear drags a sword across her window ⚔️ → a MISSING poster
 - **Status from your phone** (🍔 hungry, 😴 sleepy, 🏋️ gym…) → a bear acts it out
 - **Love notes**: delivered right away, or saved in the "note jar" for her next morning
@@ -24,7 +24,7 @@ Little bears run across your partner's screen when you text, poke, or go quiet f
 - **iMessage**: Apple doesn't let other apps read notifications, but her Mac keeps a local copy of her messages
   (`~/Library/Messages/chat.db`). The Mac app reads it **read-only**, looking only at messages to and from you.
   It never sends iMessages, and the text of her messages never leaves her Mac. Only "she texted" and any matched
-  keyword names (for example `love-you`) are forwarded to you.
+  keyword names (for example `miss-you`) are forwarded to you.
 - **Relay**: [ntfy](https://ntfy.sh), a free push-message service. You don't need an account. The "topic" in your pairing code
   works like a shared password, so keep it between the two of you. What travels over it: event types (kiss, status:hungry, …),
   your names, and love-note text. If you'd rather not use a public server, ntfy can be self-hosted; change the server in `config.json`.
@@ -35,7 +35,7 @@ Little bears run across your partner's screen when you text, poke, or go quiet f
 - **Linux**: unpack `BearlyApart-*-linux-x64.tar.gz` and run `Bearly Apart-linux-x64/bearly-apart`.
   Or, from this folder: `npm install && npm start`.
 - **Windows**: unzip `BearlyApart-*-windows-x64.zip` and run `Bearly Apart.exe`.
-- In the Settings window, enter your name and pick your bear. Click **Copy code** and send her the code (iMessage is fine).
+- In the **Settings** tab, enter your name and pick your bear. Click **Copy code** and send her the code (iMessage is fine).
 
 ### 2. Her MacBook
 1. Unzip `BearlyApart-*-mac-arm64.zip` and drag **Bearly Apart** into **Applications**.
@@ -70,8 +70,15 @@ This lets you send kisses and statuses from your phone, or by saying "Hey Siri, 
 Want a push on your phone when she sends something? Install the **ntfy** app and subscribe to the same topic.
 
 ## Daily use
-- Menu bar / tray 💗: send a kiss, heart, hug, poke, or "miss you", set your status, write a love note,
-  **snooze**, preview every animation, and open Settings.
+- **The Bearly Apart window** (click the tray icon on Windows/Linux, or 💗 → Open Bearly Apart… on the Mac):
+  - **Send**: big buttons for 💋 kiss, 💗 heart, 🫂 hug, 👉 poke and 🥺 miss you, each showing ✓ once it reached the relay
+    (or ✗ with the reason). A **love note** box (send now, or save it for their next morning). **My status**: pick what you're
+    up to; their bear acts it out once and it stays next to your name in their 💗 menu until you change or clear it.
+    **Recent** lists what you sent and what came in.
+  - **Animations**: every animation with a plain name, when it plays, and a ▶ button to preview it on your own screen.
+  - **Settings**: names, bears, time zone, quiet hours, what makes the bears wait, pairing, iPhone shortcut.
+  - A yellow banner says when bears are waiting and why (snoozed, quiet hours, screen sharing, away…).
+- Menu bar / tray 💗: the same sends and statuses, snooze, and open the window. If a send from the menu fails, you get a notification.
 - **Panic button**: ⌘/Ctrl + Alt + Shift + B hides the bears and snoozes for an hour.
 - Bears never play during quiet hours, while the screen is locked or she's away (they wait and replay as a
   "while you were away" summary), while a Focus is on, while Zoom is sharing, or while a full-screen app,
@@ -95,7 +102,7 @@ See [docs/SCENES.md](docs/SCENES.md) for the choreography format.
 
 ## Advanced settings
 `config.json` lives in the profile folder (shown at the bottom of Settings):
-- `keywords`: phrase → keyword name. A scene called `kw-<name>` plays when it appears in a text.
+- `keywords`: phrase → keyword name. `kw-<name>` plays when it appears in a text, or the button scene of the same name (`kiss`, `hug`).
 - `missing`: hours and scene for each "missing you" level.
 - `cooldownSec`, `combo`: how often plain texts animate, and when a burst becomes a combo.
 - `pauseApps`: apps that pause the bears while they're in front.
@@ -112,5 +119,5 @@ npm run send -- --server http://127.0.0.1:8787 --topic ba-… --from her kiss
 npm run assets           # regenerate placeholder bear art
 npm run package          # dist/: mac-arm64 (ad-hoc signed), linux-x64, windows-x64
 ```
-Test hooks: `BA_DEMO=kiss,hug` plays scenes at startup, `BA_CAPTURE=dir` saves overlay frames as PNGs, and
+Test hooks: `BA_DEMO=kiss,hug` plays scenes at startup, `BA_OPEN=send|animations|settings` opens the window on that tab, `BA_CAPTURE=dir` saves overlay frames as PNGs, and
 `BA_CHATDB=path` points the iMessage watcher at a fake database (`node tools/fake-chatdb.js`).

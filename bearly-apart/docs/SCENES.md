@@ -19,7 +19,7 @@ folder overrides them by name, and is reloaded as soon as you save it.
 |---|---|
 | Text (cooldown applies) | `message` |
 | 5 texts in 90s | `combo` |
-| Keyword in a text | `kw-<keyword>` (for example `kw-miss-you`) |
+| Keyword in a text (miss you, kiss, hug) | `kw-<keyword>` if it exists (for example `kw-miss-you`), otherwise the button's scene (`kiss`, `hug`) |
 | ❤️ tapback | `tapback-love` (also `tapback-laugh` and others if you add them) |
 | Sent from the menu or phone | `kiss`, `heart`, `hug`, `poke`, `miss-you` |
 | Status | `status-<name>` if it exists, otherwise `status` |
@@ -40,7 +40,8 @@ An actor's position is **its feet**: `x` is the horizontal center and `y` is the
 
 ## Actor options
 `asset`, `size` (px at a ~900pt-tall screen), `at`, `face` (`left`/`right`), `faces: "left"` if your GIF's character
-faces left, `hidden: true` (appears on a `show` step), `pokeable: true` (clicking it sends a poke back).
+faces left, `hidden: true` (appears on a `show` step), `pokeable: true` (clicking it sends a poke back), `frame: true` (for a GIF
+that keeps its painted background: shown as a little picture with a white border).
 
 ## Steps
 | `do` | Options | |

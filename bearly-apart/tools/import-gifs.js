@@ -1,7 +1,8 @@
 // Imports GIFs into assets/ as transparent animated PNGs (APNG):
 //   - removes solid backgrounds (flood-fills from the edges, so white fur inside an outline is kept)
 //   - shrinks big ones to at most MAX px to keep memory low on an 8 GB Mac
-// Usage: npx electron tools/import-gifs.js <folder-with-gifs>
+// Usage: npx electron tools/import-gifs.js <folder-with-gifs> [--force]
+// Files already in assets/ are skipped unless --force is given.
 // The name map below says which GIF becomes which asset; scenes.json refers to the new names.
 const { app, BrowserWindow, nativeImage } = require('electron');
 const fs = require('fs');
@@ -9,32 +10,39 @@ const path = require('path');
 const zlib = require('zlib');
 
 const MAX = 320;
-// Textured, many-frame GIFs get smaller to keep file size and memory down.
-const MAX_FOR = { 'Dudu-idle.gif': 200 };
 const OUT = path.join(__dirname, '..', 'assets');
 
-// source file → asset name. "brown" = Dudu, "cream" = Bubu (matches the character setting).
+// source file → asset name, or { name, ...options }. "brown" = Dudu, "cream" = Bubu (matches the character setting).
+//   max: size limit in px   keep: leave the background (a painted scene; shown framed)
+//   gradient: the background fades between colours, so grow the cut-out pixel by pixel
+//   halve: drop every other frame (long GIFs; the timing is kept)
 const MAP = {
   'Dudu-hello-cute.gif': 'dudu-wave.png',
   'dudu-happy.gif': 'dudu-happy.png',
   'dudu-dudu-cry.gif': 'dudu-cry.png',
-  'Dudu-idle.gif': 'dudu-idle.png',
   'Dudu-working.gif': 'dudu-working.png',
   'Bubu-happy.gif': 'bubu-happy.png',
   'Bubu-attack.gif': 'bubu-sword.png',
-  'Bubu-Attack-cute.gif': 'bubu-pounce.png',
   'bubu-cute-attack.gif': 'pair-tackle-hug.png',
   'Bubu -Love-Kiss.gif': 'pair-love-kiss.png',
   'bubu-dudu-cute-kiss.gif': 'pair-cute-kiss.png',
-  'bubu-dudu-kiss.gif': 'pair-kiss.png',
+  'bubu-dudu-kiss.gif': 'pair-kiss.png', // dudu-kiss.gif is the same file
   'bubu-dudu-hug.gif': 'pair-hug.png',
   'bubu-dudu-relax.gif': 'pair-relax.png',
   'bubu-dudu-sseeyall.gif': 'dudu-bath.png',
   'bubu-rub-bubu-love-dudu.gif': 'pair-cuddle.png',
+  'bubu-dudu-bubu-dance.gif': { name: 'bubu-dance.png', max: 240, gradient: true, halve: true },
+  'bubu-dudu-i want you.gif': 'pair-cling.png',
+  'bubu-dudu-ilove you.gif': 'pair-i-love-you.png',
+  'bubu-dudu-poke.gif': 'pair-poke.png',
+  'bubu-dudu.gif': 'pair-tuck-in.png',
+  'bubududu-sleep.gif': { name: 'dudu-dream.png', keep: true },
+  'emrananhret.gif': 'pair-together.png',
+  'i-miss-you.gif': { name: 'card-miss-you.png', keep: true, max: 300 },
 };
 
 // Runs in the hidden page: decode every frame with WebCodecs, knock out the background, scale down.
-const DECODE = `async (b64, max) => {
+const DECODE = `async (b64, max, opts) => {
   const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
   const dec = new ImageDecoder({ data: bytes, type: 'image/gif' });
   await dec.tracks.ready;
@@ -49,6 +57,11 @@ const DECODE = `async (b64, max) => {
   let keyed = false;
   for (let i = 0; i < count; i++) {
     const { image } = await dec.decode({ frameIndex: i });
+    if (opts.halve && i % 2) {
+      if (frames.length) frames[frames.length - 1].delay += Math.max(20, Math.round((image.duration || 100000) / 1000));
+      image.close();
+      continue;
+    }
     sctx.clearRect(0, 0, W, H);
     sctx.drawImage(image, 0, 0);
     const delay = Math.max(20, Math.round((image.duration || 100000) / 1000));
@@ -67,30 +80,32 @@ const DECODE = `async (b64, max) => {
     }
     let best = null, n = 0;
     for (const [k, c] of counts) if (c > n) { best = k; n = c; }
-    if (best !== null && n > border.length * 0.25) {
+    if (!opts.keep && best !== null && n > border.length * 0.25) {
       keyed = true;
       const br = (best >> 10) << 3, bg = ((best >> 5) & 31) << 3, bb = (best & 31) << 3;
       const dist = (p) => Math.hypot(d[p * 4] - br, d[p * 4 + 1] - bg, d[p * 4 + 2] - bb);
       const seen = new Uint8Array(W * H);
-      const stack = border.filter(p => dist(p) < 48);
+      const step = (a, b) => Math.hypot(d[a * 4] - d[b * 4], d[a * 4 + 1] - d[b * 4 + 1], d[a * 4 + 2] - d[b * 4 + 2]);
+      const ok = opts.gradient ? (p, from) => dist(p) < 120 && (from < 0 || step(p, from) < 14) : (p) => dist(p) < 48;
+      const stack = border.filter(p => ok(p, -1)).map(p => [p, -1]);
       while (stack.length) {
-        const p = stack.pop();
+        const [p, from] = stack.pop();
         if (seen[p]) continue;
+        if (!ok(p, from)) continue;
         seen[p] = 1;
-        if (dist(p) >= 48) continue;
-        d[p * 4 + 3] = 0;
         const x = p % W, y = (p / W) | 0;
-        if (x > 0) stack.push(p - 1);
-        if (x < W - 1) stack.push(p + 1);
-        if (y > 0) stack.push(p - W);
-        if (y < H - 1) stack.push(p + W);
+        if (x > 0) stack.push([p - 1, p]);
+        if (x < W - 1) stack.push([p + 1, p]);
+        if (y > 0) stack.push([p - W, p]);
+        if (y < H - 1) stack.push([p + W, p]);
       }
+      for (let p = 0; p < W * H; p++) if (seen[p]) d[p * 4 + 3] = 0;
       // Soften the cut edge: background-ish pixels touching removed ones become half transparent.
       for (let p = 0; p < W * H; p++) {
         if (!d[p * 4 + 3]) continue;
         const x = p % W, y = (p / W) | 0;
         const near = (x > 0 && !d[(p - 1) * 4 + 3]) || (x < W - 1 && !d[(p + 1) * 4 + 3]) || (y > 0 && !d[(p - W) * 4 + 3]) || (y < H - 1 && !d[(p + W) * 4 + 3]);
-        if (near && dist(p) < 90) d[p * 4 + 3] = Math.round(255 * Math.min(1, (dist(p) - 48) / 42 + 0.25));
+        if (near && !opts.gradient && dist(p) < 90) d[p * 4 + 3] = Math.round(255 * Math.min(1, (dist(p) - 48) / 42 + 0.25));
       }
       sctx.putImageData(img, 0, 0);
     }
@@ -180,14 +195,17 @@ app.whenReady().then(async () => {
   const win = new BrowserWindow({ show: false, webPreferences: { offscreen: true } });
   // WebCodecs (ImageDecoder) only exists in secure contexts; a local file page counts.
   await win.loadFile(path.join(__dirname, '..', 'src', 'overlay', 'index.html'));
-  for (const [src, name] of Object.entries(MAP)) {
+  const force = process.argv.includes('--force');
+  for (const [src, entry] of Object.entries(MAP)) {
+    const { name, max = MAX, ...opts } = typeof entry === 'string' ? { name: entry } : entry;
     const file = path.join(dir, src);
     if (!fs.existsSync(file)) {
       console.log(`- skip ${src} (not found)`);
       continue;
     }
+    if (!force && fs.existsSync(path.join(OUT, name))) continue;
     const b64 = fs.readFileSync(file).toString('base64');
-    const r = await win.webContents.executeJavaScript(`(${DECODE})(${JSON.stringify(b64)}, ${MAX_FOR[src] || MAX})`);
+    const r = await win.webContents.executeJavaScript(`(${DECODE})(${JSON.stringify(b64)}, ${max}, ${JSON.stringify(opts)})`);
     const frames = r.frames.map((f) => {
       const img = nativeImage.createFromBuffer(Buffer.from(f.png, 'base64'));
       return { delay: f.delay, raw: scanlines(img.toBitmap(), r.w, r.h) };

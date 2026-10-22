@@ -1,0 +1,194 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src ba: data:" />
+    <title>Bearly Apart</title>
+    <link rel="stylesheet" href="app.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="who">
+        <span class="avatar">🐻</span>
+        <div>
+          <b id="partner-name">Bearly Apart</b>
+          <small id="partner-sub"></small>
+        </div>
+      </div>
+      <span class="conn" id="conn"></span>
+    </header>
+
+    <nav class="tabs">
+      <button data-tab="send">💌 Send</button>
+      <button data-tab="animations">🎬 Animations</button>
+      <button data-tab="settings">⚙️ Settings</button>
+    </nav>
+
+    <div class="banner" id="banner" hidden></div>
+
+    <main>
+      <!-- ============================== SEND ============================== -->
+      <section data-page="send">
+        <div class="card">
+          <h2>Send a little something</h2>
+          <p class="hint" id="send-hint"></p>
+          <div class="send-grid" id="send-grid"></div>
+        </div>
+
+        <div class="card">
+          <h2>💌 Love note</h2>
+          <textarea id="note" rows="4" maxlength="2000" placeholder="I can't stop thinking about you…"></textarea>
+          <div class="actions">
+            <button id="note-send">Send now 💕</button>
+            <button class="ghost" id="note-later">Save for their morning 🫙</button>
+          </div>
+          <p class="hint" id="note-hint"></p>
+        </div>
+
+        <div class="card">
+          <h2>📣 My status</h2>
+          <p class="hint" id="status-hint"></p>
+          <div class="mine">
+            <span id="my-status"></span>
+            <button class="ghost small" id="status-clear" hidden>Clear</button>
+          </div>
+          <div class="chips" id="status-chips"></div>
+        </div>
+
+        <div class="card">
+          <h2>Recent</h2>
+          <p class="hint">What you sent (✓ means it reached the relay) and what came in. Only this session.</p>
+          <ul class="activity" id="activity"></ul>
+        </div>
+      </section>
+
+      <!-- ============================ ANIMATIONS =========================== -->
+      <section data-page="animations">
+        <div class="card">
+          <p class="hint">Press ▶ to play one on <b>this</b> screen. It's only a preview: nothing is sent.</p>
+          <div class="gallery" id="gallery"></div>
+        </div>
+      </section>
+
+      <!-- ============================= SETTINGS =========================== -->
+      <section data-page="settings">
+        <div class="card">
+          <h2>You</h2>
+          <div class="row">
+            <div>
+              <label for="me-name">Your name</label>
+              <input id="me-name" placeholder="e.g. Aaron" />
+            </div>
+            <div>
+              <label for="me-character">Your bear</label>
+              <select id="me-character">
+                <option value="brown">Dudu (brown bear)</option>
+                <option value="cream">Bubu (white bear)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Them</h2>
+          <div class="row">
+            <div>
+              <label for="partner-name-input">Their name</label>
+              <input id="partner-name-input" />
+            </div>
+            <div>
+              <label for="partner-character">Their bear</label>
+              <select id="partner-character">
+                <option value="brown">Dudu (brown bear)</option>
+                <option value="cream">Bubu (white bear)</option>
+              </select>
+            </div>
+          </div>
+          <label for="partner-tz">Their time zone <small>so the bears don't nag them while they sleep</small></label>
+          <select id="partner-tz"></select>
+          <div id="imessage-block">
+            <label for="handles">Their iMessage number(s) / email(s) <small>as they show in Messages on this Mac, one per line</small></label>
+            <textarea id="handles" rows="2" placeholder="+1 555 123 4567"></textarea>
+            <div id="fda-warn" class="warn" hidden>
+              To see your texts, Bearly Apart needs <b>Full Disk Access</b>: System Settings → Privacy &amp; Security → Full Disk Access → turn on “Bearly Apart”, then quit and reopen it.
+              <div class="actions"><button class="ghost" id="open-fda">Open that setting</button></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>When bears play</h2>
+          <div class="row">
+            <div>
+              <label for="quiet-start">Quiet hours from</label>
+              <input id="quiet-start" type="time" />
+            </div>
+            <div>
+              <label for="quiet-end">until</label>
+              <input id="quiet-end" type="time" />
+            </div>
+          </div>
+          <p class="hint">Anything that arrives while bears can't play waits and shows up later as one “while you were away” bear.</p>
+          <label class="check"><input type="checkbox" id="calls" /> Wait while on a call or sharing the screen (Zoom, Teams, FaceTime…)</label>
+          <label class="check"><input type="checkbox" id="fullscreen" /> Wait while a full-screen app or slideshow is in front</label>
+          <label class="check"><input type="checkbox" id="focus" /> Wait while a Focus / Do Not Disturb is on</label>
+          <label for="scale">Bear size</label>
+          <input id="scale" type="range" min="0.6" max="1.8" step="0.1" />
+          <div class="row">
+            <div>
+              <label for="cooldown">Plain texts animate at most every <small>(seconds)</small></label>
+              <input id="cooldown" type="number" min="0" />
+            </div>
+            <div>
+              <label for="visit">Next visit 🛫 <small>for the countdown</small></label>
+              <input id="visit" type="date" />
+            </div>
+          </div>
+          <label>“Missing you” bears after this many hours without a text <small>peek, sword, poster</small></label>
+          <div class="row">
+            <input id="miss-0" type="number" min="1" step="0.5" />
+            <input id="miss-1" type="number" min="1" step="0.5" />
+            <input id="miss-2" type="number" min="1" step="0.5" />
+          </div>
+          <label class="check"><input type="checkbox" id="login" /> Start when the computer starts</label>
+        </div>
+
+        <details class="card">
+          <summary id="pair-summary">Pairing</summary>
+          <label>Your pairing code <small>send this to them; it works like a key, so keep it between you two</small></label>
+          <code class="pair" id="my-code"></code>
+          <div class="actions"><button class="ghost" id="copy-code">Copy code</button></div>
+          <label for="their-code">Or paste their code</label>
+          <input id="their-code" placeholder="BA1-…" />
+          <div class="actions">
+            <button id="pair">Pair</button>
+            <button class="ghost" id="reset">Start over with a new code</button>
+          </div>
+        </details>
+
+        <details class="card">
+          <summary>📱 iPhone shortcut</summary>
+          <p class="hint">Send kisses and statuses from your phone. In the Shortcuts app use <b>Get Contents of URL</b> → Method <b>POST</b>, this URL, a header named <b>Tags</b> with one of the values below, and any text as the body. Full walkthrough in the README.</p>
+          <label>URL</label>
+          <code class="pair" id="sc-url"></code>
+          <label>Tags header for each button</label>
+          <code class="pair pre" id="sc-tags"></code>
+        </details>
+
+        <details class="card">
+          <summary>Advanced</summary>
+          <p class="hint">Panic button: ⌘/Ctrl + Alt + Shift + B hides the bears and snoozes for an hour.</p>
+          <p class="hint">More settings (keywords, which apps pause the bears…) live in <code id="profile"></code>/config.json.</p>
+          <div class="actions">
+            <button class="ghost" id="open-profile">Open settings folder</button>
+            <button class="ghost" id="open-gifs">Open custom GIF folder</button>
+          </div>
+        </details>
+
+        <div class="savebar"><button id="save">Save settings</button></div>
+      </section>
+    </main>
+    <div class="toast" id="toast"></div>
+    <script src="app.js"></script>
+  </body>
+</html>

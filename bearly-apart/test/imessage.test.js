@@ -22,9 +22,10 @@ test('normalizes phone numbers and emails', () => {
 test('keywords match whole words and emoji only', () => {
   const kw = DEFAULT_CONFIG.keywords;
   assert.deepStrictEqual(matchKeywords('I MISS YOU', kw), ['miss-you']);
-  assert.deepStrictEqual(matchKeywords('gn babe', kw), ['goodnight']);
-  assert.deepStrictEqual(matchKeywords('again and again', kw), []); // "gn" inside a word
-  assert.deepStrictEqual(matchKeywords('ok ❤️', kw), ['love-you']);
+  assert.deepStrictEqual(matchKeywords('I want to hug you', kw), ['hug']);
+  assert.deepStrictEqual(matchKeywords('sending kisses 😘', kw), ['kiss']);
+  assert.deepStrictEqual(matchKeywords('thug life, kissimmee', kw), []); // "hug"/"kiss" inside a word
+  assert.deepStrictEqual(matchKeywords('love you, goodnight', kw), []); // only miss you / kiss / hug for now
 });
 
 test('apple dates convert', () => {
@@ -46,7 +47,7 @@ test('watcher reports only the partner, both directions, skips history', async (
   assert.strictEqual(w.status, 'ok');
   insert(db, { handle: '+15551234567', text: 'I miss you' });
   insert(db, { handle: '+19998887777', text: 'someone else' });
-  insert(db, { handle: '+15551234567', body: attributedBody('goodnight love') });
+  insert(db, { handle: '+15551234567', body: attributedBody('big hug for you') });
   insert(db, { handle: '+15551234567', text: 'hehe', fromMe: 1 });
   insert(db, { handle: '+15551234567', assoc: 2000 });
   insert(db, { handle: '+15551234567', assoc: 3000 });
@@ -56,7 +57,7 @@ test('watcher reports only the partner, both directions, skips history', async (
     got.map((m) => [m.direction, m.type, m.tapback || m.keywords.join()]),
     [
       ['in', 'message', 'miss-you'],
-      ['in', 'message', 'goodnight'],
+      ['in', 'message', 'hug'],
       ['out', 'message', ''],
       ['in', 'tapback', 'love'],
     ],
