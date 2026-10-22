@@ -1,0 +1,1368 @@
+{
+  "_comment": "Scene choreography. {pc} = their bear, {mc} = your bear (brown = Dudu, cream = Bubu). Names in _aliases resolve to real files. See docs/SCENES.md.",
+  "_aliases": {
+    "happy-brown": "dudu-happy.png",
+    "happy-cream": "bubu-happy.png",
+    "wave-brown": "dudu-wave.png",
+    "wave-cream": "bubu-happy.png",
+    "sad-brown": "dudu-cry.png",
+    "sad-cream": "bear-sad-cream.svg",
+    "idle-brown": "dudu-idle.png",
+    "idle-cream": "bubu-happy.png"
+  },
+  "message": {
+    "actors": [
+      {
+        "asset": "happy-{pc}",
+        "size": 170,
+        "at": [
+          "left-off",
+          "bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "x": "center",
+            "ms": 1700
+          },
+          {
+            "do": "asset",
+            "src": "pair-love-kiss.png"
+          },
+          {
+            "do": "zoom",
+            "scale": 3.2,
+            "ms": 450,
+            "ease": "ease-in"
+          },
+          {
+            "do": "stamp",
+            "src": "lips.svg",
+            "size": 210,
+            "life": 3200,
+            "atY": 0.5
+          },
+          {
+            "do": "wait",
+            "ms": 500
+          },
+          {
+            "do": "zoom",
+            "scale": 1,
+            "ms": 380
+          },
+          {
+            "do": "asset",
+            "src": "happy-{pc}"
+          },
+          {
+            "do": "move",
+            "x": "right-off",
+            "ms": 1500
+          }
+        ]
+      }
+    ]
+  },
+  "combo": {
+    "caption": "{partner} can't stop texting you 💕",
+    "rain": {
+      "src": "heart.svg",
+      "count": 26,
+      "ms": 4200
+    },
+    "actors": [
+      {
+        "asset": "pair-cuddle.png",
+        "size": 230,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "you + me 💞",
+            "ms": 2600
+          },
+          {
+            "do": "wait",
+            "ms": 3200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "kw-miss-you": {
+    "actors": [
+      {
+        "asset": "sad-{pc}",
+        "size": 180,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 700,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "I miss you sooo much 🥺",
+            "ms": 2600,
+            "block": true
+          },
+          {
+            "do": "asset",
+            "src": "pair-cuddle.png"
+          },
+          {
+            "do": "rain",
+            "src": "heart.svg",
+            "count": 12,
+            "ms": 2600
+          },
+          {
+            "do": "wait",
+            "ms": 2400
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "miss-you": {
+    "caption": "{partner} misses you 🥺",
+    "actors": [
+      {
+        "asset": "sad-{pc}",
+        "size": 180,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "come back to me 🥺",
+            "ms": 2400
+          },
+          {
+            "do": "wait",
+            "ms": 3000
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "kw-love-you": {
+    "rain": {
+      "src": "heart.svg",
+      "count": 34,
+      "ms": 4500
+    },
+    "actors": [
+      {
+        "asset": "pair-love-kiss.png",
+        "size": 240,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "I love you!!! 💗",
+            "ms": 3000
+          },
+          {
+            "do": "jump",
+            "times": 2,
+            "height": 0.12
+          },
+          {
+            "do": "wait",
+            "ms": 2400
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "kw-goodnight": {
+    "actors": [
+      {
+        "asset": "bear-sleepy-{pc}.svg",
+        "size": 160,
+        "at": [
+          "right-off",
+          "bottom"
+        ],
+        "face": "left",
+        "steps": [
+          {
+            "do": "move",
+            "x": "70%",
+            "ms": 3200
+          },
+          {
+            "do": "say",
+            "text": "goodnight my love 🌙",
+            "ms": 3000,
+            "block": true
+          },
+          {
+            "do": "fade",
+            "ms": 1200
+          }
+        ]
+      }
+    ]
+  },
+  "kw-good-morning": {
+    "actors": [
+      {
+        "asset": "wave-{pc}",
+        "size": 190,
+        "at": [
+          "left+100",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "good morning ☀️",
+            "ms": 2600
+          },
+          {
+            "do": "wait",
+            "ms": 2800
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "kw-hungry": {
+    "actors": [
+      {
+        "asset": "bear-hungry-{pc}.svg",
+        "size": 160,
+        "at": [
+          "left-off",
+          "bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "x": "center",
+            "ms": 1600
+          },
+          {
+            "do": "say",
+            "text": "so hungry… 🥺",
+            "ms": 2000,
+            "block": true
+          },
+          {
+            "do": "asset",
+            "src": "bear-burger-{pc}.svg"
+          },
+          {
+            "do": "jump"
+          },
+          {
+            "do": "move",
+            "x": "right-off",
+            "ms": 900
+          }
+        ]
+      }
+    ]
+  },
+  "tapback-love": {
+    "rain": {
+      "src": "heart.svg",
+      "count": 18,
+      "ms": 3200
+    },
+    "actors": [
+      {
+        "asset": "pair-cute-kiss.png",
+        "size": 200,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 2400
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "kiss": {
+    "caption": "{partner} sent you a kiss 💋",
+    "actors": [
+      {
+        "asset": "pair-kiss.png",
+        "size": 220,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 900
+          },
+          {
+            "do": "zoom",
+            "scale": 3.6,
+            "ms": 600,
+            "ease": "ease-in"
+          },
+          {
+            "do": "stamp",
+            "src": "lips.svg",
+            "size": 300,
+            "life": 3800,
+            "atY": 0.45
+          },
+          {
+            "do": "wait",
+            "ms": 400
+          },
+          {
+            "do": "zoom",
+            "scale": 1,
+            "ms": 450
+          },
+          {
+            "do": "say",
+            "text": "mwah 💋",
+            "ms": 1500
+          },
+          {
+            "do": "wait",
+            "ms": 1300
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "heart": {
+    "caption": "{partner} sent you a heart 💗",
+    "sub": "send one back quick for a hug!",
+    "actors": [
+      {
+        "asset": "heart.svg",
+        "size": 200,
+        "at": [
+          "center",
+          "center"
+        ],
+        "hidden": true,
+        "steps": [
+          {
+            "do": "show"
+          },
+          {
+            "do": "jump",
+            "times": 3,
+            "height": 0.12
+          },
+          {
+            "do": "wait",
+            "ms": 800
+          },
+          {
+            "do": "fade",
+            "ms": 600
+          }
+        ]
+      }
+    ]
+  },
+  "hug": {
+    "caption": "{caption}",
+    "rain": {
+      "src": "heart.svg",
+      "count": 22,
+      "ms": 4500
+    },
+    "actors": [
+      {
+        "asset": "happy-{pc}",
+        "size": 170,
+        "at": [
+          "left-off",
+          "bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "x": "center-80",
+            "ms": 1600
+          },
+          {
+            "do": "fade",
+            "ms": 150
+          }
+        ]
+      },
+      {
+        "asset": "happy-{mc}",
+        "size": 170,
+        "at": [
+          "right-off",
+          "bottom"
+        ],
+        "face": "left",
+        "steps": [
+          {
+            "do": "move",
+            "x": "center+80",
+            "ms": 1600
+          },
+          {
+            "do": "fade",
+            "ms": 150
+          }
+        ]
+      },
+      {
+        "asset": "pair-hug.png",
+        "size": 250,
+        "at": [
+          "center",
+          "bottom"
+        ],
+        "hidden": true,
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "wait",
+            "ms": 1650
+          },
+          {
+            "do": "show",
+            "ms": 250
+          },
+          {
+            "do": "wait",
+            "ms": 3400
+          },
+          {
+            "do": "fade",
+            "ms": 700
+          }
+        ]
+      }
+    ]
+  },
+  "poke": {
+    "actors": [
+      {
+        "asset": "bubu-pounce.png",
+        "size": 190,
+        "at": [
+          "right-off",
+          "bottom"
+        ],
+        "face": "left",
+        "faces": "left",
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "x": "right",
+            "ms": 600,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "boop! 👉",
+            "ms": 1500
+          },
+          {
+            "do": "wait",
+            "ms": 1800
+          },
+          {
+            "do": "move",
+            "x": "right-off",
+            "ms": 500,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "status-hungry": {
+    "actors": [
+      {
+        "asset": "bear-hungry-{pc}.svg",
+        "size": 160,
+        "at": [
+          "left-off",
+          "bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "asset",
+            "src": "bear-run-{pc}.svg"
+          },
+          {
+            "do": "move",
+            "x": "center",
+            "ms": 1500
+          },
+          {
+            "do": "asset",
+            "src": "bear-hungry-{pc}.svg"
+          },
+          {
+            "do": "say",
+            "text": "I'm hungryyy 🥺🍔",
+            "ms": 2400,
+            "block": true
+          },
+          {
+            "do": "wait",
+            "ms": 500
+          },
+          {
+            "do": "asset",
+            "src": "bear-burger-{pc}.svg"
+          },
+          {
+            "do": "jump",
+            "height": 0.35
+          },
+          {
+            "do": "say",
+            "text": "yoink!",
+            "ms": 900
+          },
+          {
+            "do": "move",
+            "x": "right-off",
+            "ms": 800
+          }
+        ]
+      }
+    ]
+  },
+  "status-sleepy": {
+    "actors": [
+      {
+        "asset": "bear-sleepy-{pc}.svg",
+        "size": 160,
+        "at": [
+          "right-off",
+          "bottom"
+        ],
+        "face": "left",
+        "steps": [
+          {
+            "do": "move",
+            "x": "75%",
+            "ms": 3000
+          },
+          {
+            "do": "say",
+            "text": "sooo sleepy… 😴",
+            "ms": 2800,
+            "block": true
+          },
+          {
+            "do": "fade",
+            "ms": 1200
+          }
+        ]
+      }
+    ]
+  },
+  "status-goodnight": {
+    "caption": "{partner} went to bed 🌙",
+    "sub": "sweet dreams",
+    "actors": [
+      {
+        "asset": "bear-sleepy-{pc}.svg",
+        "size": 160,
+        "at": [
+          "right-off",
+          "bottom"
+        ],
+        "face": "left",
+        "steps": [
+          {
+            "do": "move",
+            "x": "75%",
+            "ms": 3000
+          },
+          {
+            "do": "say",
+            "text": "goodnight, love you 💤",
+            "ms": 2800,
+            "block": true
+          },
+          {
+            "do": "fade",
+            "ms": 1200
+          }
+        ]
+      }
+    ]
+  },
+  "status-sad": {
+    "actors": [
+      {
+        "asset": "sad-{pc}",
+        "size": 190,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "I need a hug 🥺",
+            "ms": 3000
+          },
+          {
+            "do": "wait",
+            "ms": 3400
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "status": {
+    "actors": [
+      {
+        "asset": "bear-run-{pc}.svg",
+        "size": 150,
+        "at": [
+          "left-off",
+          "bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "x": "30%",
+            "ms": 1300
+          },
+          {
+            "do": "asset",
+            "src": "bear-sign-{pc}.svg"
+          },
+          {
+            "do": "say",
+            "text": "{emoji} {partner} {statusLabel}",
+            "ms": 2800,
+            "block": true
+          },
+          {
+            "do": "asset",
+            "src": "bear-run-{pc}.svg"
+          },
+          {
+            "do": "move",
+            "x": "right-off",
+            "ms": 1800
+          }
+        ]
+      }
+    ]
+  },
+  "note": {
+    "actors": [
+      {
+        "asset": "bear-letter-{pc}.svg",
+        "size": 150,
+        "at": [
+          "left-off",
+          "bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "x": "center",
+            "ms": 1600
+          },
+          {
+            "do": "asset",
+            "src": "bear-wave-{pc}.svg"
+          },
+          {
+            "do": "say",
+            "text": "a note for you! 💌",
+            "ms": 1800
+          },
+          {
+            "do": "card",
+            "text": "{note}",
+            "ms": 12000
+          },
+          {
+            "do": "wait",
+            "ms": 2200
+          },
+          {
+            "do": "asset",
+            "src": "bear-run-{pc}.svg"
+          },
+          {
+            "do": "move",
+            "x": "right-off",
+            "ms": 1500
+          }
+        ]
+      }
+    ]
+  },
+  "jar": {
+    "actors": [
+      {
+        "asset": "bear-letter-{pc}.svg",
+        "size": 120,
+        "at": [
+          "right-off",
+          "bottom"
+        ],
+        "face": "left",
+        "steps": [
+          {
+            "do": "move",
+            "x": "right",
+            "ms": 700
+          },
+          {
+            "do": "say",
+            "text": "a secret note for tomorrow morning 🫙🤫",
+            "ms": 2400,
+            "block": true
+          },
+          {
+            "do": "move",
+            "x": "right-off",
+            "ms": 700
+          }
+        ]
+      }
+    ]
+  },
+  "hello": {
+    "caption": "Paired with {partner}! 💞",
+    "rain": {
+      "src": "heart.svg",
+      "count": 14,
+      "ms": 3000
+    },
+    "actors": [
+      {
+        "asset": "wave-{pc}",
+        "size": 200,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "hiii 👋",
+            "ms": 2200
+          },
+          {
+            "do": "wait",
+            "ms": 2400
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "missing-peek": {
+    "actors": [
+      {
+        "asset": "sad-{pc}",
+        "size": 150,
+        "at": [
+          "right-90",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom+70",
+            "ms": 900,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "it's been {hours} hours… 🥺",
+            "ms": 3000,
+            "block": true
+          },
+          {
+            "do": "wait",
+            "ms": 600
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 900,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "missing-sword": {
+    "actors": [
+      {
+        "asset": "bubu-sword.png",
+        "size": 200,
+        "at": [
+          "win.left+40",
+          "win.top"
+        ],
+        "hidden": true,
+        "steps": [
+          {
+            "do": "show",
+            "ms": 300
+          },
+          {
+            "do": "say",
+            "text": "{hours} hours without a text?! 😤⚔️",
+            "ms": 3000
+          },
+          {
+            "do": "move",
+            "x": "win.right",
+            "ms": 5200,
+            "hop": false,
+            "scratch": true
+          },
+          {
+            "do": "say",
+            "text": "hmph.",
+            "ms": 1200,
+            "block": true
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 700,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "missing-poster": {
+    "caption": "Have you seen this bear?",
+    "sub": "last text: {hours} hours ago",
+    "captionMs": 6000,
+    "actors": [
+      {
+        "asset": "poster-{pc}.svg",
+        "size": 300,
+        "at": [
+          "center",
+          "off-top"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "center+60",
+            "ms": 900,
+            "hop": false,
+            "ease": "cubic-bezier(.3,1.4,.5,1)"
+          },
+          {
+            "do": "shake",
+            "ms": 600
+          },
+          {
+            "do": "wait",
+            "ms": 4200
+          },
+          {
+            "do": "fade",
+            "ms": 800
+          }
+        ]
+      }
+    ]
+  },
+  "good-morning": {
+    "caption": "Good morning ☀️",
+    "sub": "{countdown}",
+    "captionMs": 6000,
+    "actors": [
+      {
+        "asset": "wave-{pc}",
+        "size": 190,
+        "at": [
+          "left+40",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 700,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "good morning beautiful 💕",
+            "ms": 2500
+          },
+          {
+            "do": "card",
+            "text": "{note}",
+            "ms": 14000,
+            "if": "note"
+          },
+          {
+            "do": "wait",
+            "ms": 3000
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 700,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "countdown": {
+    "caption": "{countdown}",
+    "captionMs": 7000,
+    "rain": {
+      "src": "sparkle.svg",
+      "count": 30,
+      "ms": 5000,
+      "size": 40
+    },
+    "actors": [
+      {
+        "asset": "pair-tackle-hug.png",
+        "size": 260,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 800,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "jump",
+            "times": 4,
+            "height": 0.1,
+            "ms": 500
+          },
+          {
+            "do": "card",
+            "text": "{note}",
+            "ms": 14000,
+            "if": "note"
+          },
+          {
+            "do": "wait",
+            "ms": 1500
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 700,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "status-work": {
+    "actors": [
+      {
+        "asset": "dudu-working.png",
+        "size": 220,
+        "at": [
+          "right-150",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "{emoji} {partner} {statusLabel}",
+            "ms": 3200
+          },
+          {
+            "do": "wait",
+            "ms": 3600
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "status-class": {
+    "actors": [
+      {
+        "asset": "dudu-working.png",
+        "size": 220,
+        "at": [
+          "right-150",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "{emoji} {partner} {statusLabel}",
+            "ms": 3200
+          },
+          {
+            "do": "wait",
+            "ms": 3600
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "status-bath": {
+    "actors": [
+      {
+        "asset": "dudu-bath.png",
+        "size": 220,
+        "at": [
+          "left+150",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "🛁 bath time!",
+            "ms": 2600
+          },
+          {
+            "do": "wait",
+            "ms": 3000
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "status-free": {
+    "actors": [
+      {
+        "asset": "pair-relax.png",
+        "size": 230,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "{emoji} {partner} {statusLabel}",
+            "ms": 3000
+          },
+          {
+            "do": "wait",
+            "ms": 3400
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "status-home": {
+    "actors": [
+      {
+        "asset": "pair-relax.png",
+        "size": 230,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "{emoji} {partner} {statusLabel}",
+            "ms": 3000
+          },
+          {
+            "do": "wait",
+            "ms": 3400
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "status-thinking": {
+    "actors": [
+      {
+        "asset": "idle-{pc}",
+        "size": 200,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "thinking about you 💭",
+            "ms": 3000
+          },
+          {
+            "do": "wait",
+            "ms": 3200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  }
+}

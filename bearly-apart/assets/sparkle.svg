@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><style>
+.leg,.arm{transform-box:fill-box}
+.leg{transform-origin:50% 8%}
+.arm{transform-origin:50% 12%}
+.run .leg-a{animation:legA .32s ease-in-out infinite}
+.run .leg-b{animation:legA .32s ease-in-out infinite reverse}
+.run .arm-f{animation:armS .32s ease-in-out infinite}
+.walk .leg-a{animation:legW .7s ease-in-out infinite}
+.walk .leg-b{animation:legW .7s ease-in-out infinite reverse}
+.wave .arm-f{animation:wave .55s ease-in-out infinite}
+.rub .arm-f{animation:rub .6s linear infinite}
+.blink .eye{transform-box:fill-box;transform-origin:50% 50%;animation:blink 4s infinite}
+.float{animation:float 1.8s ease-out infinite;transform-box:fill-box;transform-origin:50% 50%}
+.float.d1{animation-delay:.6s}.float.d2{animation-delay:1.2s}
+.drip{transform-box:fill-box;transform-origin:50% 0;animation:drip 1.4s ease-in infinite}
+.spark{animation:spark .25s steps(2) infinite}
+.bounce{animation:bounce 1s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+@keyframes legA{0%,100%{transform:rotate(30deg)}50%{transform:rotate(-30deg)}}
+@keyframes legW{0%,100%{transform:rotate(14deg)}50%{transform:rotate(-14deg)}}
+@keyframes armS{0%,100%{transform:rotate(-28deg)}50%{transform:rotate(26deg)}}
+@keyframes wave{0%,100%{transform:rotate(-150deg)}50%{transform:rotate(-115deg)}}
+@keyframes rub{0%{transform:translate(0,0) rotate(60deg)}25%{transform:translate(5px,-4px) rotate(60deg)}50%{transform:translate(0,-8px) rotate(60deg)}75%{transform:translate(-5px,-4px) rotate(60deg)}100%{transform:translate(0,0) rotate(60deg)}}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+@keyframes float{0%{transform:translate(0,0) scale(.6);opacity:0}20%{opacity:1}100%{transform:translate(8px,-46px) scale(1.1);opacity:0}}
+@keyframes drip{0%{transform:scaleY(.3)}70%{transform:scaleY(1.2)}100%{transform:scaleY(.3)}}
+@keyframes spark{0%{opacity:1}100%{opacity:.2}}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+</style><path d="M50,4 C55,38 62,45 96,50 C62,55 55,62 50,96 C45,62 38,55 4,50 C38,45 45,38 50,4Z" fill="#ffd34d" stroke="#f0a400" stroke-width="2"/></svg>

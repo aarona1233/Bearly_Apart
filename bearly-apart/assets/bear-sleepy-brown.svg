@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><style>
+.leg,.arm{transform-box:fill-box}
+.leg{transform-origin:50% 8%}
+.arm{transform-origin:50% 12%}
+.run .leg-a{animation:legA .32s ease-in-out infinite}
+.run .leg-b{animation:legA .32s ease-in-out infinite reverse}
+.run .arm-f{animation:armS .32s ease-in-out infinite}
+.walk .leg-a{animation:legW .7s ease-in-out infinite}
+.walk .leg-b{animation:legW .7s ease-in-out infinite reverse}
+.wave .arm-f{animation:wave .55s ease-in-out infinite}
+.rub .arm-f{animation:rub .6s linear infinite}
+.blink .eye{transform-box:fill-box;transform-origin:50% 50%;animation:blink 4s infinite}
+.float{animation:float 1.8s ease-out infinite;transform-box:fill-box;transform-origin:50% 50%}
+.float.d1{animation-delay:.6s}.float.d2{animation-delay:1.2s}
+.drip{transform-box:fill-box;transform-origin:50% 0;animation:drip 1.4s ease-in infinite}
+.spark{animation:spark .25s steps(2) infinite}
+.bounce{animation:bounce 1s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+@keyframes legA{0%,100%{transform:rotate(30deg)}50%{transform:rotate(-30deg)}}
+@keyframes legW{0%,100%{transform:rotate(14deg)}50%{transform:rotate(-14deg)}}
+@keyframes armS{0%,100%{transform:rotate(-28deg)}50%{transform:rotate(26deg)}}
+@keyframes wave{0%,100%{transform:rotate(-150deg)}50%{transform:rotate(-115deg)}}
+@keyframes rub{0%{transform:translate(0,0) rotate(60deg)}25%{transform:translate(5px,-4px) rotate(60deg)}50%{transform:translate(0,-8px) rotate(60deg)}75%{transform:translate(-5px,-4px) rotate(60deg)}100%{transform:translate(0,0) rotate(60deg)}}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+@keyframes float{0%{transform:translate(0,0) scale(.6);opacity:0}20%{opacity:1}100%{transform:translate(8px,-46px) scale(1.1);opacity:0}}
+@keyframes drip{0%{transform:scaleY(.3)}70%{transform:scaleY(1.2)}100%{transform:scaleY(.3)}}
+@keyframes spark{0%{opacity:1}100%{opacity:.2}}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+</style><g class="walk down">
+    
+    <ellipse cx="70" cy="134" rx="11" ry="20" transform="rotate(25 70 134)" fill="#b07a52" stroke="#4a2e1f" stroke-width="4"/>
+    <circle cx="52" cy="138" r="9" fill="#b07a52" stroke="#4a2e1f" stroke-width="4"/>
+    <g class="leg leg-a"><rect x="72" y="150" width="26" height="44" rx="13" fill="#b07a52" stroke="#4a2e1f" stroke-width="4"/></g>
+    <g class="leg leg-b"><rect x="106" y="150" width="26" height="44" rx="13" fill="#b07a52" stroke="#4a2e1f" stroke-width="4"/></g>
+    <ellipse cx="102" cy="138" rx="50" ry="42" fill="#b07a52" stroke="#4a2e1f" stroke-width="4"/>
+    <ellipse cx="108" cy="146" rx="28" ry="24" fill="#ecd2b4"/>
+    
+  <circle cx="70" cy="46" r="17" fill="#b07a52" stroke="#4a2e1f" stroke-width="4"/><circle cx="70" cy="46" r="8" fill="#e8a3a3"/>
+  <circle cx="142" cy="44" r="17" fill="#b07a52" stroke="#4a2e1f" stroke-width="4"/><circle cx="142" cy="44" r="8" fill="#e8a3a3"/>
+  <circle cx="106" cy="84" r="48" fill="#b07a52" stroke="#4a2e1f" stroke-width="4"/>
+  <ellipse cx="121" cy="100" rx="19" ry="13" fill="#ecd2b4"/>
+  <ellipse cx="122" cy="93" rx="6.5" ry="4.5" fill="#4a2e1f"/>
+  <ellipse cx="84" cy="98" rx="8.5" ry="5" fill="#ff9fb5" opacity=".75"/><ellipse cx="148" cy="96" rx="6.5" ry="5" fill="#ff9fb5" opacity=".75"/>
+  <g class=""><path d="M89,80 q7,7 14,0" fill="none" stroke="#4a2e1f" stroke-width="3.6" stroke-linecap="round"/><path d="M127,78 q7,7 14,0" fill="none" stroke="#4a2e1f" stroke-width="3.6" stroke-linecap="round"/></g>
+  <ellipse cx="122" cy="105" rx="3.5" ry="4.5" fill="#4a2e1f"/>
+    <path d="M62,58 Q86,6 150,36 Q178,48 182,82 L170,84 Q160,56 146,52 Q110,40 70,64 Z" fill="#8aa8ff" stroke="#4a5a99" stroke-width="3.5" stroke-linejoin="round"/>
+    <path d="M60,60 Q100,30 152,50" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round"/>
+    <circle cx="178" cy="88" r="9" fill="#fff" stroke="#4a5a99" stroke-width="3"/>
+    <g font-family="ui-rounded, system-ui, sans-serif" font-weight="800" fill="#7a8cff">
+      <text x="150" y="30" font-size="18" class="float">z</text><text x="160" y="22" font-size="24" class="float d1">Z</text><text x="140" y="18" font-size="14" class="float d2">z</text></g>
+    
+    <ellipse cx="140" cy="136" rx="11" ry="20" transform="rotate(-18 140 136)" fill="#b07a52" stroke="#4a2e1f" stroke-width="4"/>
+    
+    
+  </g></svg>

@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'" />
+    <title>Write a love note</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>💌 Love note</h1>
+      <p class="lead">A bear will deliver it straight to their screen.</p>
+      <textarea id="text" rows="6" maxlength="2000" placeholder="I can't stop thinking about you…"></textarea>
+      <label class="check"><input type="checkbox" id="later" /> Save it in the note jar for their next morning instead 🫙</label>
+      <div class="actions">
+        <button id="send">Send it 💕</button>
+      </div>
+    </main>
+    <div class="toast" id="toast"></div>
+    <script src="note.js"></script>
+  </body>
+</html>
