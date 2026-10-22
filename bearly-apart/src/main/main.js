@@ -57,8 +57,12 @@ if (process.platform === 'linux') {
 // BA_PROFILE lets two copies run side by side on one computer for testing ("him" and "her").
 if (process.env.BA_PROFILE) app.setPath('userData', path.join(app.getPath('appData'), `Bearly Apart (${process.env.BA_PROFILE})`));
 if (!INSTALLER_RUN && !app.requestSingleInstanceLock()) app.quit();
-// Opening the app again brings up its window — the way in when there's no tray icon (stock GNOME).
+// Opening the app again brings up its window: the way in when there's no tray icon (stock GNOME), or the 💗 is
+// hidden behind a MacBook's notch. Windows/Linux start a second copy ('second-instance'); a Mac doesn't, it sends
+// 'activate' to the running one. 'activate' also fires once at launch, so the first few seconds are ignored.
+let readyAt = Infinity;
 app.on('second-instance', () => ui?.openWindow());
+app.on('activate', () => Date.now() - readyAt > 3000 && ui?.openWindow());
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'ba', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
 
@@ -387,6 +391,7 @@ app.whenReady().then(() => {
   if (!cfg().setupDone) ui.openWindow('setup');
   if (process.env.BA_DEMO) setTimeout(() => process.env.BA_DEMO.split(',').forEach(preview), 1500);
   if (process.env.BA_OPEN) ui.openWindow(process.env.BA_OPEN);
+  readyAt = Date.now();
   log(`Bearly Apart ready (profile: ${app.getPath('userData')})`);
 });
 

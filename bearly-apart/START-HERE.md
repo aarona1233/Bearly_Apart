@@ -187,6 +187,7 @@ and Focus detection.
 | Her 💗 menu says "grant Full Disk Access" | System Settings → Privacy & Security → Full Disk Access → Bearly Apart off and on, then 💗 → Quit and reopen |
 | Her texts don't reach you | Her Mac must be awake with Bearly Apart running, and Messages on the Mac must show the texts |
 | Bears never play | The yellow banner says why: quiet hours (11:30 p.m.–8 a.m.), snoozed, screen sharing, away, Focus |
+| Can't open the window on her Mac (no 💗 visible) | Double-click **Bearly Apart** in Applications. On versions before Oct 22 evening, run `open -n -a "Bearly Apart"` in Terminal instead |
 | Quit on her Mac without the 💗 | Activity Monitor → Bearly Apart → ✕ → Quit |
 | Windows leftover after uninstalling | Delete `%LOCALAPPDATA%\BearlyApart` (and `%APPDATA%\Bearly Apart` to forget the pairing) |
 
