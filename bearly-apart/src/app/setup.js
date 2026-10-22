@@ -22,9 +22,6 @@ function goStep(name) {
 const handlesFrom = (text) => text.split(/\n|,/).map((s) => s.trim()).filter(Boolean);
 
 const ENTER = {
-  async welcome() {
-    $('move-hint').hidden = !IS_MAC_APP() || (await window.ba.setup('in-apps'));
-  },
   you() {
     const c = data.config;
     $('w-name').value = c.me.name;
@@ -75,11 +72,7 @@ function pickBear(bear) {
 }
 for (const b of document.querySelectorAll('.bear')) b.addEventListener('click', () => pickBear(b.dataset.bear));
 
-$('w-start').addEventListener('click', async () => {
-  // On a Mac this moves the app and restarts it; setup picks up where it left off.
-  if (IS_MAC_APP() && !(await window.ba.setup('in-apps'))) await window.ba.setup('move');
-  goStep('you');
-});
+$('w-start').addEventListener('click', () => goStep('you'));
 
 $('w-you-next').addEventListener('click', async () => {
   const name = $('w-name').value.trim();

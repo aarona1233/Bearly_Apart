@@ -3,7 +3,7 @@
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
-const { app, powerMonitor, powerSaveBlocker, protocol, net, globalShortcut, Notification } = require('electron');
+const { app, dialog, shell, powerMonitor, powerSaveBlocker, protocol, net, globalShortcut, Notification } = require('electron');
 const { openStores, slug, newTopic, encodePairing, decodePairing } = require('./store');
 const { Relay } = require('./relay');
 const { IMessageWatcher } = require('./imessage');
@@ -235,16 +235,22 @@ function applyLoginItem() {
 
 // ---------- first-run setup helpers (Mac) ------------------------------------
 
-// Moving out of Downloads matters on the Mac: Full Disk Access belongs to the app at its path.
-function moveToApplications() {
-  if (!IS_MAC || app.isInApplicationsFolder()) return true;
-  try {
-    // Replaces an older copy in Applications; the app restarts from there.
-    return app.moveToApplicationsFolder({ conflictHandler: () => true });
-  } catch (err) {
-    log(`[setup] move to Applications failed: ${err.message}`);
-    return false;
-  }
+// The app has to live in Applications: Full Disk Access belongs to the app at its path. We don't move it
+// ourselves: macOS's move puts the original in the Trash and, on her Mac, the restart afterwards failed,
+// so she kept opening the copy in the Trash. Instead: say so, open Downloads and Applications, and quit.
+function askToMoveToApplications() {
+  dialog.showMessageBoxSync({
+    type: 'info',
+    title: 'Bearly Apart',
+    message: 'Almost there! Move Bearly Apart into Applications first.',
+    detail:
+      'Two Finder windows will open. Drag Bearly Apart from Downloads into Applications ' +
+      '(replace the old one if asked), then open it from Applications.',
+    buttons: ['Show me'],
+  });
+  shell.openPath(app.getPath('downloads'));
+  shell.openPath('/Applications');
+  app.quit();
 }
 
 // Asks the iMessage watcher to try chat.db again right now; returns 'ok', 'no-access', 'missing' or 'off'.
@@ -264,9 +270,8 @@ function relaunch() {
 
 app.whenReady().then(() => {
   if (INSTALLER_RUN) return;
-  // Opened from Downloads (first install or a new version)? Move into Applications, replacing any old copy,
-  // and restart from there. The app quits here if the move worked.
-  if (IS_MAC && app.isPackaged && !app.isInApplicationsFolder() && moveToApplications()) return;
+  // Opened from Downloads (or the Trash)? It needs to be in Applications first.
+  if (IS_MAC && app.isPackaged && !app.isInApplicationsFolder()) return askToMoveToApplications();
   if (IS_MAC) app.dock?.hide();
   // A menu-bar app with no visible window gets "App Napped" by macOS: timers and network slow to a
   // crawl, so bears showed up late or in clumps. This keeps it awake (it doesn't stop the Mac sleeping).
@@ -357,7 +362,7 @@ app.whenReady().then(() => {
     getScene: (name) => scenes[name],
     liveState,
     pairingCode: () => encodePairing(cfg()),
-    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, moveToApplications, checkTextAccess, relaunch },
+    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, checkTextAccess, relaunch },
   });
   activity.on('change', () => ui.refresh());
   ui.start();

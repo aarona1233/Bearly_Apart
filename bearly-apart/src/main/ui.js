@@ -218,7 +218,6 @@ class UI {
     ipcMain.handle('app:reset-pairing', () => actions.resetPairing());
     ipcMain.handle('app:clipboard-code', () => findPairingCode(clipboard.readText()));
     ipcMain.handle('app:setup', (_, step) => {
-      if (step === 'move') return actions.moveToApplications();
       if (step === 'texts') return actions.checkTextAccess();
       if (step === 'relaunch') return actions.relaunch();
       if (step === 'in-apps') return !IS_MAC || app.isInApplicationsFolder();

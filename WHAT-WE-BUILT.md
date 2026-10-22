@@ -112,8 +112,8 @@ These are licensed to the two of you through your friend, so keep the app privat
   signed) and `Bearly Apart for Linux.tar.gz`. The same files work for anyone.
 - **Setup inside the app:** on first launch a short wizard asks for a name and bear, then one of you sends an **invite**
   and the other pastes it. The invite carries the sender's name, bear, time zone and iPhone number, and the other side's
-  details come back automatically, so nothing else is typed. On a Mac the app moves itself into Applications and the
-  wizard walks through Full Disk Access, ticking it off as soon as the switch is on.
+  details come back automatically, so nothing else is typed. On a Mac she drags it into Applications (the app
+  says so and opens both folders if she forgets), and the wizard walks through Full Disk Access, ticking it off as soon as the switch is on.
 - **The one thing left:** because the app isn't signed by Apple or Microsoft, each computer shows one security prompt
   the first time (Mac: **Open Anyway** in Privacy & Security; Windows: **More info → Run anyway**). A $99/year Apple
   Developer account would remove the Mac one.
