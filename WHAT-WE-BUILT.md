@@ -169,7 +169,7 @@ If anything misbehaves, note what you see. Most of it is quick to fix.
 ## Next steps
 1. Open Bearly Apart → Settings: enter your name, pick Dudu or Bubu, Save, then quit.
 2. `npm run kit -- --her-name "HER NAME" --my-phone "+1 …"` → send her the zip (Google Drive / WeTransfer).
-3. She pastes one line and flips one switch (see `START-HERE.md`, section 4).
+3. She pastes one line and flips one switch (see `START-HERE.md`, section 3).
 4. Optional: build the iPhone Shortcut (README) so you can send kisses and statuses from your phone.
 
 ## Tools installed on your PC (in your home folder, no admin needed)
