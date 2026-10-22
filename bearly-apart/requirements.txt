@@ -1,14 +1,14 @@
 # Bearly Apart — what each computer needs.
 # Nothing here has to be installed by hand: run the setup script for your machine.
 #
-#   Her MacBook ............ nothing. The app is self-contained.
-#                            Install:  bash ~/Downloads/"Bearly Apart Installer"/install.command
+#   To USE the app, nothing: Windows runs "Bearly Apart Setup.exe", a Mac opens "Bearly Apart for Mac.zip",
+#   Linux unpacks "Bearly Apart for Linux.tar.gz". The rest of this file is for building those (npm run release).
 #   Your Linux PC .......... ./setup-linux.sh  (installs everything below, safe to re-run)
-#   Windows ................ nothing. Unzip dist/BearlyApart-*-windows-x64.zip and run "Bearly Apart.exe".
+#   Your Windows PC ........ see START-HERE.md, "Building the downloads" (Node, Python, Developer Mode, rcodesign)
 
 # --- Running from source on Linux (setup-linux.sh handles all of it) ---
 nodejs>=22           # LTS from nodejs.org, installed to ~/.local (no sudo needed)
-npm-packages         # from package-lock.json via `npm ci`: electron 44, @electron/packager
+npm-packages         # from package-lock.json via `npm ci`: electron 44, @electron/packager, electron-winstaller
 python3              # already on Debian/Ubuntu; used to zip the Mac app with its symlinks intact
 
 # --- Optional on Linux ---

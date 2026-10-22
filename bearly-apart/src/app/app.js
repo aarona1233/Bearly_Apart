@@ -31,7 +31,9 @@ const timeOf = (ms) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', mi
 // ---------- tabs ------------------------------------------------------------
 
 function showTab(name) {
-  if (!document.querySelector(`[data-page="${name}"]`)) name = 'send';
+  if (!document.querySelector(`[data-page="${name}"]`) || (name === 'setup' && data.config.setupDone)) name = 'send';
+  document.body.classList.toggle('setup', name === 'setup');
+  if (name === 'setup') startSetup();
   for (const b of document.querySelectorAll('.tabs button')) b.classList.toggle('on', b.dataset.tab === name);
   for (const s of document.querySelectorAll('[data-page]')) s.classList.toggle('on', s.dataset.page === name);
   if (name === 'send' && location.hash === '#send') $('note').focus();
@@ -62,7 +64,7 @@ function renderLive() {
   banner.replaceChildren();
   let msg = null;
   let action = null;
-  if (!live.paired) [msg, action] = ['Not paired yet: open Pairing in Settings.', ['Open Settings', () => showTab('settings')]];
+  if (!live.paired) [msg, action] = ['Not connected to your person yet.', ['Connect', () => showTab(data.config.setupDone ? 'settings' : 'setup')]];
   else if (live.imessage === 'no-access') [msg, action] = ['Texts can’t be seen yet: give Bearly Apart Full Disk Access.', ['Open that setting', () => window.ba.open('fda')]];
   else if (live.snoozedUntil) [msg, action] = [`🔕 Bears are snoozed until ${timeOf(live.snoozedUntil)}.`, ['Resume', () => window.ba.snooze(0)]];
   else if (live.paused) msg = `⏸ Bears are waiting because ${data.pauseReasons[live.paused] || (live.paused.startsWith('app:') ? `${live.paused.slice(4)} is in front` : live.paused)}. They’ll play as soon as that’s over.`;
@@ -179,6 +181,7 @@ function fillSettings() {
   const c = data.config;
   $('me-name').value = c.me.name;
   $('me-character').value = c.me.character;
+  $('me-handles').value = (c.me.handles || []).join(', ');
   $('partner-name-input').value = c.partner.name;
   $('partner-character').value = c.partner.character;
   fillZones(c.partner.timezone);
@@ -196,7 +199,7 @@ function fillSettings() {
   c.missing.slice(0, 3).forEach((m, i) => ($(`miss-${i}`).value = m.hours));
   $('login').checked = c.launchAtLogin;
   $('my-code').textContent = c.me.name ? data.pairing : 'Save your name first';
-  $('pair-summary').textContent = c.partner.id ? `Pairing · paired with ${partner()} 💞` : 'Pairing · not paired yet';
+  $('pair-summary').textContent = c.partner.id ? `Connection · paired with ${partner()} 💞` : 'Connection · not paired yet';
   $('profile').textContent = data.profileDir;
   $('sc-url').textContent = `${c.relay.server.replace(/\/+$/, '')}/${c.relay.topic}`;
   const id = c.me.id || '(save your name first)';
@@ -209,7 +212,7 @@ function fillSettings() {
 function collect() {
   const c = data.config;
   return {
-    me: { name: $('me-name').value.trim(), character: $('me-character').value },
+    me: { name: $('me-name').value.trim(), character: $('me-character').value, handles: $('me-handles').value.split(/\n|,/).map((s) => s.trim()).filter(Boolean) },
     partner: {
       name: $('partner-name-input').value.trim(),
       character: $('partner-character').value,
@@ -267,8 +270,10 @@ $('open-gifs').addEventListener('click', () => window.ba.open('gifs'));
 
 window.ba.onLive((l) => {
   live = l;
-  if (data) renderLive();
+  if (!data) return;
+  renderLive();
+  if (document.body.classList.contains('setup')) setupOnLive();
 });
 setInterval(() => data && renderLive(), 30_000); // keeps "5m ago" fresh
 
-reload().then(() => showTab(location.hash.slice(1) || (data.config.me.name ? 'send' : 'settings')));
+reload().then(() => showTab(data.config.setupDone ? location.hash.slice(1) || 'send' : 'setup'));

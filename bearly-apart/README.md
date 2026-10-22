@@ -25,34 +25,27 @@ Little bears run across your partner's screen when you text, poke, or go quiet f
   (`~/Library/Messages/chat.db`). The Mac app reads it **read-only**, looking only at messages to and from you.
   It never sends iMessages, and the text of her messages never leaves her Mac. Only "she texted" and any matched
   keyword names (for example `miss-you`) are forwarded to you.
-- **Relay**: [ntfy](https://ntfy.sh), a free push-message service. You don't need an account. The "topic" in your pairing code
+- **Relay**: [ntfy](https://ntfy.sh), a free push-message service. You don't need an account. The "topic" in your invite
   works like a shared password, so keep it between the two of you. What travels over it: event types (kiss, status:hungry, …),
   your names, and love-note text. If you'd rather not use a public server, ntfy can be self-hosted; change the server in `config.json`.
 
 ## Setup
 
-### 1. Your computer (Linux or Windows)
-- **Linux**: unpack `BearlyApart-*-linux-x64.tar.gz` and run `Bearly Apart-linux-x64/bearly-apart`.
-  Or, from this folder: `npm install && npm start`.
-- **Windows**: unzip `BearlyApart-*-windows-x64.zip` and run `Bearly Apart.exe`.
-- In the **Settings** tab, enter your name and pick your bear. Click **Copy code** and send her the code (iMessage is fine).
+Everyone gets the same download; pairing happens inside the app. Step by step, with pictures of what to click:
+**[START-HERE.md](START-HERE.md)**.
 
-### 2. Her MacBook
-1. Unzip `BearlyApart-*-mac-arm64.zip` and drag **Bearly Apart** into **Applications**.
-2. Open it. macOS will say it can't verify the developer, because the app isn't sold through Apple. Go to
-   **System Settings → Privacy & Security**, scroll down, and click **Open Anyway** next to Bearly Apart.
-   (Or in Terminal: `xattr -dr com.apple.quarantine "/Applications/Bearly Apart.app"`.)
-3. A 💗 appears in the menu bar and Settings opens. Enter her name, paste **your** code under "Or paste their code",
-   then click **Pair**. Your computer gets a "Paired with …" bear.
-4. Under **Them**, add your iPhone number (exactly as it shows in Messages, for example `+1 555 123 4567`).
-5. Give it **Full Disk Access** so it can see the texts: **System Settings → Privacy & Security → Full Disk Access →**
-   turn on **Bearly Apart** (use **+** if it's not listed). Then quit it from the menu bar 💗 and reopen it.
-   The menu should say **✓ Watching iMessage**.
-6. Make sure **Messages on her Mac is signed in** with "Messages in iCloud" on. That's what puts her phone's texts on the Mac.
+- **Windows:** run `Bearly Apart Setup.exe`. (SmartScreen: **More info → Run anyway**, once.)
+- **Mac:** open `Bearly Apart for Mac.zip`, double-click **Bearly Apart**. The first time, macOS blocks it: **System
+  Settings → Privacy & Security → Open Anyway**. The app then moves itself into Applications.
+- **Linux:** unpack `Bearly Apart for Linux.tar.gz` and run `bearly-apart` inside.
 
-> After installing a **new version**, macOS treats it as a different app: turn Full Disk Access off and on again for it.
+A short setup runs on first launch: your name and bear, then one of you sends an **invite** and the other pastes it
+(the invite carries your name, bear, time zone and iPhone number, so nothing else needs typing). On a Mac it then walks
+through **Full Disk Access**, which lets the bears notice texts.
 
-### 3. Your iPhone shortcut (optional, recommended)
+> After installing a **new version** on the Mac, macOS treats it as a different app: turn Full Disk Access off and on again for it.
+
+### Your iPhone shortcut (optional, recommended)
 This lets you send kisses and statuses from your phone, or by saying "Hey Siri, Bearly".
 
 1. Open **Shortcuts → +**, name it **Bearly**.
@@ -117,7 +110,7 @@ npm run mock-relay       # local ntfy stand-in on :8787
 BA_PROFILE=her npm start # run a second copy with its own settings
 npm run send -- --server http://127.0.0.1:8787 --topic ba-… --from her kiss
 npm run assets           # regenerate placeholder bear art
-npm run package          # dist/: mac-arm64 (ad-hoc signed), linux-x64, windows-x64
+npm run release          # dist/: Bearly Apart Setup.exe, Bearly Apart for Mac.zip (ad-hoc signed), … for Linux.tar.gz
 ```
-Test hooks: `BA_DEMO=kiss,hug` plays scenes at startup, `BA_OPEN=send|animations|settings` opens the window on that tab, `BA_CAPTURE=dir` saves overlay frames as PNGs, and
+Test hooks: `BA_DEMO=kiss,hug` plays scenes at startup, `BA_OPEN=setup|send|animations|settings` opens the window on that tab, `BA_CAPTURE=dir` saves overlay frames as PNGs, and
 `BA_CHATDB=path` points the iMessage watcher at a fake database (`node tools/fake-chatdb.js`).

@@ -1,7 +1,7 @@
 {
   "name": "bearly-apart",
   "productName": "Bearly Apart",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Cute bears run across your partner's screen whenever you text, poke, or go quiet for too long.",
   "main": "src/main/main.js",
   "private": true,
@@ -16,12 +16,12 @@
     "package:mac": "node tools/package.js mac",
     "package:linux": "node tools/package.js linux",
     "package:win": "node tools/package.js win",
-    "package": "node tools/package.js all",
-    "kit": "node tools/make-kit.js",
-    "setup": "./setup-linux.sh"
+    "setup": "./setup-linux.sh",
+    "release": "node tools/package.js all"
   },
   "devDependencies": {
     "@electron/packager": "^20.3.0",
-    "electron": "^44.9.3"
+    "electron": "^44.9.3",
+    "electron-winstaller": "^5.4.4"
   }
 }

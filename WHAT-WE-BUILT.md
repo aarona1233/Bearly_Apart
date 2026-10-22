@@ -5,7 +5,7 @@
 Bearly Apart is a small app for a long-distance couple. Cute Bubu & Dudu bears pop up on each other's
 computer screens whenever you text, send a kiss, set a status, or go quiet for too long.
 
-- **Her:** MacBook Air (M2, 8 GB). **You:** Debian 13 Linux (also has a Windows build). **Both:** iPhone + iMessage.
+- **Her:** MacBook Air (M2, 8 GB). **You:** Windows 11 (and Debian 13 Linux). **Both:** iPhone + iMessage.
 - **To get going, open [`bearly-apart/START-HERE.md`](bearly-apart/START-HERE.md).**
 
 ---
@@ -15,22 +15,22 @@ computer screens whenever you text, send a kiss, set a status, or go quiet for t
 ```
 Bearly Appart/
 ├── WHAT-WE-BUILT.md        ← this file
-├── animations/             ← the 16 original Bubu & Dudu GIFs from your friend
+├── animations/             ← the original Bubu & Dudu GIFs from your friend (30)
 └── bearly-apart/           ← the app
-    ├── START-HERE.md       ← step-by-step: your setup, building her installer, her 1-minute install
+    ├── START-HERE.md       ← step-by-step: build the downloads, install on both computers, test, uninstall
     ├── README.md           ← full feature list, iPhone Shortcut guide, custom GIFs, advanced settings
     ├── requirements.txt    ← what each computer needs (spoiler: her Mac needs nothing)
     ├── setup-linux.sh      ← installs everything on your Linux PC, adds the app launcher
     ├── src/                ← the app's code (main process, overlay, app window)
     ├── assets/             ← animations, drawn bears, icons, scenes.json (the choreography)
     ├── docs/SCENES.md      ← how to choreograph new animations
-    ├── test/               ← 21 automated tests
-    └── tools/              ← builders: installer kit, GIF importer, packager, test helpers
+    ├── test/               ← 28 automated tests
+    └── tools/              ← builders: packager (Setup.exe / Mac zip / Linux), GIF importer, test helpers
 ```
 
 **Not included (too big, and each one rebuilds with a single command):**
 - `node_modules/`: run `./setup-linux.sh` to reinstall it.
-- `dist/`: the built Mac, Linux and Windows apps. `npm run kit -- …` builds her installer; `npm run package` builds all three apps.
+- `dist/`: the downloads. `npm run release` builds all three.
 
 ---
 
@@ -107,18 +107,17 @@ These are licensed to the two of you through your friend, so keep the app privat
 
 ## Making it plug-and-play
 
-- **Your PC:** `./setup-linux.sh` installs Node.js (into your home folder, no admin password), the app's packages, and
-  Electron. It also adds **Bearly Apart** to your app list and starts it at login. It offers to install GNOME's tray-icon
-  extension (optional, needs your password).
-- **Her Mac:** `npm run kit -- --her-name "…" --my-phone "…"` builds `dist/Bearly-Apart-for-<her>.zip`, containing:
-  - the Mac app, ad-hoc signed so Apple Silicon will run it
-  - `install.command`: installs to Applications, clears the "downloaded from the internet" block, opens the Full Disk
-    Access page, and restarts the app afterwards
-  - **settings already paired with you and already containing your phone number**
-  - `READ ME FIRST.txt` with her steps
-
-  Her whole install is **one pasted Terminal line + one switch**. On first launch her app announces itself and your
-  screen gets a "Paired!" bear.
+- **One download per computer, no Terminal:** `npm run release` builds `Bearly Apart Setup.exe` (Windows: installs with
+  Start menu and desktop shortcuts, uninstalls from Settings → Apps), `Bearly Apart for Mac.zip` (Apple Silicon, ad-hoc
+  signed) and `Bearly Apart for Linux.tar.gz`. The same files work for anyone.
+- **Setup inside the app:** on first launch a short wizard asks for a name and bear, then one of you sends an **invite**
+  and the other pastes it. The invite carries the sender's name, bear, time zone and iPhone number, and the other side's
+  details come back automatically, so nothing else is typed. On a Mac the app moves itself into Applications and the
+  wizard walks through Full Disk Access, ticking it off as soon as the switch is on.
+- **The one thing left:** because the app isn't signed by Apple or Microsoft, each computer shows one security prompt
+  the first time (Mac: **Open Anyway** in Privacy & Security; Windows: **More info → Run anyway**). A $99/year Apple
+  Developer account would remove the Mac one.
+- Earlier versions used a per-person "kit" with a Terminal install line; that's gone.
 
 ---
 
@@ -157,7 +156,7 @@ These are licensed to the two of you through your friend, so keep the app privat
 
 ## Not tested yet: needs her MacBook
 These can only be checked on a real Mac:
-- [ ] First launch from the installer (the "Open Anyway" / quarantine step)
+- [ ] First launch from the zip (the "Open Anyway" step) and the app moving itself into Applications
 - [ ] The Full Disk Access switch and the app seeing her texts ("✓ Watching iMessage" in the 💗 menu)
 - [ ] The 💗 menu-bar icon
 - [ ] The sword bear walking along her **actual** front window
@@ -167,9 +166,9 @@ These can only be checked on a real Mac:
 If anything misbehaves, note what you see. Most of it is quick to fix.
 
 ## Next steps
-1. Open Bearly Apart → Settings: enter your name, pick Dudu or Bubu, Save, then quit.
-2. `npm run kit -- --her-name "HER NAME" --my-phone "+1 …"` → send her the zip (Google Drive / WeTransfer).
-3. She pastes one line and flips one switch (see `START-HERE.md`, section 3).
+1. Remove the old version from both computers (`START-HERE.md`, section 0).
+2. `npm run release`, then run `Bearly Apart Setup.exe` on your PC and send an invite from the setup.
+3. Install `Bearly Apart for Mac.zip` on her Mac and paste the invite (section 3).
 4. Optional: build the iPhone Shortcut (README) so you can send kisses and statuses from your phone.
 
 ## Tools installed on your PC (in your home folder, no admin needed)

@@ -1,8 +1,10 @@
-// Builds distributable apps into dist/:  node tools/package.js mac|linux|win|all
-//   mac   → Apple Silicon .app, ad-hoc signed with rcodesign (works from Linux, and from Windows with Developer Mode on),
-//           zipped with symlinks intact
-//   linux → x64 folder as .tar.gz
-//   win   → x64 folder as .zip
+// Builds the downloads into dist/:  node tools/package.js mac|linux|win|all
+//   mac   → "Bearly Apart for Mac.zip": Apple Silicon .app, ad-hoc signed with rcodesign (works from Linux, and from
+//           Windows with Developer Mode on), zipped with symlinks intact. Safari unzips it; she double-clicks the app.
+//   win   → "Bearly Apart Setup.exe" (built on Windows; installs per user with Start menu + desktop shortcuts, and an
+//           uninstall entry in Settings → Apps). Built elsewhere it falls back to a .zip of the app folder.
+//   linux → "Bearly Apart for Linux.tar.gz"
+// The unpacked apps are in dist/build/. Every copy is the same: pairing happens in the app's first-run setup.
 const { packager } = require('@electron/packager');
 const { execFileSync } = require('child_process');
 const fs = require('fs');
@@ -12,11 +14,12 @@ const pkg = require('../package.json');
 
 const ROOT = path.join(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
+const BUILD = path.join(DIST, 'build');
 const NAME = pkg.productName;
 
 const common = {
   dir: ROOT,
-  out: DIST,
+  out: BUILD,
   name: NAME,
   appVersion: pkg.version,
   overwrite: true,
@@ -183,7 +186,7 @@ async function mac() {
   } else {
     console.warn('! rcodesign not found — run `codesign --force --deep -s - "Bearly Apart.app"` on the Mac before opening it');
   }
-  const zip = path.join(DIST, `BearlyApart-${pkg.version}-mac-arm64.zip`);
+  const zip = path.join(DIST, `${NAME} for Mac.zip`);
   zipDir(appDir, `${NAME}.app`, zip);
   console.log(`→ ${path.relative(ROOT, zip)}`);
 }
@@ -191,16 +194,44 @@ async function mac() {
 async function linux() {
   const [appDir] = await packager({ ...common, platform: 'linux', arch: 'x64', executableName: 'bearly-apart' });
   fs.copyFileSync(path.join(ROOT, 'assets', 'icons', 'icon.png'), path.join(appDir, 'icon.png'));
-  const tgz = path.join(DIST, `BearlyApart-${pkg.version}-linux-x64.tar.gz`);
+  const tgz = path.join(DIST, `${NAME} for Linux.tar.gz`);
   zipDir(path.dirname(appDir), path.basename(appDir), tgz);
   console.log(`→ ${path.relative(ROOT, tgz)}`);
 }
 
 async function win() {
-  const [appDir] = await packager({ ...common, platform: 'win32', arch: 'x64', icon: path.join(ROOT, 'assets', 'icons', 'icon.ico') });
-  const zip = path.join(DIST, `BearlyApart-${pkg.version}-windows-x64.zip`);
-  zipDir(path.dirname(appDir), path.basename(appDir), zip);
-  console.log(`→ ${path.relative(ROOT, zip)}`);
+  const [appDir] = await packager({
+    ...common,
+    platform: 'win32',
+    arch: 'x64',
+    icon: path.join(ROOT, 'assets', 'icons', 'icon.ico'),
+    // No spaces in the .exe (the installer's tools are picky); shortcuts still say "Bearly Apart".
+    executableName: 'BearlyApart',
+    win32metadata: { ProductName: NAME, FileDescription: NAME, CompanyName: 'Bearly Apart' },
+  });
+  if (!IS_WIN) {
+    const zip = path.join(DIST, `${NAME} for Windows.zip`);
+    zipDir(path.dirname(appDir), path.basename(appDir), zip);
+    return console.log(`→ ${path.relative(ROOT, zip)} (Setup.exe can only be built on Windows)`);
+  }
+  const { createWindowsInstaller } = require('electron-winstaller');
+  const out = path.join(BUILD, 'installer');
+  await createWindowsInstaller({
+    appDirectory: appDir,
+    outputDirectory: out,
+    exe: 'BearlyApart.exe',
+    name: 'BearlyApart',
+    title: NAME,
+    description: NAME,
+    authors: 'Bearly Apart',
+    version: pkg.version,
+    setupExe: `${NAME} Setup.exe`,
+    setupIcon: path.join(ROOT, 'assets', 'icons', 'icon.ico'),
+    noMsi: true,
+  });
+  const setup = path.join(DIST, `${NAME} Setup.exe`);
+  fs.copyFileSync(path.join(out, `${NAME} Setup.exe`), setup);
+  console.log(`→ ${path.relative(ROOT, setup)}`);
 }
 
 const targets = { mac, linux, win };
@@ -219,4 +250,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { mac, linux, win, zipDir, DIST, NAME, IS_WIN };
+module.exports = { mac, linux, win, zipDir, DIST, BUILD, NAME, IS_WIN };

@@ -115,7 +115,7 @@ class Brain {
       }
       case 'hello': {
         if (!c.partner.id || c.partner.id === ev.from) {
-          this.onHello?.({ id: ev.from, name: ev.text?.replace(/^👋\s*/, '').replace(/ paired with you$/, '') || '', character: ev.character });
+          this.onHello?.({ id: ev.from, name: ev.text?.replace(/^👋\s*/, '').replace(/ paired with you$/, '') || '', character: ev.character, timezone: ev.timezone, handles: ev.handles });
         }
         return this.queue('hello', ev, 3);
       }
@@ -170,7 +170,7 @@ class Brain {
         this.play({ scene: 'hug', ev, priority: 6, label: 'hug', vars: this.vars({ caption: 'Perfect timing! 🫂' }) });
       }
     }
-    if (type === 'hello') ev.character = c.me.character;
+    if (type === 'hello') Object.assign(ev, { character: c.me.character, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, handles: c.me.handles || [] });
     const text = type === 'note' || type === 'jar' ? extra.text : describe(ev, c.me.name || 'Your love');
     await this.publish(ev, text);
     // Only remember a status once it actually went out.

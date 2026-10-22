@@ -1,7 +1,8 @@
 // The app window (Send / Animations / Settings) and the tray/menu-bar menu, plus the IPC between them.
 const path = require('path');
 const fs = require('fs');
-const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell, clipboard } = require('electron');
+const { findPairingCode } = require('./store');
 const { STATUSES, SENDABLES, SCENES: SCENE_ORDER, sceneInfo } = require('./catalog');
 
 const SRC = path.join(__dirname, '..');
@@ -215,6 +216,13 @@ class UI {
       }
     });
     ipcMain.handle('app:reset-pairing', () => actions.resetPairing());
+    ipcMain.handle('app:clipboard-code', () => findPairingCode(clipboard.readText()));
+    ipcMain.handle('app:setup', (_, step) => {
+      if (step === 'move') return actions.moveToApplications();
+      if (step === 'texts') return actions.checkTextAccess();
+      if (step === 'relaunch') return actions.relaunch();
+      if (step === 'in-apps') return !IS_MAC || app.isInApplicationsFolder();
+    });
     ipcMain.handle('app:open', (_, what) => {
       if (what === 'fda') shell.openExternal(FDA_URL);
       if (what === 'gifs') {

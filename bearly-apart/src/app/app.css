@@ -365,6 +365,84 @@ code.pre {
   flex: 1;
 }
 
+/* ---------- first-run setup ---------- */
+body.setup .tabs,
+body.setup #banner,
+body.setup .conn {
+  display: none !important;
+}
+.wiz {
+  display: none;
+  padding: 24px;
+}
+.wiz.on {
+  display: block;
+}
+.wiz p {
+  margin: 0 0 12px;
+}
+.wiz .big {
+  font-size: 44px;
+  text-align: center;
+}
+.wiz h2 {
+  font-size: 19px;
+  margin-bottom: 10px;
+}
+.bears,
+.choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.choice button {
+  padding: 16px;
+}
+.bear {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg);
+  color: var(--ink);
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  padding: 12px;
+}
+.bear img {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+}
+.bear small {
+  color: var(--muted);
+  font-weight: 500;
+}
+.bear.on {
+  border-color: var(--pink);
+  background: var(--pink-soft);
+}
+.waiting {
+  color: var(--muted);
+  font-weight: 600;
+}
+.waiting.ok {
+  color: var(--ok);
+}
+.steps {
+  padding-left: 20px;
+}
+.steps li {
+  margin-bottom: 6px;
+}
+button.link {
+  background: none;
+  color: var(--muted);
+  padding: 4px 0;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
 .toast {
   position: fixed;
   left: 50%;

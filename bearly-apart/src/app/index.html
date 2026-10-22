@@ -27,6 +27,98 @@
     <div class="banner" id="banner" hidden></div>
 
     <main>
+      <!-- ========================= FIRST-RUN SETUP ======================== -->
+      <section data-page="setup">
+        <div class="card wiz" data-step="welcome">
+          <div class="big">🐻💕</div>
+          <h2>Hi! Let’s set up Bearly Apart</h2>
+          <p>Little bears will run across your screens when you two text, send kisses, or miss each other. Setup takes about a minute.</p>
+          <p class="hint" id="move-hint" hidden>First, Bearly Apart moves itself into your Applications folder and reopens.</p>
+          <div class="actions"><button id="w-start">Let’s go</button></div>
+        </div>
+
+        <div class="card wiz" data-step="you">
+          <h2>Who are you?</h2>
+          <label for="w-name">Your name</label>
+          <input id="w-name" placeholder="e.g. Aaron" />
+          <label>Pick your bear</label>
+          <div class="bears">
+            <button class="bear" data-bear="brown"><img src="ba://asset/dudu-happy.png" alt="" /><b>Dudu</b><small>brown bear</small></button>
+            <button class="bear" data-bear="cream"><img src="ba://asset/bubu-happy.png" alt="" /><b>Bubu</b><small>white bear</small></button>
+          </div>
+          <label for="w-handles">Your iPhone number <small>optional: lets their Mac notice when you text them</small></label>
+          <input id="w-handles" placeholder="+1 555 123 4567" />
+          <div class="actions"><button id="w-you-next">Next</button></div>
+        </div>
+
+        <div class="card wiz" data-step="pair">
+          <h2>Connect with your person</h2>
+          <p>One of you sends an invite, the other pastes it.</p>
+          <div class="choice">
+            <button class="ghost" id="w-invite">💌 Send an invite</button>
+            <button class="ghost" id="w-have">📋 I got an invite</button>
+          </div>
+          <div id="w-invite-box" hidden>
+            <p>Send them this code any way you like (iMessage, WhatsApp, email):</p>
+            <code class="pair" id="w-code"></code>
+            <div class="actions"><button id="w-copy">Copy invite</button></div>
+            <p class="waiting">⏳ Waiting for them to paste it into their Bearly Apart… This moves on by itself.</p>
+          </div>
+          <div id="w-have-box" hidden>
+            <label for="w-paste">Paste the invite they sent you</label>
+            <textarea id="w-paste" rows="3" placeholder="BA1-…"></textarea>
+            <div class="actions"><button id="w-pair">Connect</button></div>
+          </div>
+        </div>
+
+        <div class="card wiz" data-step="them">
+          <h2 id="w-them-title">Connected! 💞</h2>
+          <div class="row">
+            <div>
+              <label for="w-pname">Their name</label>
+              <input id="w-pname" />
+            </div>
+            <div>
+              <label for="w-pbear">Their bear</label>
+              <select id="w-pbear">
+                <option value="brown">Dudu (brown bear)</option>
+                <option value="cream">Bubu (white bear)</option>
+              </select>
+            </div>
+          </div>
+          <div id="w-phandles-block">
+            <label for="w-phandles">The number they text you from <small>so bears react to their texts; one per line</small></label>
+            <textarea id="w-phandles" rows="2" placeholder="+1 555 123 4567"></textarea>
+          </div>
+          <div class="actions"><button id="w-them-next">Next</button></div>
+        </div>
+
+        <div class="card wiz" data-step="texts">
+          <h2>Let the bears see your texts</h2>
+          <p>Bearly Apart reads your Messages on this Mac to know when your person texts you. It only looks at their messages, never sends anything, and your texts never leave this Mac.</p>
+          <ol class="steps">
+            <li>Click <b>Open System Settings</b>.</li>
+            <li>Find <b>Bearly Apart</b> in the list and switch it <b>on</b>. Your Mac asks for your password.<br /><small>Not in the list? Click <b>+</b> at the bottom, then pick Applications → Bearly Apart.</small></li>
+            <li>If your Mac offers <b>Quit &amp; Reopen</b>, click it. Setup carries on by itself.</li>
+          </ol>
+          <div class="actions">
+            <button id="w-fda">Open System Settings</button>
+            <button class="ghost" id="w-restart">Restart Bearly Apart</button>
+          </div>
+          <p class="waiting" id="w-fda-status">⏳ Waiting for the switch…</p>
+          <p class="hint">Also check <b>Messages → Settings → iMessage → Enable Messages in iCloud</b> is on, so your phone’s texts show up on this Mac.</p>
+          <div class="actions"><button class="link" id="w-fda-skip">Skip for now</button></div>
+        </div>
+
+        <div class="card wiz" data-step="done">
+          <div class="big">🎉</div>
+          <h2>All set!</h2>
+          <p id="w-done-text"></p>
+          <label class="check"><input type="checkbox" id="w-login" checked /> Start Bearly Apart when the computer starts</label>
+          <div class="actions"><button id="w-finish">Start sending love 💕</button></div>
+        </div>
+      </section>
+
       <!-- ============================== SEND ============================== -->
       <section data-page="send">
         <div class="card">
@@ -87,6 +179,8 @@
               </select>
             </div>
           </div>
+          <label for="me-handles">Your iPhone number(s) / iMessage email <small>optional, shared when you connect so a Mac can see your texts</small></label>
+          <input id="me-handles" placeholder="+1 555 123 4567" />
         </div>
 
         <div class="card">
@@ -155,13 +249,13 @@
 
         <details class="card">
           <summary id="pair-summary">Pairing</summary>
-          <label>Your pairing code <small>send this to them; it works like a key, so keep it between you two</small></label>
+          <label>Your invite code <small>send this to them; it works like a key, so keep it between you two</small></label>
           <code class="pair" id="my-code"></code>
-          <div class="actions"><button class="ghost" id="copy-code">Copy code</button></div>
-          <label for="their-code">Or paste their code</label>
+          <div class="actions"><button class="ghost" id="copy-code">Copy invite</button></div>
+          <label for="their-code">Or paste their invite</label>
           <input id="their-code" placeholder="BA1-…" />
           <div class="actions">
-            <button id="pair">Pair</button>
+            <button id="pair">Connect</button>
             <button class="ghost" id="reset">Start over with a new code</button>
           </div>
         </details>
@@ -190,5 +284,6 @@
     </main>
     <div class="toast" id="toast"></div>
     <script src="app.js"></script>
+    <script src="setup.js"></script>
   </body>
 </html>

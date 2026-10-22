@@ -21,11 +21,14 @@ const KEYWORDS = {
 };
 
 // Bump when a default has to replace what's saved in existing config.json files (see migrate()).
-const CONFIG_VERSION = 2;
+const CONFIG_VERSION = 3;
 
 const DEFAULT_CONFIG = {
   version: CONFIG_VERSION,
-  me: { id: '', name: '', character: 'brown' },
+  // false until the first-run setup in the app window is finished
+  setupDone: false,
+  // handles: my own iMessage phone numbers / emails, passed along when pairing so a Mac partner can see my texts.
+  me: { id: '', name: '', character: 'brown', handles: [] },
   partner: {
     id: '',
     name: '',
@@ -127,10 +130,14 @@ class JsonFile {
   }
 }
 
-// Brings an older config.json up to date. Version 2: only the three text triggers (miss you, kiss, hug).
+// Brings an older config.json up to date.
+//   2: only the three text triggers (miss you, kiss, hug)
+//   3: first-run setup; anyone already named and paired skips it
 function migrate(config) {
-  if ((config.raw.version || 1) >= CONFIG_VERSION) return;
-  config.data.keywords = { ...KEYWORDS };
+  const from = config.raw.version || 1;
+  if (from >= CONFIG_VERSION) return;
+  if (from < 2) config.data.keywords = { ...KEYWORDS };
+  if (from < 3) config.data.setupDone = !!(config.data.me.name && config.data.partner.id);
   config.data.version = CONFIG_VERSION;
 }
 
@@ -145,7 +152,8 @@ function newTopic() {
   return 'ba-' + Array.from(bytes, (b) => alphabet[b & 31]).join('');
 }
 
-function encodePairing(config) {
+// The invite code: the relay to meet on, plus who I am (name, bear, time zone, iMessage handles).
+function encodePairing(config, timezone = Intl.DateTimeFormat().resolvedOptions().timeZone) {
   const payload = {
     s: config.relay.server,
     t: config.relay.topic,
@@ -153,19 +161,31 @@ function encodePairing(config) {
     id: config.me.id,
     n: config.me.name,
     c: config.me.character,
+    z: timezone || undefined,
+    h: config.me.handles?.length ? config.me.handles : undefined,
   };
   return 'BA1-' + Buffer.from(JSON.stringify(payload)).toString('base64url');
 }
 
-function decodePairing(code) {
-  const m = String(code).trim().match(/^BA1-([A-Za-z0-9_-]+)$/);
-  if (!m) throw new Error('That does not look like a Bearly Apart pairing code.');
-  const p = JSON.parse(Buffer.from(m[1], 'base64url').toString('utf8'));
-  if (!p.s || !p.t) throw new Error('Pairing code is missing the relay details.');
-  return {
-    relay: { server: p.s, topic: p.t, token: p.k || '' },
-    partner: { id: p.id || '', name: p.n || '', character: p.c || 'brown' },
-  };
+// Finds a code anywhere in what was pasted (a whole text message is fine).
+function findPairingCode(text) {
+  return String(text || '').match(/BA1-[A-Za-z0-9_-]{20,}/)?.[0] || null;
+}
+
+function decodePairing(text) {
+  const code = findPairingCode(text);
+  if (!code) throw new Error('That does not look like a Bearly Apart invite code.');
+  let p;
+  try {
+    p = JSON.parse(Buffer.from(code.slice(4), 'base64url').toString('utf8'));
+  } catch {
+    throw new Error('That invite code is cut off. Copy the whole thing and try again.');
+  }
+  if (!p.s || !p.t) throw new Error('That invite code is missing the relay details.');
+  const partner = { id: p.id || '', name: p.n || '', character: p.c || 'brown' };
+  if (p.z) partner.timezone = p.z;
+  if (Array.isArray(p.h) && p.h.length) partner.imessageHandles = p.h.map(String);
+  return { relay: { server: p.s, topic: p.t, token: p.k || '' }, partner };
 }
 
 function openStores(dir) {
@@ -177,4 +197,4 @@ function openStores(dir) {
   return { config, state };
 }
 
-module.exports = { openStores, JsonFile, DEFAULT_CONFIG, DEFAULT_STATE, KEYWORDS, merge, migrate, slug, newTopic, encodePairing, decodePairing };
+module.exports = { openStores, JsonFile, DEFAULT_CONFIG, DEFAULT_STATE, KEYWORDS, merge, migrate, slug, newTopic, encodePairing, decodePairing, findPairingCode };

@@ -17,6 +17,23 @@ test('tags round-trip', () => {
   assert.strictEqual(fromNtfy({ event: 'message', tags: ['e.kiss'] }), null); // not ours
 });
 
+test('invites carry time zone and iMessage handles, and are found inside a pasted message', () => {
+  const c = merge(structuredClone(DEFAULT_CONFIG), { me: { id: 'him', name: 'Him', character: 'brown', handles: ['+1 555 123 4567'] }, relay: { topic: 'ba-abc' } });
+  const code = encodePairing(c, 'America/New_York');
+  const p = decodePairing(`hey babe here it is: ${code} <3`);
+  assert.strictEqual(p.partner.timezone, 'America/New_York');
+  assert.deepStrictEqual(p.partner.imessageHandles, ['+1 555 123 4567']);
+  assert.throws(() => decodePairing(code.slice(0, 30) + '!!!'), /cut off/);
+  // An old-style code (no handles) must not wipe numbers already typed in.
+  assert.strictEqual(decodePairing(encodePairing(merge(c, { me: { handles: [] } }))).partner.imessageHandles, undefined);
+});
+
+test('hello tags carry time zone and handles', () => {
+  const back = fromNtfy({ event: 'message', id: '1', time: 1, message: '👋', tags: toTags({ type: 'hello', from: 'her', character: 'cream', timezone: 'Asia/Shanghai', handles: ['a@b.c'] }) });
+  assert.strictEqual(back.timezone, 'Asia/Shanghai');
+  assert.deepStrictEqual(back.handles, ['a@b.c']);
+});
+
 test('pairing codes round-trip', () => {
   const c = merge(structuredClone(DEFAULT_CONFIG), { me: { id: 'him', name: 'Him', character: 'brown' }, relay: { topic: 'ba-abc' } });
   const p = decodePairing(encodePairing(c));
@@ -123,4 +140,5 @@ test('old configs get the new text triggers', () => {
   again.data.keywords.custom = 'x'; // edits made after the upgrade are left alone
   migrate(again);
   assert.strictEqual(again.data.keywords.custom, 'x');
+  assert.strictEqual(c.data.setupDone, false); // named but never paired: setup still runs
 });

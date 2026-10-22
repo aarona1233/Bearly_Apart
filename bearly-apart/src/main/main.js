@@ -17,6 +17,29 @@ const { STATUSES, SENDABLES, describe } = require('./catalog');
 
 const BUNDLED_ASSETS = path.join(__dirname, '..', '..', 'assets');
 const IS_MAC = process.platform === 'darwin';
+const IS_WIN = process.platform === 'win32';
+
+// Windows Setup.exe (Squirrel) runs the app with --squirrel-* while installing and uninstalling: make or
+// remove the Start menu / desktop shortcuts, then quit. Update.exe sits one folder up from the app.
+const SQUIRREL_UPDATE = path.resolve(path.dirname(process.execPath), '..', 'Update.exe');
+function handleSquirrel() {
+  const cmd = IS_WIN ? process.argv[1] : '';
+  if (!cmd?.startsWith('--squirrel-') || cmd === '--squirrel-firstrun') return false;
+  const exe = path.basename(process.execPath);
+  const update = (args) => require('child_process').spawn(SQUIRREL_UPDATE, args, { detached: true }).on('error', () => {});
+  if (cmd === '--squirrel-install' || cmd === '--squirrel-updated') update([`--createShortcut=${exe}`, '--shortcut-locations=StartMenu,Desktop']);
+  if (cmd === '--squirrel-uninstall') {
+    update([`--removeShortcut=${exe}`, '--shortcut-locations=StartMenu,Desktop']);
+    app.setLoginItemSettings({ openAtLogin: false, path: SQUIRREL_UPDATE, args: ['--processStart', `"${exe}"`] });
+  }
+  setTimeout(() => {
+    // Squirrel removes the Start menu shortcut but leaves its empty folder behind.
+    if (cmd === '--squirrel-uninstall') fs.rmSync(path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Bearly Apart'), { recursive: true, force: true });
+    app.quit();
+  }, 1000);
+  return true;
+}
+const INSTALLER_RUN = handleSquirrel();
 
 if (process.platform === 'linux') {
   // Wayland doesn't let apps keep a window on top or position it; XWayland does. The choice must be
@@ -33,7 +56,7 @@ if (process.platform === 'linux') {
 }
 // BA_PROFILE lets two copies run side by side on one computer for testing ("him" and "her").
 if (process.env.BA_PROFILE) app.setPath('userData', path.join(app.getPath('appData'), `Bearly Apart (${process.env.BA_PROFILE})`));
-if (!app.requestSingleInstanceLock()) app.quit();
+if (!INSTALLER_RUN && !app.requestSingleInstanceLock()) app.quit();
 // Opening the app again brings up its window — the way in when there's no tray icon (stock GNOME).
 app.on('second-instance', () => ui?.openWindow());
 
@@ -157,6 +180,9 @@ function saveSettings(patch) {
 
 function pair(code) {
   const p = decodePairing(code);
+  if (!p.partner.id) throw new Error('That invite is from an app with no name set yet.');
+  // Two people called the same thing would look like one person's echo.
+  if (p.partner.id === cfg().me.id) stores.config.set({ me: { id: `${cfg().me.id}2` } });
   stores.config.set({ relay: p.relay, partner: { ...cfg().partner, ...p.partner } });
   stores.state.set({ relaySince: '', lastHeardAt: Date.now(), helloSent: true });
   relay.restart();
@@ -199,14 +225,48 @@ function applyLoginItem() {
       fs.mkdirSync(path.dirname(file), { recursive: true });
       fs.writeFileSync(file, `[Desktop Entry]\nType=Application\nName=Bearly Apart\nExec="${process.execPath}"\nX-GNOME-Autostart-enabled=true\n`);
     } else fs.rmSync(file, { force: true });
+  } else if (IS_WIN && fs.existsSync(SQUIRREL_UPDATE)) {
+    // Installed with Setup.exe: start through Update.exe, which always points at the current version.
+    app.setLoginItemSettings({ openAtLogin: on, path: SQUIRREL_UPDATE, args: ['--processStart', `"${path.basename(process.execPath)}"`] });
   } else {
     app.setLoginItemSettings({ openAtLogin: on });
   }
 }
 
+// ---------- first-run setup helpers (Mac) ------------------------------------
+
+// Moving out of Downloads matters on the Mac: Full Disk Access belongs to the app at its path.
+function moveToApplications() {
+  if (!IS_MAC || app.isInApplicationsFolder()) return true;
+  try {
+    // Replaces an older copy in Applications; the app restarts from there.
+    return app.moveToApplicationsFolder({ conflictHandler: () => true });
+  } catch (err) {
+    log(`[setup] move to Applications failed: ${err.message}`);
+    return false;
+  }
+}
+
+// Asks the iMessage watcher to try chat.db again right now; returns 'ok', 'no-access', 'missing' or 'off'.
+function checkTextAccess() {
+  if (!imessage) return 'off';
+  imessage.start();
+  ui.refresh();
+  return imessage.status;
+}
+
+function relaunch() {
+  app.relaunch();
+  app.exit(0);
+}
+
 // ---------- startup --------------------------------------------------------
 
 app.whenReady().then(() => {
+  if (INSTALLER_RUN) return;
+  // Opened from Downloads (first install or a new version)? Move into Applications, replacing any old copy,
+  // and restart from there. The app quits here if the move worked.
+  if (IS_MAC && app.isPackaged && !app.isInApplicationsFolder() && moveToApplications()) return;
   if (IS_MAC) app.dock?.hide();
   // A menu-bar app with no visible window gets "App Napped" by macOS: timers and network slow to a
   // crawl, so bears showed up late or in clumps. This keeps it awake (it doesn't stop the Mac sleeping).
@@ -248,7 +308,10 @@ app.whenReady().then(() => {
   });
   brain.onHello = (p) => {
     if (!p.id) return;
-    stores.config.set({ partner: { id: p.id, name: p.name || cfg().partner.name, character: p.character || cfg().partner.character } });
+    const partner = { id: p.id, name: p.name || cfg().partner.name, character: p.character || cfg().partner.character };
+    if (p.timezone) partner.timezone = p.timezone;
+    if (p.handles?.length) partner.imessageHandles = p.handles;
+    stores.config.set({ partner });
     log(`[pair] paired with ${p.name} (${p.id})`);
     ui?.refresh();
   };
@@ -294,7 +357,7 @@ app.whenReady().then(() => {
     getScene: (name) => scenes[name],
     liveState,
     pairingCode: () => encodePairing(cfg()),
-    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir },
+    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, moveToApplications, checkTextAccess, relaunch },
   });
   activity.on('change', () => ui.refresh());
   ui.start();
@@ -316,7 +379,7 @@ app.whenReady().then(() => {
 
   setInterval(() => brain.tick({ idleSec: powerMonitor.getSystemIdleTime() }), 30_000);
 
-  if (!cfg().me.name) ui.openWindow('settings');
+  if (!cfg().setupDone) ui.openWindow('setup');
   if (process.env.BA_DEMO) setTimeout(() => process.env.BA_DEMO.split(',').forEach(preview), 1500);
   if (process.env.BA_OPEN) ui.openWindow(process.env.BA_OPEN);
   log(`Bearly Apart ready (profile: ${app.getPath('userData')})`);
