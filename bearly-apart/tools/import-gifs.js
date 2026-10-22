@@ -39,6 +39,11 @@ const MAP = {
   'bubududu-sleep.gif': { name: 'dudu-dream.png', keep: true },
   'emrananhret.gif': 'pair-together.png',
   'i-miss-you.gif': { name: 'card-miss-you.png', keep: true, max: 300 },
+  'bubu-dudu cuddle.gif': { name: 'pair-goodnight.png', max: 260 },
+  'bubu-dudu-love lettergif.gif': 'bubu-letter.png',
+  'bubu-helloooo.gif': 'bubu-hello.png',
+  'bubu-make dudu happygif.gif': 'pair-cheer-up.png',
+  'bubusad.gif': 'bubu-sad.png',
 };
 
 // Runs in the hidden page: decode every frame with WebCodecs, knock out the background, scale down.

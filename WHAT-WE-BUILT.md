@@ -92,9 +92,10 @@ Your friend's 16 GIFs (`animations/`) were imported with `tools/import-gifs.js`:
   The importer removes it by flood-filling from the edges, so Bubu's white fur is kept.
 - **Format:** all were saved as transparent animated PNGs (smoother edges than GIF), and big ones were shrunk.
 - **Characters:** **brown bear = Dudu, white bear = Bubu**, picked per person in Settings.
-- **Second batch (Oct 22):** 8 more GIFs: Bubu dancing (its fading background is cut out pixel by pixel), Bubu clinging
-  to Dudu, "I LOVE YOU", Dudu on Bubu's head with hearts (poke), Dudu tucking Bubu in, both bears from behind, and two with
-  painted backgrounds (Dudu dreaming in bed, the "I Miss You" picture), which are shown framed like little photos.
+- **Second batch (Oct 22):** 13 more GIFs: Bubu dancing (its fading background is cut out pixel by pixel), Bubu clinging
+  to Dudu, "I LOVE YOU", Dudu on Bubu's head with hearts (poke), Dudu tucking Bubu in, both bears from behind, both in bed
+  saying goodnight, Bubu receiving a love letter (delivers notes), Bubu shouting hello, Bubu cheering Dudu up, Bubu crying,
+  and two with painted backgrounds (Dudu dreaming in bed, the "I Miss You" picture), shown framed like little photos.
   `dudu-kiss.gif` is the same file as `bubu-dudu-kiss.gif`, so it was skipped.
 - **Placeholders:** the hand-drawn bears were replaced wherever a real animation fits (heart, poke, miss you, sleepy,
   goodnight, generic status, love notes, sad). Only the **hungry** bear and the **MISSING poster** are still drawn.
