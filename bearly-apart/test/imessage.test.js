@@ -63,3 +63,12 @@ test('watcher reports only the partner, both directions, skips history', async (
     ],
   );
 });
+
+test('no chat.db: says "missing" and keeps checking (without Full Disk Access macOS reports "no-access" instead)', () => {
+  const cfg = merge(structuredClone(DEFAULT_CONFIG), { partner: { imessageHandles: ['5551234567'] } });
+  const w = new IMessageWatcher({ getConfig: () => cfg, getLastRowId: () => 0, setLastRowId: () => {}, dbPath: path.join(os.tmpdir(), 'ba-nope', 'chat.db'), log: () => {} });
+  w.start();
+  assert.strictEqual(w.status, 'missing');
+  assert.ok(w.timer, 'a retry is scheduled');
+  w.stop();
+});

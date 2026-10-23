@@ -52,7 +52,12 @@ const ENTER = {
     status.className = 'waiting';
     status.textContent = '⏳ Waiting for the switch…';
     const check = async () => {
-      if ((await window.ba.setup('texts')) !== 'ok') return;
+      const access = await window.ba.setup('texts');
+      if (access !== 'ok') {
+        status.textContent =
+          access === 'missing' ? '⚠️ Messages isn’t set up on this Mac yet: open Messages and sign in (with Messages in iCloud on).' : '⏳ Waiting for the switch…';
+        return;
+      }
       clearInterval(fdaTimer);
       status.className = 'waiting ok';
       status.textContent = '✓ Bearly Apart can see your texts now';

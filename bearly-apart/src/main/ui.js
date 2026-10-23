@@ -80,6 +80,8 @@ class UI {
   // ---------- window -------------------------------------------------------
 
   openWindow(tab) {
+    // A menu-bar app (no Dock icon) isn't brought to the front by itself, so the window could open behind others.
+    if (IS_MAC) app.focus({ steal: true });
     if (this.win && !this.win.isDestroyed()) {
       if (tab) this.win.webContents.send('show-tab', tab);
       if (this.win.isMinimized()) this.win.restore();
@@ -123,6 +125,7 @@ class UI {
     if (live.paused) items.push({ label: `⏸ Bears are waiting: ${pauseText(live.paused)}`, enabled: false });
     if (IS_MAC && cfg.imessage.enabled) {
       if (live.imessage === 'no-access') items.push({ label: '⚠️ iMessage: grant Full Disk Access…', click: () => shell.openExternal(FDA_URL) });
+      else if (live.imessage === 'missing') items.push({ label: '⚠️ iMessage: sign in to Messages on this Mac', enabled: false });
       else if (live.imessage === 'ok' && !cfg.partner.imessageHandles.length) items.push({ label: '⚠️ iMessage: add their number in Settings', click: () => this.openWindow('settings') });
       else if (live.imessage === 'ok') items.push({ label: '✓ Watching iMessage', enabled: false });
     }

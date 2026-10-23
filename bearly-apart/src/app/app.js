@@ -66,6 +66,7 @@ function renderLive() {
   let action = null;
   if (!live.paired) [msg, action] = ['Not connected to your person yet.', ['Connect', () => showTab(data.config.setupDone ? 'settings' : 'setup')]];
   else if (live.imessage === 'no-access') [msg, action] = ['Texts can’t be seen yet: give Bearly Apart Full Disk Access.', ['Open that setting', () => window.ba.open('fda')]];
+  else if (live.imessage === 'missing') msg = 'Texts can’t be seen yet: sign in to Messages on this Mac (with Messages in iCloud on).';
   else if (live.snoozedUntil) [msg, action] = [`🔕 Bears are snoozed until ${timeOf(live.snoozedUntil)}.`, ['Resume', () => window.ba.snooze(0)]];
   else if (live.paused) msg = `⏸ Bears are waiting because ${data.pauseReasons[live.paused] || (live.paused.startsWith('app:') ? `${live.paused.slice(4)} is in front` : live.paused)}. They’ll play as soon as that’s over.`;
   banner.hidden = !msg;

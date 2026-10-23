@@ -56,7 +56,10 @@ if (process.platform === 'linux') {
 }
 // BA_PROFILE lets two copies run side by side on one computer for testing ("him" and "her").
 if (process.env.BA_PROFILE) app.setPath('userData', path.join(app.getPath('appData'), `Bearly Apart (${process.env.BA_PROFILE})`));
-if (!INSTALLER_RUN && !app.requestSingleInstanceLock()) app.quit();
+// A Mac copy opened from Downloads only explains how to move it, so it mustn't hand over to (or be blocked by) an
+// older copy that's still running from Applications.
+const NEEDS_MOVE = IS_MAC && app.isPackaged && !app.isInApplicationsFolder();
+if (!INSTALLER_RUN && !NEEDS_MOVE && !app.requestSingleInstanceLock()) app.quit();
 // Opening the app again brings up its window: the way in when there's no tray icon (stock GNOME), or the 💗 is
 // hidden behind a MacBook's notch. Windows/Linux start a second copy ('second-instance'); a Mac doesn't, it sends
 // 'activate' to the running one. 'activate' also fires once at launch, so the first few seconds are ignored.
@@ -234,7 +237,13 @@ function applyLoginItem() {
     // Installed with Setup.exe: start through Update.exe, which always points at the current version.
     app.setLoginItemSettings({ openAtLogin: on, path: SQUIRREL_UPDATE, args: ['--processStart', `"${path.basename(process.execPath)}"`] });
   } else {
-    app.setLoginItemSettings({ openAtLogin: on });
+    // macOS 13+ registers this through the system's login items, which can refuse an app that isn't signed by
+    // Apple. Starting at login is nice to have, so never let it break anything else.
+    try {
+      app.setLoginItemSettings({ openAtLogin: on });
+    } catch (err) {
+      log(`[login item] ${err.message}`);
+    }
   }
 }
 
@@ -244,13 +253,15 @@ function applyLoginItem() {
 // ourselves: macOS's move puts the original in the Trash and, on her Mac, the restart afterwards failed,
 // so she kept opening the copy in the Trash. Instead: say so, open Downloads and Applications, and quit.
 function askToMoveToApplications() {
+  app.focus({ steal: true }); // a menu-bar app isn't brought to the front by itself; the message could hide
   dialog.showMessageBoxSync({
     type: 'info',
     title: 'Bearly Apart',
     message: 'Almost there! Move Bearly Apart into Applications first.',
     detail:
       'Two Finder windows will open. Drag Bearly Apart from Downloads into Applications ' +
-      '(replace the old one if asked), then open it from Applications.',
+      '(replace the old one if asked), then open it from Applications.\n\n' +
+      'If Finder says Bearly Apart is open, quit the old one first: 💗 in the menu bar → Quit Bearly Apart.',
     buttons: ['Show me'],
   });
   shell.openPath(app.getPath('downloads'));
@@ -276,7 +287,7 @@ function relaunch() {
 app.whenReady().then(() => {
   if (INSTALLER_RUN) return;
   // Opened from Downloads (or the Trash)? It needs to be in Applications first.
-  if (IS_MAC && app.isPackaged && !app.isInApplicationsFolder()) return askToMoveToApplications();
+  if (NEEDS_MOVE) return askToMoveToApplications();
   if (IS_MAC) app.dock?.hide();
   // A menu-bar app with no visible window gets "App Napped" by macOS: timers and network slow to a
   // crawl, so bears showed up late or in clumps. This keeps it awake (it doesn't stop the Mac sleeping).

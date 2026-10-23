@@ -107,8 +107,13 @@ class IMessageWatcher extends EventEmitter {
 
   start() {
     this.stop();
-    if (!fs.existsSync(this.dbPath)) {
-      this.setStatus('missing');
+    // Without Full Disk Access macOS hides ~/Library/Messages entirely: stat fails with EPERM, not ENOENT.
+    // So only a real "no such file" means Messages isn't set up; either way, look again in 30 seconds.
+    try {
+      fs.statSync(this.dbPath);
+    } catch (err) {
+      this.setStatus(err.code === 'ENOENT' ? 'missing' : 'no-access');
+      this.timer = setTimeout(() => this.start(), 30_000);
       return;
     }
     try {
