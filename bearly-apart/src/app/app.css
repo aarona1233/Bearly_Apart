@@ -262,6 +262,21 @@ code.pre {
 .send-btn .lbl {
   font-size: 12px;
 }
+.more-title {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 14px 0 8px;
+}
+.send-grid.more .send-btn {
+  padding: 9px 4px 8px;
+}
+.send-grid.more .emoji {
+  font-size: 22px;
+}
+.send-grid.more .lbl {
+  font-size: 11px;
+  line-height: 1.2;
+}
 .send-btn.sending {
   opacity: 0.6;
 }

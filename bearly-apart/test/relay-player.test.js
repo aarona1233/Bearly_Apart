@@ -15,6 +15,7 @@ test('tags round-trip', () => {
   assert.strictEqual(back.status, 'hungry');
   assert.deepStrictEqual(back.keywords, ['x']);
   assert.strictEqual(fromNtfy({ event: 'message', tags: ['e.kiss'] }), null); // not ours
+  assert.strictEqual(fromNtfy({ event: 'message', id: '2', time: 1, message: '🥰', tags: toTags({ type: 'gift', from: 'him', gift: 'cuddle' }) }).gift, 'cuddle');
 });
 
 test('invites carry time zone and iMessage handles, and are found inside a pasted message', () => {

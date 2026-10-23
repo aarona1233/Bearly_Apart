@@ -10,10 +10,11 @@ function summarize(items) {
   for (const it of items) {
     const t = it.ev?.type;
     if (t === 'status') statuses.push(it.vars.emoji || '💬');
+    else if (t === 'gift') counts.set(it.vars.emoji || '✨', (counts.get(it.vars.emoji || '✨') || 0) + 1);
     else if (t) counts.set(t, (counts.get(t) || 0) + 1);
   }
   const parts = [];
-  for (const [t, n] of counts) parts.push(`${SUMMARY_EMOJI[t] || '✨'}${n > 1 ? `×${n}` : ''}`);
+  for (const [t, n] of counts) parts.push(`${SUMMARY_EMOJI[t] || t}${n > 1 ? `×${n}` : ''}`);
   // Only the latest status matters ("hungry" from 4 hours ago is old news).
   if (statuses.length) parts.push(statuses[statuses.length - 1]);
   return parts.join('  ');

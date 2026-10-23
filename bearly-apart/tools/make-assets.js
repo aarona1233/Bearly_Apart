@@ -189,12 +189,10 @@ function svg(viewBox, body) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}"><style>${STYLE}</style>${body}</svg>\n`;
 }
 
-// Drawn placeholder bears, only for scenes that don't have a real animation yet (hungry).
+// Drawn placeholder bears, only where there's no real animation yet: hungry Dudu (Bubu eats a banana).
 // The rest were replaced by the Bubu & Dudu GIFs; drop a pose here once its scene gets one.
 const POSES = {
-  run: { legs: 'run', arm: 'swing' },
-  hungry: { arm: 'rub', eyes: 'big', mouth: 'drool' },
-  burger: { legs: 'run', arm: 'hold', eyes: 'happy', mouth: 'open', item: 'burger' },
+  hungry: { arm: 'rub', eyes: 'big', mouth: 'drool', only: 'brown' },
 };
 
 let count = 0;
@@ -204,7 +202,7 @@ const write = (name, content) => {
 };
 
 for (const [cname, c] of Object.entries(PALETTES)) {
-  for (const [pose, p] of Object.entries(POSES)) write(`bear-${pose}-${cname}.svg`, svg(pose === 'sword' ? '-60 -60 260 260' : '0 0 200 200', bear(c, p)));
+  for (const [pose, p] of Object.entries(POSES)) if (!p.only || p.only === cname) write(`bear-${pose}-${cname}.svg`, svg('0 0 200 200', bear(c, p)));
 
   // "Missing" poster with this bear's sad face.
   write(

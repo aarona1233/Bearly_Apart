@@ -63,7 +63,9 @@ Bearly Appart/
   - Doesn't nag while the other person sleeps (their time zone, or after a "goodnight" status)
 - 📣 Statuses from your phone or the app: hungry (bear runs off with a burger), sleepy, goodnight, work/class (Dudu at the laptop),
   bath, free/home (boba relax), thinking of you, sad, gym, driving, gaming, eating, sick, busy
-- 💋 Send a kiss / heart / hug / poke / miss-you
+- 💋 Send a kiss / heart / hug / poke / miss-you, plus 18 more under **More** (love you, smooch, cuddle, snuggle, tackle
+  hug, thinking of you, together, hi, happy dance, snack time, grr, I'm sad, cheer up, don't go, chill date, goodnight,
+  sleep tight, dreaming of you). New GIFs named with `_` or `%` become new buttons automatically
 - 🫂 Both send a heart within 20 seconds → both screens get a hug
 - 💌 Love notes, delivered now or saved in the "note jar" for her next morning
 - ☀️ Good-morning bear the first time she's at the computer each day, with a visit countdown and a note from the jar
@@ -98,8 +100,8 @@ Your friend's 16 GIFs (`animations/`) were imported with `tools/import-gifs.js`:
   and two with painted backgrounds (Dudu dreaming in bed, the "I Miss You" picture), shown framed like little photos.
   `dudu-kiss.gif` is the same file as `bubu-dudu-kiss.gif`, so it was skipped.
 - **Placeholders:** the hand-drawn bears were replaced wherever a real animation fits (heart, poke, miss you, sleepy,
-  goodnight, generic status, love notes, sad). Only the **hungry** bear and the **MISSING poster** are still drawn.
-  Swap those out when GIFs for them come in.
+  goodnight, generic status, love notes, sad, hungry Bubu). Only **hungry Dudu** and the **MISSING poster** are still
+  drawn. Swap those out when GIFs for them come in.
 
 These are licensed to the two of you through your friend, so keep the app private and don't publish it.
 

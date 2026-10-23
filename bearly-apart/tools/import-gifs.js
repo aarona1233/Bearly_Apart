@@ -4,6 +4,8 @@
 // Usage: npx electron tools/import-gifs.js <folder-with-gifs> [--force]
 // Files already in assets/ are skipped unless --force is given.
 // The name map below says which GIF becomes which asset; scenes.json refers to the new names.
+// Any other GIF whose name starts with "_" or contains "%" is made for the Send tab: it's imported as
+// gift-<name>.png and gets a ✨ button in assets/sendables.json and a scene in scenes.json (edit both to taste).
 const { app, BrowserWindow, nativeImage } = require('electron');
 const fs = require('fs');
 const path = require('path');
@@ -44,7 +46,17 @@ const MAP = {
   'bubu-helloooo.gif': 'bubu-hello.png',
   'bubu-make dudu happygif.gif': 'pair-cheer-up.png',
   'bubusad.gif': 'bubu-sad.png',
+  'dudu-hug.gif': 'pair-squeeze.png',
+  // Made for the Send tab ("_" or "%" in the name).
+  '_Bubu dudu hug.gif': { name: 'pair-snuggle.png', keep: true }, // white fur touches the edge: shown framed
+  '_Bubu eatingl.gif': { name: 'bubu-eating.png', max: 220 },
+  '_Dudu angry.gif': 'dudu-angry.png',
+  '_bubu-angry.gif': 'bubu-angry.png',
+  '_Thinking of you.gif': 'dudu-thinking-of-you.png',
+  '_bubu sad.gif': { name: 'bubu-cry.png', max: 260 },
 };
+// Same file as one already imported, so not a new Send button by itself.
+const DUPLICATES = new Set(['_Bubu kiss.gif', 'dudu-kiss.gif']);
 
 // Runs in the hidden page: decode every frame with WebCodecs, knock out the background, scale down.
 const DECODE = `async (b64, max, opts) => {
@@ -195,21 +207,48 @@ function scanlines(bgra, w, h) {
   return raw;
 }
 
+// Adds a Send button and its scene for a new gift GIF, unless they exist already (so edits are kept).
+function addGift(gift, asset) {
+  const readJson = (f) => JSON.parse(fs.readFileSync(path.join(OUT, f), 'utf8'));
+  const writeJson = (f, data) => fs.writeFileSync(path.join(OUT, f), JSON.stringify(data, null, 2) + '\n');
+  const gifts = readJson('sendables.json');
+  if (!gifts[gift]) {
+    const label = gift.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase());
+    gifts[gift] = { emoji: '✨', label, says: 'sent you something' };
+    writeJson('sendables.json', gifts);
+    console.log(`  + Send button "✨ ${label}": change its emoji, label and caption in assets/sendables.json`);
+  }
+  const scenes = readJson('scenes.json');
+  if (!scenes[`send-${gift}`]) {
+    scenes[`send-${gift}`] = {
+      caption: '{emoji} {partner} {says}',
+      actors: [
+        {
+          asset,
+          size: 220,
+          pokeable: true,
+          at: ['center', 'off-bottom'],
+          steps: [
+            { do: 'move', y: 'bottom', ms: 650, hop: false, ease: 'ease-out' },
+            { do: 'wait', ms: 3200 },
+            { do: 'move', y: 'off-bottom', ms: 600, hop: false, ease: 'ease-in' },
+          ],
+        },
+      ],
+    };
+    writeJson('scenes.json', scenes);
+    console.log(`  + scene "send-${gift}" in assets/scenes.json`);
+  }
+}
+
 app.whenReady().then(async () => {
   const dir = path.resolve(process.argv.slice(1).find((a) => !a.startsWith('-') && fs.existsSync(a) && fs.statSync(a).isDirectory() && !a.endsWith('bearly-apart')) || '../animations');
   const win = new BrowserWindow({ show: false, webPreferences: { offscreen: true } });
   // WebCodecs (ImageDecoder) only exists in secure contexts; a local file page counts.
   await win.loadFile(path.join(__dirname, '..', 'src', 'overlay', 'index.html'));
   const force = process.argv.includes('--force');
-  for (const [src, entry] of Object.entries(MAP)) {
-    const { name, max = MAX, ...opts } = typeof entry === 'string' ? { name: entry } : entry;
-    const file = path.join(dir, src);
-    if (!fs.existsSync(file)) {
-      console.log(`- skip ${src} (not found)`);
-      continue;
-    }
-    if (!force && fs.existsSync(path.join(OUT, name))) continue;
-    const b64 = fs.readFileSync(file).toString('base64');
+  const importOne = async (src, name, { max = MAX, ...opts } = {}) => {
+    const b64 = fs.readFileSync(path.join(dir, src)).toString('base64');
     const r = await win.webContents.executeJavaScript(`(${DECODE})(${JSON.stringify(b64)}, ${max}, ${JSON.stringify(opts)})`);
     const frames = r.frames.map((f) => {
       const img = nativeImage.createFromBuffer(Buffer.from(f.png, 'base64'));
@@ -218,6 +257,23 @@ app.whenReady().then(async () => {
     const out = apng(r.w, r.h, frames);
     fs.writeFileSync(path.join(OUT, name), out);
     console.log(`✓ ${src.padEnd(30)} → ${name.padEnd(22)} ${r.original.join('x')} → ${r.w}x${r.h}, ${frames.length} frames${r.keyed ? ', background removed' : ''}, ${(out.length / 1024).toFixed(0)} KB`);
+  };
+  for (const [src, entry] of Object.entries(MAP)) {
+    const { name, ...opts } = typeof entry === 'string' ? { name: entry } : entry;
+    if (!fs.existsSync(path.join(dir, src))) {
+      console.log(`- skip ${src} (not found)`);
+      continue;
+    }
+    if (!force && fs.existsSync(path.join(OUT, name))) continue;
+    await importOne(src, name, opts);
+  }
+  // New Send-tab GIFs: "_name.gif" or "name%.gif".
+  for (const src of fs.readdirSync(dir)) {
+    if (!/\.gif$/i.test(src) || MAP[src] || DUPLICATES.has(src) || !/^_|%/.test(src)) continue;
+    const gift = src.replace(/\.gif$/i, '').replace(/[_%]/g, ' ').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const name = `gift-${gift}.png`;
+    if (force || !fs.existsSync(path.join(OUT, name))) await importOne(src, name);
+    addGift(gift, name);
   }
   app.quit();
 });

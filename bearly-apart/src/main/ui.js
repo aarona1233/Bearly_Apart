@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell, clipboard } = require('electron');
 const { findPairingCode } = require('./store');
-const { STATUSES, SENDABLES, SCENES: SCENE_ORDER, sceneInfo } = require('./catalog');
+const { STATUSES, SENDABLES, GIFTS, SCENES: SCENE_ORDER, sceneInfo } = require('./catalog');
 
 const SRC = path.join(__dirname, '..');
 const ICONS = path.join(__dirname, '..', '..', 'assets', 'icons');
@@ -130,6 +130,11 @@ class UI {
     for (const [type, s] of Object.entries(SENDABLES)) {
       items.push({ label: `${s.emoji}  Send ${s.short.toLowerCase()}`, enabled: paired, click: () => this.actions.sendEvent(type, {}, { notify: true }) });
     }
+    items.push({
+      label: '✨  Send more…',
+      enabled: paired,
+      submenu: Object.entries(GIFTS).map(([gift, g]) => ({ label: `${g.emoji}  ${g.label}`, click: () => this.actions.sendEvent('gift', { gift }, { notify: true }) })),
+    });
     const mine = st.myStatus?.name;
     items.push({
       label: `📣  My status${mine && STATUSES[mine] ? `: ${STATUSES[mine].emoji} ${STATUSES[mine].short}` : ''}`,
@@ -191,13 +196,15 @@ class UI {
       profileDir: app.getPath('userData'),
       statuses: STATUSES,
       sendables: SENDABLES,
+      gifts: GIFTS,
       scenes: this.sceneList(),
       pauseReasons: PAUSE_REASONS,
       live: this.liveState(),
     }));
-    ipcMain.handle('app:send', (_, { type, status }) => {
-      if (!SENDABLES[type] && type !== 'status') return { ok: false, error: 'unknown type' };
-      return actions.sendEvent(type, status ? { status: String(status) } : {});
+    ipcMain.handle('app:send', (_, { type, status, gift }) => {
+      if (type === 'status') return actions.sendEvent(type, { status: String(status) });
+      if (type === 'gift') return GIFTS[gift] ? actions.sendEvent(type, { gift }) : { ok: false, error: 'unknown gift' };
+      return SENDABLES[type] ? actions.sendEvent(type) : { ok: false, error: 'unknown type' };
     });
     ipcMain.handle('app:note', (_, { text, later }) => {
       const t = String(text || '').trim().slice(0, 2000);

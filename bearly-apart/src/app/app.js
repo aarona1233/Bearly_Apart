@@ -106,23 +106,25 @@ function renderLive() {
 
 // ---------- send tab ----------------------------------------------------------
 
+// A big emoji button that shows … while sending, then ✓ or ✗.
+function sendButton(emoji, label, send) {
+  const b = el('button', { className: 'send-btn' }, el('span', { className: 'emoji', textContent: emoji }), el('span', { className: 'lbl', textContent: label }), el('span', { className: 'tick' }));
+  b.addEventListener('click', async () => {
+    b.className = 'send-btn sending';
+    b.querySelector('.tick').textContent = '';
+    const r = await send();
+    b.className = `send-btn ${r.ok ? 'sent' : 'failed'}`;
+    b.querySelector('.tick').textContent = r.ok ? '✓' : '✗';
+    if (!r.ok) toast(`Couldn’t send: ${r.error}`);
+    setTimeout(() => (b.className = 'send-btn'), 2500);
+  });
+  return b;
+}
+
 function buildSend() {
   $('send-hint').textContent = `Plays on ${partner()}’s screen right away. If they’re away or busy it waits, then shows up when they’re back.`;
-  $('send-grid').replaceChildren(
-    ...Object.entries(data.sendables).map(([type, s]) => {
-      const b = el('button', { className: 'send-btn' }, el('span', { className: 'emoji', textContent: s.emoji }), el('span', { className: 'lbl', textContent: s.short }), el('span', { className: 'tick' }));
-      b.addEventListener('click', async () => {
-        b.className = 'send-btn sending';
-        b.querySelector('.tick').textContent = '';
-        const r = await window.ba.send(type);
-        b.className = `send-btn ${r.ok ? 'sent' : 'failed'}`;
-        b.querySelector('.tick').textContent = r.ok ? '✓' : '✗';
-        if (!r.ok) toast(`Couldn’t send: ${r.error}`);
-        setTimeout(() => (b.className = 'send-btn'), 2500);
-      });
-      return b;
-    }),
-  );
+  $('send-grid').replaceChildren(...Object.entries(data.sendables).map(([type, s]) => sendButton(s.emoji, s.short, () => window.ba.send(type))));
+  $('more-grid').replaceChildren(...Object.entries(data.gifts).map(([gift, g]) => sendButton(g.emoji, g.label, () => window.ba.send('gift', { gift }))));
 
   $('status-hint').textContent = `Let ${partner()} know what you’re up to. Their bear acts it out on their screen once, and it stays next to your name in their 💗 menu until you change or clear it.`;
   $('status-chips').replaceChildren(
@@ -136,7 +138,7 @@ function buildSend() {
 }
 
 async function setStatus(name, text) {
-  const r = await window.ba.send('status', name);
+  const r = await window.ba.send('status', { status: name });
   toast(r.ok ? (name === 'clear' ? 'Status cleared' : `Status set: ${text}`) : `Couldn’t send: ${r.error}`);
 }
 $('status-clear').addEventListener('click', () => setStatus('clear'));
@@ -205,6 +207,7 @@ function fillSettings() {
   const id = c.me.id || '(save your name first)';
   $('sc-tags').textContent = [
     ...Object.entries(data.sendables).map(([type, s]) => `${s.emoji} ${type.padEnd(9)} ba,e.${type},f.${id}`),
+    ...Object.entries(data.gifts).map(([gift, g]) => `${g.emoji} ${gift.padEnd(9)} ba,e.gift,g.${gift},f.${id}`),
     ...Object.entries(data.statuses).map(([name, s]) => `${s.emoji} ${name.padEnd(9)} ba,e.status,s.${name},f.${id}`),
   ].join('\n');
 }

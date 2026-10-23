@@ -27,14 +27,27 @@ const SENDABLES = {
   'miss-you': { emoji: '🥺', short: 'Miss you', label: 'misses you' },
 };
 
+// The extra Send-tab buttons ("gifts"), from assets/sendables.json: name → { emoji, label, says }.
+// Each plays the scene "send-<name>".
+function loadGifts() {
+  try {
+    const all = require('../../assets/sendables.json');
+    return Object.fromEntries(Object.entries(all).filter(([k]) => !k.startsWith('_')));
+  } catch {
+    return {};
+  }
+}
+const GIFTS = loadGifts();
+
 // Friendly names for the Animations tab: what it's called and when it plays.
 const SCENES = {
   kiss: ['Kiss', 'The 💋 button, or a text with "kiss", "mwah" or 😘'],
-  hug: ['Hug', 'The 🫂 button, a text with "hug", or both sending 💗 within 20 seconds'],
+  hug: ['Hug', 'The 🫂 button, or both sending 💗 within 20 seconds'],
   heart: ['Heart', 'The 💗 button'],
   poke: ['Poke', 'The 👉 button, or clicking one of their bears'],
   'miss-you': ['Miss you', 'The 🥺 button'],
   'kw-miss-you': ['"Miss you" text', 'A text that says "miss you" or 🥺'],
+  'kw-hug': ['"Hug" text', 'A text that says "hug" (like "I want to hug you") or 🫂'],
   message: ['Text', 'Any other text (at most once every 90 seconds)'],
   combo: ['Text flurry', '5 texts in 90 seconds'],
   'tapback-love': ['Heart reaction', 'A ❤️ reaction on a message'],
@@ -51,6 +64,8 @@ const SCENES = {
 
 function sceneInfo(name) {
   if (SCENES[name]) return { name, title: SCENES[name][0], when: SCENES[name][1] };
+  const gift = name.startsWith('send-') && GIFTS[name.slice(5)];
+  if (gift) return { name, title: `${gift.emoji} ${gift.label}`, when: `The ${gift.emoji} ${gift.label} button` };
   const st = name.startsWith('status-') && STATUSES[name.slice(7)];
   if (st) return { name, title: `Status: ${st.short}`, when: `They set ${st.emoji} ${st.short}` };
   return { name, title: name, when: 'Your own scene' };
@@ -66,8 +81,12 @@ function describe(ev, name) {
   if (ev.type === 'message') return `💬 ${name} texted you`;
   if (ev.type === 'tapback') return `💞 ${name} reacted to your message`;
   if (ev.type === 'hello') return `👋 ${name} paired with you`;
+  if (ev.type === 'gift') {
+    const g = GIFTS[ev.gift];
+    return g ? `${g.emoji} ${name} ${g.says}` : `✨ ${name} sent you something`;
+  }
   const s = SENDABLES[ev.type];
   return s ? `${s.emoji} ${name} ${s.label}` : `${name}: ${ev.type}`;
 }
 
-module.exports = { STATUSES, SENDABLES, SCENES, sceneInfo, describe };
+module.exports = { STATUSES, SENDABLES, GIFTS, SCENES, sceneInfo, describe };

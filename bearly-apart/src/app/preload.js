@@ -5,7 +5,8 @@ contextBridge.exposeInMainWorld('ba', {
   get: () => ipcRenderer.invoke('app:get'),
   onLive: (fn) => ipcRenderer.on('live', (_, live) => fn(live)),
   onShowTab: (fn) => ipcRenderer.on('show-tab', (_, tab) => fn(tab)),
-  send: (type, status) => ipcRenderer.invoke('app:send', { type, status }),
+  // send('kiss'), send('status', { status: 'work' }), send('gift', { gift: 'cuddle' })
+  send: (type, extra = {}) => ipcRenderer.invoke('app:send', { type, ...extra }),
   note: (text, later) => ipcRenderer.invoke('app:note', { text, later }),
   preview: (name) => ipcRenderer.invoke('app:preview', name),
   snooze: (mins) => ipcRenderer.invoke('app:snooze', mins),

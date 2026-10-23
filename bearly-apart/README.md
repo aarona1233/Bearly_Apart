@@ -79,9 +79,15 @@ Want a push on your phone when she sends something? Install the **ntfy** app and
 
 ## Your own GIFs 🎬
 **Bundled:** the Bubu & Dudu animations in `../animations` are already imported (brown bear = Dudu, white bear = Bubu).
-To add more, put the GIF in `../animations`, add a line to the name map at the top of `tools/import-gifs.js`, and run
-`npx electron tools/import-gifs.js ../animations`. It removes solid backgrounds and saves a transparent animated PNG
-into `assets/`. Then use that name in `assets/scenes.json` and rebuild with `npm run package`.
+To add more, put the GIF in `../animations` and run `npx electron tools/import-gifs.js ../animations`. It removes solid
+backgrounds and saves a transparent animated PNG into `assets/`.
+- **A new Send button:** start the file name with `_` or put a `%` in it (`_Bubu wave.gif`). The importer adds a
+  **✨ Bubu wave** button to `assets/sendables.json` and its scene `send-bubu-wave` to `assets/scenes.json`. Change
+  the emoji, label and caption (`says`) in `sendables.json`; button order follows that file.
+- **Anything else:** add a line to the name map at the top of `tools/import-gifs.js`, then use the name in
+  `assets/scenes.json`.
+
+Then rebuild with `npm run release`.
 
 **Without rebuilding:** you can also add GIFs straight on the computer they'll play on:
 Menu → **Open custom GIF folder**, then drop files in there:

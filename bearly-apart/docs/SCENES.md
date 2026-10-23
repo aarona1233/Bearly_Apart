@@ -22,6 +22,7 @@ folder overrides them by name, and is reloaded as soon as you save it.
 | Keyword in a text (miss you, kiss, hug) | `kw-<keyword>` if it exists (for example `kw-miss-you`), otherwise the button's scene (`kiss`, `hug`) |
 | ❤️ tapback | `tapback-love` (also `tapback-laugh` and others if you add them) |
 | Sent from the menu or phone | `kiss`, `heart`, `hug`, `poke`, `miss-you` |
+| A **More** button on the Send tab | `send-<name>` (the buttons are listed in `assets/sendables.json`) |
 | Status | `status-<name>` if it exists, otherwise `status` |
 | Love note / note jar | `note` / `jar` |
 | Silence | `missing-peek`, `missing-sword`, `missing-poster` (set in config `missing`) |

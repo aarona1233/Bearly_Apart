@@ -10,7 +10,13 @@
     "dance-cream": "bubu-dance.png",
     "dance-brown": "dudu-happy.png",
     "letter-cream": "bubu-letter.png",
-    "letter-brown": "dudu-wave.png"
+    "letter-brown": "dudu-wave.png",
+    "angry-brown": "dudu-angry.png",
+    "angry-cream": "bubu-angry.png",
+    "cry-brown": "dudu-cry.png",
+    "cry-cream": "bubu-cry.png",
+    "hungry-cream": "bubu-eating.png",
+    "hungry-brown": "bear-hungry-brown.svg"
   },
   "message": {
     "actors": [
@@ -462,54 +468,37 @@
   "status-hungry": {
     "actors": [
       {
-        "asset": "bear-hungry-{pc}.svg",
-        "size": 160,
+        "asset": "hungry-{pc}",
+        "size": 180,
         "at": [
-          "left-off",
-          "bottom"
+          "center",
+          "off-bottom"
         ],
         "pokeable": true,
         "steps": [
           {
-            "do": "asset",
-            "src": "bear-run-{pc}.svg"
-          },
-          {
             "do": "move",
-            "x": "center",
-            "ms": 1500
-          },
-          {
-            "do": "asset",
-            "src": "bear-hungry-{pc}.svg"
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
           },
           {
             "do": "say",
             "text": "I'm hungryyy 🥺🍔",
-            "ms": 2400,
+            "ms": 2800,
             "block": true
           },
           {
             "do": "wait",
-            "ms": 500
-          },
-          {
-            "do": "asset",
-            "src": "bear-burger-{pc}.svg"
-          },
-          {
-            "do": "jump",
-            "height": 0.35
-          },
-          {
-            "do": "say",
-            "text": "yoink!",
-            "ms": 900
+            "ms": 800
           },
           {
             "do": "move",
-            "x": "right-off",
-            "ms": 800
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
           }
         ]
       }
@@ -1231,6 +1220,694 @@
           {
             "do": "wait",
             "ms": 3200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "send-love-you": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "pair-love-kiss.png",
+        "size": 230,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ],
+    "rain": {
+      "src": "heart.svg",
+      "count": 30,
+      "ms": 3500
+    }
+  },
+  "send-smooch": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "pair-cute-kiss.png",
+        "size": 210,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ],
+    "rain": {
+      "src": "heart.svg",
+      "count": 14,
+      "ms": 3500
+    }
+  },
+  "send-cuddle": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "pair-cuddle.png",
+        "size": 220,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ],
+    "rain": {
+      "src": "heart.svg",
+      "count": 12,
+      "ms": 3500
+    }
+  },
+  "send-snuggle": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "pair-snuggle.png",
+        "size": 230,
+        "pokeable": true,
+        "frame": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom-30",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ],
+    "rain": {
+      "src": "heart.svg",
+      "count": 12,
+      "ms": 3500
+    }
+  },
+  "send-tackle-hug": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "pair-tackle-hug.png",
+        "size": 240,
+        "pokeable": true,
+        "at": [
+          "left-off",
+          "bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "x": "center",
+            "ms": 1300
+          },
+          {
+            "do": "jump",
+            "times": 2,
+            "height": 0.12
+          },
+          {
+            "do": "wait",
+            "ms": 2000
+          },
+          {
+            "do": "move",
+            "x": "right-off",
+            "ms": 1300
+          }
+        ]
+      }
+    ]
+  },
+  "send-thinking": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "dudu-thinking-of-you.png",
+        "size": 230,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "send-together": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "pair-together.png",
+        "size": 230,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "send-hi": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "wave-{pc}",
+        "size": 200,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "send-dance": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "dance-{pc}",
+        "size": 210,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "jump",
+            "times": 3,
+            "height": 0.12
+          },
+          {
+            "do": "wait",
+            "ms": 2000
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "send-snack": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "bubu-eating.png",
+        "size": 200,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "send-grr": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "angry-{pc}",
+        "size": 190,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "shake",
+            "ms": 1200
+          },
+          {
+            "do": "wait",
+            "ms": 2000
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "send-sad": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "cry-{pc}",
+        "size": 200,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "send-cheer-up": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "pair-cheer-up.png",
+        "size": 210,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ],
+    "rain": {
+      "src": "heart.svg",
+      "count": 10,
+      "ms": 3500
+    }
+  },
+  "send-dont-go": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "pair-cling.png",
+        "size": 220,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "send-date": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "pair-relax.png",
+        "size": 220,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "send-goodnight": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "pair-goodnight.png",
+        "size": 230,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "send-sleep-tight": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "pair-tuck-in.png",
+        "size": 210,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "send-dream": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "dudu-dream.png",
+        "size": 230,
+        "pokeable": true,
+        "frame": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom-30",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "kw-hug": {
+    "caption": "{partner} wants to hug you 🫂",
+    "rain": {
+      "src": "heart.svg",
+      "count": 14,
+      "ms": 3500
+    },
+    "actors": [
+      {
+        "asset": "pair-squeeze.png",
+        "size": 200,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3400
           },
           {
             "do": "move",

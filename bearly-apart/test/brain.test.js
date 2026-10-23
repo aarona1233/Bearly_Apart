@@ -52,14 +52,29 @@ test('keyword scenes win over the plain message', () => {
   assert.deepStrictEqual(names(played), ['kw-miss-you']);
 });
 
-test('"kiss" and "hug" texts play the kiss and hug scenes, at most every 30 seconds each', () => {
+test('"kiss" and "hug" texts play their scenes, at most every 30 seconds each', () => {
   const { brain, played, advance } = setup();
   brain.onIMessage({ direction: 'in', type: 'message', keywords: ['kiss'], text: 'kisses' });
   brain.onIMessage({ direction: 'in', type: 'message', keywords: ['hug'], text: 'I want to hug you' });
   brain.onIMessage({ direction: 'in', type: 'message', keywords: ['hug'], text: 'hug!!' }); // too soon
   advance(31_000);
   brain.onIMessage({ direction: 'in', type: 'message', keywords: ['hug'], text: 'hug again' });
-  assert.deepStrictEqual(names(played).filter((n) => n !== 'message'), ['kiss', 'hug', 'hug']);
+  assert.deepStrictEqual(names(played).filter((n) => n !== 'message'), ['kiss', 'kw-hug', 'kw-hug']);
+});
+
+test('gifts play their send- scene with the caption bits, and unknown ones still show something', () => {
+  const { brain, played } = setup();
+  brain.onRelayEvent({ type: 'gift', gift: 'cuddle', from: 'him' });
+  brain.onRelayEvent({ type: 'gift', gift: 'from-a-newer-version', from: 'him' });
+  assert.deepStrictEqual(names(played), ['send-cuddle', 'heart']);
+  assert.strictEqual(played[0].vars.says, 'wants cuddles');
+  assert.strictEqual(played[0].label, '🥰 Him wants cuddles');
+});
+
+test('every gift button has its scene and its art', () => {
+  const { GIFTS } = require('../src/main/catalog');
+  assert.ok(Object.keys(GIFTS).length >= 15);
+  for (const name of Object.keys(GIFTS)) assert.ok(scenes[`send-${name}`], `missing scene send-${name}`);
 });
 
 test('statuses I send are remembered, and clearing works both ways', async () => {

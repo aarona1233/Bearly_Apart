@@ -1,6 +1,6 @@
 // Turns events (partner messages, pokes, statuses, silence, mornings) into scenes to play.
 // No Electron in here so it can be unit-tested with a fake clock.
-const { STATUSES, describe } = require('./catalog');
+const { STATUSES, GIFTS, describe } = require('./catalog');
 const { inRange, timeInZone } = require('./guard');
 
 const HOUR = 3600_000;
@@ -100,6 +100,12 @@ class Brain {
       case 'poke':
       case 'miss-you':
         return this.queue(ev.type, ev, { kiss: 5, hug: 6, poke: 4, 'miss-you': 5 }[ev.type]);
+      case 'gift': {
+        const g = GIFTS[ev.gift] || { emoji: '✨', says: 'sent you something' };
+        // A gift this version doesn't know (newer app on the other side) still shows something.
+        const scene = this.hasScene(`send-${ev.gift}`) ? `send-${ev.gift}` : 'heart';
+        return this.queue(scene, ev, 4, { emoji: g.emoji, says: g.says });
+      }
       case 'status': {
         if (ev.status === 'clear') return this.setState({ partnerStatus: null });
         this.setState({ partnerStatus: { name: ev.status, at: ev.at } });

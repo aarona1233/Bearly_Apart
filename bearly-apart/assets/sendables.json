@@ -1,0 +1,93 @@
+{
+  "_comment": "Extra Send-tab buttons. Each plays the scene \"send-<name>\" in scenes.json. says: finishes \"<their name> …\" in the caption. Order here is the order of the buttons.",
+  "love-you": {
+    "emoji": "💞",
+    "label": "Love you",
+    "says": "loves you"
+  },
+  "smooch": {
+    "emoji": "😚",
+    "label": "Smooch",
+    "says": "sent you a smooch"
+  },
+  "cuddle": {
+    "emoji": "🥰",
+    "label": "Cuddle",
+    "says": "wants cuddles"
+  },
+  "snuggle": {
+    "emoji": "🫶",
+    "label": "Snuggle",
+    "says": "is snuggling you"
+  },
+  "tackle-hug": {
+    "emoji": "🤗",
+    "label": "Tackle hug",
+    "says": "tackle-hugged you"
+  },
+  "thinking": {
+    "emoji": "💭",
+    "label": "Thinking of you",
+    "says": "is thinking of you"
+  },
+  "together": {
+    "emoji": "💑",
+    "label": "Together",
+    "says": "wishes you were together"
+  },
+  "hi": {
+    "emoji": "👋",
+    "label": "Hi!",
+    "says": "says hi"
+  },
+  "dance": {
+    "emoji": "💃",
+    "label": "Happy dance",
+    "says": "is doing a happy dance"
+  },
+  "snack": {
+    "emoji": "🍌",
+    "label": "Snack time",
+    "says": "is having a snack"
+  },
+  "grr": {
+    "emoji": "😤",
+    "label": "Grr",
+    "says": "is (playfully) mad at you"
+  },
+  "sad": {
+    "emoji": "😢",
+    "label": "I’m sad",
+    "says": "is sad"
+  },
+  "cheer-up": {
+    "emoji": "💪",
+    "label": "Cheer up",
+    "says": "is cheering you up"
+  },
+  "dont-go": {
+    "emoji": "🫷",
+    "label": "Don’t go",
+    "says": "doesn’t want you to go"
+  },
+  "date": {
+    "emoji": "🧋",
+    "label": "Chill date",
+    "says": "wants a chill date"
+  },
+  "goodnight": {
+    "emoji": "🌙",
+    "label": "Goodnight",
+    "says": "says goodnight"
+  },
+  "sleep-tight": {
+    "emoji": "😴",
+    "label": "Sleep tight",
+    "says": "is tucking you in"
+  },
+  "dream": {
+    "emoji": "🌌",
+    "label": "Dreaming of you",
+    "says": "is dreaming of you"
+  }
+}

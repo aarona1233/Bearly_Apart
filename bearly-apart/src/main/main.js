@@ -13,7 +13,7 @@ const { Brain } = require('./brain');
 const { Activity } = require('./activity');
 const { OverlayWindow } = require('./overlay-window');
 const { UI } = require('./ui');
-const { STATUSES, SENDABLES, describe } = require('./catalog');
+const { STATUSES, SENDABLES, GIFTS, describe } = require('./catalog');
 
 const BUNDLED_ASSETS = path.join(__dirname, '..', '..', 'assets');
 const IS_MAC = process.platform === 'darwin';
@@ -117,6 +117,7 @@ function outText(type, extra) {
   if (type === 'note') return 'You sent a love note 💌';
   if (type === 'jar') return `You saved a note for ${partnerName()}'s morning 🫙`;
   if (type === 'hello') return 'You said hi 👋';
+  if (type === 'gift') return `You sent ${GIFTS[extra.gift]?.emoji || '✨'} ${GIFTS[extra.gift]?.label || extra.gift}`;
   const s = SENDABLES[type];
   return s ? `You sent a ${s.short.toLowerCase()} ${s.emoji}` : `You sent ${type}`;
 }
