@@ -30,7 +30,7 @@ function handleSquirrel() {
   if (cmd === '--squirrel-install' || cmd === '--squirrel-updated') update([`--createShortcut=${exe}`, '--shortcut-locations=StartMenu,Desktop']);
   if (cmd === '--squirrel-uninstall') {
     update([`--removeShortcut=${exe}`, '--shortcut-locations=StartMenu,Desktop']);
-    app.setLoginItemSettings({ openAtLogin: false, path: SQUIRREL_UPDATE, args: ['--processStart', `"${exe}"`] });
+    app.setLoginItemSettings({ openAtLogin: false, path: SQUIRREL_UPDATE, args: ['--processStart', exe] });
   }
   setTimeout(() => {
     // Squirrel removes the Start menu shortcut but leaves its empty folder behind.
@@ -237,7 +237,7 @@ function applyLoginItem() {
     } else fs.rmSync(file, { force: true });
   } else if (IS_WIN && fs.existsSync(SQUIRREL_UPDATE)) {
     // Installed with Setup.exe: start through Update.exe, which always points at the current version.
-    app.setLoginItemSettings({ openAtLogin: on, path: SQUIRREL_UPDATE, args: ['--processStart', `"${path.basename(process.execPath)}"`] });
+    app.setLoginItemSettings({ openAtLogin: on, path: SQUIRREL_UPDATE, args: ['--processStart', path.basename(process.execPath)] });
   } else {
     // macOS 13+ registers this through the system's login items, which can refuse an app that isn't signed by
     // Apple. Starting at login is nice to have, so never let it break anything else.
