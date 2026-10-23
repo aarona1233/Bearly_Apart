@@ -82,6 +82,7 @@ const DEFAULT_STATE = {
   gotHeartAt: 0,
   snoozedUntil: 0,
   helloSent: false,
+  lastVersion: '', // the app version that last ran here, to notice updates
 };
 
 function isObj(v) {

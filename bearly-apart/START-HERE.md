@@ -115,14 +115,13 @@ Touch ID, let her type it.** Then follow the steps below for her.
 
 1. **Download:** open your link in **Safari** and download. Safari unzips it: **Bearly Apart** appears in **Downloads**.
    (In Chrome, double-click the zip in Downloads first.)
-2. **Move it:** drag **Bearly Apart** from **Downloads** into **Applications** (in the Finder sidebar). If it asks,
-   replace the old one.
-3. **Open it from Applications.** macOS says it **"Not Opened"** because the app isn't from the App Store. Click
-   **Done**. (Never pick **Move to Trash**.)
-4. **Allow it (once):** open **System Settings → Privacy & Security**, scroll to the bottom, and next to *"Bearly Apart
+2. **Open it:** double-click **Bearly Apart** in Downloads. macOS says it **"Not Opened"** because the app isn't from
+   the App Store. Click **Done**. (Never pick **Move to Trash**.)
+3. **Allow it (once):** open **System Settings → Privacy & Security**, scroll to the bottom, and next to *"Bearly Apart
    was blocked…"* click **Open Anyway**. Enter her password, then click **Open Anyway** again.
-5. **Setup** opens. (If you opened it from Downloads by mistake, it says so and opens both folders: drag it over and
-   open it again.)
+4. **Install:** it asks **Install Bearly Apart?** → **Install**. It puts itself in **Applications** (replacing any
+   older copy, which it quits first) and opens from there.
+5. **Setup** opens:
    1. **Let's go.**
    2. Her name and bear → **Next**. (She can skip the iPhone number.)
    3. **I got an invite** → paste the invite you copied on your PC in section 2 (paste the whole message, it finds the code) →
@@ -168,9 +167,10 @@ and Focus detection.
 
 1. Run the build command from step 1 again (it pulls the latest code).
 2. **You:** run the new `Bearly Apart Setup.exe`. It replaces the old version; settings and pairing stay.
-3. **Her:** download the new Mac zip, quit Bearly Apart (💗 → Quit), drag the new one from Downloads into
-   Applications (replace the old one), open it, and click **Open Anyway** again if asked. **macOS treats each new version as a different app**, so switch
-   **Full Disk Access** off and on again for Bearly Apart, then quit and reopen it. Her pairing stays.
+3. **Her:** download the new Mac zip, open **Bearly Apart** from Downloads (click **Open Anyway** again if asked),
+   and click **Update**. It quits the old version, replaces it in Applications and reopens. Her pairing and settings
+   stay. **macOS treats each new version as a different app**, so the window then asks her to switch **Full Disk
+   Access** off and back on for Bearly Apart (**Open that setting** takes her there).
 
 ---
 
@@ -184,6 +184,7 @@ and Focus detection.
 | Build fails with `EBUSY` | Something is running from `dist\build`: quit it |
 | "That invite code is cut off" | Copy the whole invite again; it's long |
 | It keeps ending up in the Trash | Older 0.2.0 build: force quit it (Activity Monitor), drag it from the Trash into Applications, open it from there |
+| "Install" fails | It falls back to opening Downloads and Applications: drag Bearly Apart across (replace the old one) and open it from Applications |
 | Her 💗 menu says "grant Full Disk Access" | System Settings → Privacy & Security → Full Disk Access → Bearly Apart off and on, then 💗 → Quit and reopen |
 | Her texts don't reach you | Her Mac must be awake with Bearly Apart running, and Messages on the Mac must show the texts |
 | Bears never play | The yellow banner says why: quiet hours (11:30 p.m.–8 a.m.), snoozed, screen sharing, away, Focus |

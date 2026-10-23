@@ -35,8 +35,9 @@ Everyone gets the same download; pairing happens inside the app. Step by step, w
 **[START-HERE.md](START-HERE.md)**.
 
 - **Windows:** run `Bearly Apart Setup.exe`. (SmartScreen: **More info → Run anyway**, once.)
-- **Mac:** open `Bearly Apart for Mac.zip`, drag **Bearly Apart** into **Applications**, and open it from there. The
-  first time, macOS blocks it: **System Settings → Privacy & Security → Open Anyway**.
+- **Mac:** open `Bearly Apart for Mac.zip` and double-click **Bearly Apart**. The first time, macOS blocks it: **System
+  Settings → Privacy & Security → Open Anyway**. Then click **Install** (or **Update**): it puts itself in Applications,
+  replacing and quitting any older copy.
 - **Linux:** unpack `Bearly Apart for Linux.tar.gz` and run `bearly-apart` inside.
 
 A short setup runs on first launch: your name and bear, then one of you sends an **invite** and the other pastes it

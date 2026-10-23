@@ -56,8 +56,8 @@ if (process.platform === 'linux') {
 }
 // BA_PROFILE lets two copies run side by side on one computer for testing ("him" and "her").
 if (process.env.BA_PROFILE) app.setPath('userData', path.join(app.getPath('appData'), `Bearly Apart (${process.env.BA_PROFILE})`));
-// A Mac copy opened from Downloads only explains how to move it, so it mustn't hand over to (or be blocked by) an
-// older copy that's still running from Applications.
+// A Mac copy opened from Downloads installs itself (replacing an older copy, which it quits first), so it mustn't
+// hand over to, or be blocked by, that older copy.
 const NEEDS_MOVE = IS_MAC && app.isPackaged && !app.isInApplicationsFolder();
 if (!INSTALLER_RUN && !NEEDS_MOVE && !app.requestSingleInstanceLock()) app.quit();
 // Opening the app again brings up its window: the way in when there's no tray icon (stock GNOME), or the 💗 is
@@ -73,6 +73,7 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 let stores, relay, imessage, guard, player, brain, overlay, ui;
 const activity = new Activity();
 let scenes = {};
+let justUpdated = false; // a newer version than last time, on an already set-up install
 let aliases = {}; // "_aliases" in scenes.json: short names like "happy-brown" → real files
 
 const cfg = () => stores.config.data;
@@ -221,6 +222,7 @@ function liveState() {
     lastHeardAt: s.lastHeardAt,
     noteJar: s.noteJar.length,
     imessage: imessage?.status || 'off',
+    justUpdated,
     activity: activity.items,
   };
 }
@@ -247,11 +249,51 @@ function applyLoginItem() {
   }
 }
 
-// ---------- first-run setup helpers (Mac) ------------------------------------
+// ---------- installing on the Mac --------------------------------------------
 
-// The app has to live in Applications: Full Disk Access belongs to the app at its path. We don't move it
-// ourselves: macOS's move puts the original in the Trash and, on her Mac, the restart afterwards failed,
-// so she kept opening the copy in the Trash. Instead: say so, open Downloads and Applications, and quit.
+const MAC_TARGET = '/Applications/Bearly Apart.app';
+
+// Quits any running copy from Applications, replaces it with this one, and opens the new one.
+// Done with plain shell tools: Electron's own file functions treat app.asar as a folder and can't delete it.
+// (Not macOS's built-in move: that puts the original in the Trash, and on her Mac the restart afterwards
+// failed, so she kept opening the copy in the Trash.)
+const INSTALL_SH = `
+src="$1"; dst="$2"
+pkill -f "$dst/Contents/" 2>/dev/null
+for i in 1 2 3 4 5 6 7 8 9 10; do pgrep -f "$dst/Contents/" >/dev/null || break; sleep 0.5; done
+pkill -9 -f "$dst/Contents/" 2>/dev/null
+rm -rf "$dst" || exit 1
+/usr/bin/ditto "$src" "$dst" || exit 1
+/usr/bin/xattr -dr com.apple.quarantine "$dst" 2>/dev/null
+exit 0`;
+
+function installToApplications() {
+  app.focus({ steal: true }); // a menu-bar app isn't brought to the front by itself; the message could hide
+  const upgrading = fs.existsSync(MAC_TARGET);
+  const choice = dialog.showMessageBoxSync({
+    type: 'info',
+    title: 'Bearly Apart',
+    message: upgrading ? 'Update Bearly Apart?' : 'Install Bearly Apart?',
+    detail: upgrading
+      ? 'This replaces the Bearly Apart in your Applications folder with this new version. Your settings and pairing are kept.'
+      : 'Bearly Apart goes into your Applications folder and opens from there.',
+    buttons: [upgrading ? 'Update' : 'Install', 'Cancel'],
+    defaultId: 0,
+    cancelId: 1,
+  });
+  if (choice === 1) return app.quit();
+  // The bundle this copy runs from (macOS may run a downloaded app from a hidden read-only copy; that's fine).
+  const bundle = path.resolve(process.execPath, '..', '..', '..');
+  const r = require('child_process').spawnSync('/bin/sh', ['-c', INSTALL_SH, 'sh', bundle, MAC_TARGET], { encoding: 'utf8', timeout: 120_000 });
+  if (r.status !== 0) {
+    log(`[install] failed (${r.status}): ${r.stderr || r.error?.message || ''}`);
+    return askToMoveToApplications();
+  }
+  require('child_process').spawn('/bin/sh', ['-c', 'sleep 1; open "$1"', 'sh', MAC_TARGET], { detached: true, stdio: 'ignore' }).unref();
+  app.exit(0);
+}
+
+// Fallback if installing didn't work (for example an account that can't write to Applications).
 function askToMoveToApplications() {
   app.focus({ steal: true }); // a menu-bar app isn't brought to the front by itself; the message could hide
   dialog.showMessageBoxSync({
@@ -287,7 +329,7 @@ function relaunch() {
 app.whenReady().then(() => {
   if (INSTALLER_RUN) return;
   // Opened from Downloads (or the Trash)? It needs to be in Applications first.
-  if (NEEDS_MOVE) return askToMoveToApplications();
+  if (NEEDS_MOVE) return installToApplications();
   if (IS_MAC) app.dock?.hide();
   // A menu-bar app with no visible window gets "App Napped" by macOS: timers and network slow to a
   // crawl, so bears showed up late or in clumps. This keeps it awake (it doesn't stop the Mac sleeping).
@@ -400,7 +442,12 @@ app.whenReady().then(() => {
 
   setInterval(() => brain.tick({ idleSec: powerMonitor.getSystemIdleTime() }), 30_000);
 
+  justUpdated = cfg().setupDone && st().lastVersion !== app.getVersion();
+  stores.state.set({ lastVersion: app.getVersion() });
   if (!cfg().setupDone) ui.openWindow('setup');
+  // Each new Mac version counts as a different app to macOS, so Full Disk Access must be switched off and on
+  // again. Open the window so the banner says so, instead of the bears quietly missing her texts.
+  else if (IS_MAC && justUpdated && imessage?.status === 'no-access') ui.openWindow('send');
   if (process.env.BA_DEMO) setTimeout(() => process.env.BA_DEMO.split(',').forEach(preview), 1500);
   if (process.env.BA_OPEN) ui.openWindow(process.env.BA_OPEN);
   readyAt = Date.now();
