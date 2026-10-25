@@ -11,13 +11,25 @@ class Activity extends EventEmitter {
     this.nextId = 1;
   }
 
-  // entry: { dir: 'in'|'out', text, state?: 'sending'|'sent'|'failed', error? }
+  // entry: { dir: 'in'|'out', text, state?: 'sending'|'sent'|'seen'|'failed', error?, relayAt? }
   add(entry) {
     const item = { id: this.nextId++, at: this.now(), ...entry };
     this.items.unshift(item);
     this.items.length = Math.min(this.items.length, this.max);
     this.emit('change');
     return item.id;
+  }
+
+  // Their app saw everything sent up to this time (relay clock): ✓ becomes 👀.
+  markSeen(untilMs) {
+    let any = false;
+    for (const item of this.items) {
+      if (item.dir === 'out' && item.state === 'sent' && item.relayAt && item.relayAt <= untilMs + 1000) {
+        item.state = 'seen';
+        any = true;
+      }
+    }
+    if (any) this.emit('change');
   }
 
   update(id, patch) {

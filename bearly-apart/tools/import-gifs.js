@@ -12,51 +12,74 @@ const path = require('path');
 const zlib = require('zlib');
 
 const MAX = 320;
-const OUT = path.join(__dirname, '..', 'assets');
+// --out=<dir> writes somewhere else (for trying things out without touching assets/).
+const OUT = path.resolve(process.argv.find((a) => a.startsWith('--out='))?.slice(6) || path.join(__dirname, '..', 'assets'));
 
-// source file → asset name, or { name, ...options }. "brown" = Dudu, "cream" = Bubu (matches the character setting).
-//   max: size limit in px   keep: leave the background (a painted scene; shown framed)
-//   gradient: the background fades between colours, so grow the cut-out pixel by pixel
-//   halve: drop every other frame (long GIFs; the timing is kept)
+// Two kinds of entries:
+//   - one bear: { pose, bear } → "<pose>-brown.png" and "<pose>-cream.png". "brown" = Dudu, "cream" = Bubu (matches
+//     the character setting). If only one bear's GIF exists, the other is made by recolouring it (see recolor()).
+//   - both bears in one picture: "pair-….png" (or { name, ...options }), used as is.
+// Options: max: size limit in px · keep: leave the background (a painted scene; shown framed) · gradient: the
+// background fades between colours, so grow the cut-out pixel by pixel · halve: drop every other frame.
 const MAP = {
-  'Dudu-hello-cute.gif': 'dudu-wave.png',
-  'dudu-happy.gif': 'dudu-happy.png',
-  'dudu-dudu-cry.gif': 'dudu-cry.png',
-  'Dudu-working.gif': 'dudu-working.png',
-  'Bubu-happy.gif': 'bubu-happy.png',
-  'Bubu-attack.gif': 'bubu-sword.png',
+  // ---- one bear ----
+  'dudu-happy.gif': { pose: 'happy', bear: 'brown' },
+  'Bubu-happy.gif': { pose: 'happy', bear: 'cream' },
+  'Dudu-hello-cute.gif': { pose: 'wave', bear: 'brown' },
+  'bubu-helloooo.gif': { pose: 'wave', bear: 'cream' },
+  'dudu-dudu-cry.gif': { pose: 'cry', bear: 'brown' },
+  '_bubu sad.gif': { pose: 'cry', bear: 'cream', max: 260 },
+  'bubusad.gif': { pose: 'sad', bear: 'cream' },
+  'Dudu-working.gif': { pose: 'working', bear: 'brown' },
+  'Bubu-attack.gif': { pose: 'sword', bear: 'cream' },
+  '373612468cbaf228eaced7d7a6013668.gif': { pose: 'sword', bear: 'brown' },
+  'bubu-dudu-sseeyall.gif': { pose: 'bath', bear: 'brown' },
+  'bubu-dudu-bubu-dance.gif': { pose: 'dance', bear: 'cream', max: 240, gradient: true, halve: true },
+  'bubududu-sleep.gif': { pose: 'dream', bear: 'brown', keep: true },
+  'i-miss-you.gif': { pose: 'miss-card', bear: 'brown', keep: true, max: 300 },
+  'bubu-dudu-love lettergif.gif': { pose: 'letter', bear: 'cream' },
+  '_Bubu eatingl.gif': { pose: 'eating', bear: 'cream', max: 220 },
+  '_Dudu angry.gif': { pose: 'angry', bear: 'brown' },
+  '_bubu-angry.gif': { pose: 'angry', bear: 'cream' },
+  '_Thinking of you.gif': { pose: 'thinking', bear: 'brown' },
+  '0b8567569e3c0b74bf7324876d4cc0a6.gif': { pose: 'desk-flip', bear: 'cream' },
+  '2112e01c92a7ca45cdb4fbfd391058a5.gif': { pose: 'scream', bear: 'cream' },
+  '3760ae4df1a0980ae3831362f4a65026.gif': { pose: 'bedtime', bear: 'brown' },
+  '381bd83431fcf2ad388b254f72ac1c51.gif': { pose: 'wiggle', bear: 'brown' },
+  '513948826a1736fe63d31c417769ad71.gif': { pose: 'boba', bear: 'brown', max: 260 },
+  '864036cb8e8cb0ba909e0a5b2c7ebcc8.gif': { pose: 'gloom', bear: 'cream', max: 260 },
+  'a0e8b7ee969a38580c0d22e830422e44.gif': { pose: 'lonely', bear: 'brown', max: 240, gradient: true, halve: true },
+  'a997ccff1401aa0ecf4d7e40c1d4e67e.gif': { pose: 'teach', bear: 'brown' },
+  'b872e330c4c2bac00cc739a79e59546e.gif': { pose: 'tantrum', bear: 'brown' },
+  'bf75c6e556294f5a54f528de2d0d1dae.gif': { pose: 'cry-phone', bear: 'cream' },
+  'e07734846e176698c0597912804c95aa.gif': { pose: 'pinched', bear: 'brown' },
+  'fe1cf8ad79748c4c26045817b17b5c76.gif': { pose: 'finger-gun', bear: 'cream' },
+  // ---- both bears ----
   'bubu-cute-attack.gif': 'pair-tackle-hug.png',
   'Bubu -Love-Kiss.gif': 'pair-love-kiss.png',
   'bubu-dudu-cute-kiss.gif': 'pair-cute-kiss.png',
-  'bubu-dudu-kiss.gif': 'pair-kiss.png', // dudu-kiss.gif is the same file
+  'bubu-dudu-kiss.gif': 'pair-kiss.png',
   'bubu-dudu-hug.gif': 'pair-hug.png',
   'bubu-dudu-relax.gif': 'pair-relax.png',
-  'bubu-dudu-sseeyall.gif': 'dudu-bath.png',
   'bubu-rub-bubu-love-dudu.gif': 'pair-cuddle.png',
-  'bubu-dudu-bubu-dance.gif': { name: 'bubu-dance.png', max: 240, gradient: true, halve: true },
   'bubu-dudu-i want you.gif': 'pair-cling.png',
   'bubu-dudu-ilove you.gif': 'pair-i-love-you.png',
   'bubu-dudu-poke.gif': 'pair-poke.png',
   'bubu-dudu.gif': 'pair-tuck-in.png',
-  'bubududu-sleep.gif': { name: 'dudu-dream.png', keep: true },
   'emrananhret.gif': 'pair-together.png',
-  'i-miss-you.gif': { name: 'card-miss-you.png', keep: true, max: 300 },
   'bubu-dudu cuddle.gif': { name: 'pair-goodnight.png', max: 260 },
-  'bubu-dudu-love lettergif.gif': 'bubu-letter.png',
-  'bubu-helloooo.gif': 'bubu-hello.png',
   'bubu-make dudu happygif.gif': 'pair-cheer-up.png',
-  'bubusad.gif': 'bubu-sad.png',
   'dudu-hug.gif': 'pair-squeeze.png',
-  // Made for the Send tab ("_" or "%" in the name).
   '_Bubu dudu hug.gif': { name: 'pair-snuggle.png', keep: true }, // white fur touches the edge: shown framed
-  '_Bubu eatingl.gif': { name: 'bubu-eating.png', max: 220 },
-  '_Dudu angry.gif': 'dudu-angry.png',
-  '_bubu-angry.gif': 'bubu-angry.png',
-  '_Thinking of you.gif': 'dudu-thinking-of-you.png',
-  '_bubu sad.gif': { name: 'bubu-cry.png', max: 260 },
+  '7b54a282072efa630d8323344b9edac5.gif': { name: 'pair-lazy.png', max: 260 },
+  '7ee3a3dbbc787c6203154e788d764dbf.gif': { name: 'pair-nap.png', max: 260 },
+  'a9cc9c42f6672117dbcdc5e02ac6912f.gif': { name: 'pair-squish.png', max: 260 },
+  'da454e232dc0cd6bdd0c669081a9d808.gif': { name: 'pair-gaming.png', max: 260 },
+  'da8292bb2ff81fa061b0030fd87daf56.gif': { name: 'pair-spin-hug.png', max: 260 },
 };
 // Same file as one already imported, so not a new Send button by itself.
-const DUPLICATES = new Set(['_Bubu kiss.gif', 'dudu-kiss.gif']);
+// (The two .jpg stills aren't imported: one is the sword pose with a watermark, the other a still of angry Dudu.)
+const DUPLICATES = new Set(['_Bubu kiss.gif', 'dudu-kiss.gif', 'c46daea1e2058e91672722ac39cd64a7.gif']); // the last: a closer copy of the cheek squish
 
 // Runs in the hidden page: decode every frame with WebCodecs, knock out the background, scale down.
 const DECODE = `async (b64, max, opts) => {
@@ -72,6 +95,50 @@ const DECODE = `async (b64, max, opts) => {
   const dst = new OffscreenCanvas(w, h), dctx = dst.getContext('2d');
   const frames = [];
   let keyed = false;
+  // Dudu and Bubu are the same drawing in different colours: Dudu is tan with orange cheeks, Bubu is white with
+  // pink cheeks; outlines (and Bubu's ears and bow) are the same dark brown. A pixel is recoloured by where it sits
+  // on the line between two known colours (outline → fur, fur → cheek), so soft edges and shading carry over.
+  // Anything else (props, hearts, text) is left alone. Only visible pixels change; the background is already gone.
+  const DARK = [60, 36, 24], WHITE = [252, 252, 252], TAN = [216, 164, 124], PINK = [252, 192, 180], ORANGE = [240, 192, 120];
+  const onLine = (r, g, b, a, z) => {
+    const ab0 = z[0] - a[0], ab1 = z[1] - a[1], ab2 = z[2] - a[2];
+    let t = ((r - a[0]) * ab0 + (g - a[1]) * ab1 + (b - a[2]) * ab2) / (ab0 * ab0 + ab1 * ab1 + ab2 * ab2);
+    t = Math.max(0, Math.min(1, t));
+    return [t, Math.hypot(a[0] + t * ab0 - r, a[1] + t * ab1 - g, a[2] + t * ab2 - b)];
+  };
+  const mix = (a, z, t) => [a[0] + (z[0] - a[0]) * t, a[1] + (z[1] - a[1]) * t, a[2] + (z[2] - a[2]) * t];
+  function recolor(d, to, W) {
+    // to = 'brown': Bubu → Dudu; to = 'cream': Dudu → Bubu
+    const [furFrom, furTo, cheekFrom, cheekTo] = to === 'brown' ? [WHITE, TAN, PINK, ORANGE] : [TAN, WHITE, ORANGE, PINK];
+    const changed = new Uint8Array(d.length / 4);
+    for (let p = 0; p < d.length; p += 4) {
+      if (!d[p + 3]) continue;
+      const r = d[p], g = d[p + 1], b = d[p + 2];
+      let out = null;
+      const [t, dist] = onLine(r, g, b, DARK, furFrom);
+      // Tan → white stretches every shade apart, so dithered Dudu GIFs turned speckly: all light tans become plain white.
+      if (dist < 30) out = mix(DARK, furTo, to === 'cream' ? Math.min(1, t / 0.8) : t);
+      else {
+        const [s, dist2] = onLine(r, g, b, furFrom, cheekFrom);
+        if (dist2 < 30 && s > 0.1) out = mix(furTo, cheekTo, s);
+      }
+      if (out) {
+        d[p] = out[0];
+        d[p + 1] = out[1];
+        d[p + 2] = out[2];
+        changed[p / 4] = 1;
+      }
+    }
+    // Dithered GIFs leave single specks that fit neither line. A visible pixel left alone but mostly surrounded by
+    // recoloured fur takes their average; props are solid areas, so they keep their colour.
+    for (let q = 0; q < changed.length; q++) {
+      if (changed[q] || !d[q * 4 + 3]) continue;
+      const near = [q - 1, q + 1, q - W, q + W, q - W - 1, q - W + 1, q + W - 1, q + W + 1].filter((n) => n >= 0 && n < changed.length && changed[n] === 1);
+      if (near.length < 5) continue;
+      for (let c = 0; c < 3; c++) d[q * 4 + c] = near.reduce((sum, n) => sum + d[n * 4 + c], 0) / near.length;
+      changed[q] = 2; // filled in, but not used as a neighbour for others
+    }
+  }
   for (let i = 0; i < count; i++) {
     const { image } = await dec.decode({ frameIndex: i });
     if (opts.halve && i % 2) {
@@ -124,6 +191,10 @@ const DECODE = `async (b64, max, opts) => {
         const near = (x > 0 && !d[(p - 1) * 4 + 3]) || (x < W - 1 && !d[(p + 1) * 4 + 3]) || (y > 0 && !d[(p - W) * 4 + 3]) || (y < H - 1 && !d[(p + W) * 4 + 3]);
         if (near && !opts.gradient && dist(p) < 90) d[p * 4 + 3] = Math.round(255 * Math.min(1, (dist(p) - 48) / 42 + 0.25));
       }
+      sctx.putImageData(img, 0, 0);
+    }
+    if (opts.recolor) {
+      recolor(d, opts.recolor, W);
       sctx.putImageData(img, 0, 0);
     }
     dctx.clearRect(0, 0, w, h);
@@ -256,16 +327,32 @@ app.whenReady().then(async () => {
     });
     const out = apng(r.w, r.h, frames);
     fs.writeFileSync(path.join(OUT, name), out);
-    console.log(`✓ ${src.padEnd(30)} → ${name.padEnd(22)} ${r.original.join('x')} → ${r.w}x${r.h}, ${frames.length} frames${r.keyed ? ', background removed' : ''}, ${(out.length / 1024).toFixed(0)} KB`);
+    const how = [opts.recolor && `recoloured to ${opts.recolor === 'brown' ? 'Dudu' : 'Bubu'}`, r.keyed && 'background removed'].filter(Boolean).join(', ');
+    console.log(`✓ ${src.slice(0, 30).padEnd(30)} → ${name.padEnd(24)} ${r.original.join('x')} → ${r.w}x${r.h}, ${frames.length} frames${how ? `, ${how}` : ''}, ${(out.length / 1024).toFixed(0)} KB`);
   };
+  const missing = (src) => !fs.existsSync(path.join(dir, src)) && console.log(`- skip ${src} (not found)`);
+  const poses = {}; // pose → { brown: [src, options], cream: [src, options] }
   for (const [src, entry] of Object.entries(MAP)) {
-    const { name, ...opts } = typeof entry === 'string' ? { name: entry } : entry;
-    if (!fs.existsSync(path.join(dir, src))) {
-      console.log(`- skip ${src} (not found)`);
+    if (missing(src)) continue;
+    if (entry.pose) {
+      const { pose, bear, ...opts } = entry;
+      (poses[pose] ||= {})[bear] = [src, opts];
       continue;
     }
-    if (!force && fs.existsSync(path.join(OUT, name))) continue;
-    await importOne(src, name, opts);
+    const { name, ...opts } = typeof entry === 'string' ? { name: entry } : entry;
+    if (force || !fs.existsSync(path.join(OUT, name))) await importOne(src, name, opts);
+  }
+  // Both bears for every pose: the original where there is one, otherwise the other bear's GIF recoloured.
+  for (const [pose, by] of Object.entries(poses)) {
+    for (const bear of ['brown', 'cream']) {
+      const name = `${pose}-${bear}.png`;
+      if (!force && fs.existsSync(path.join(OUT, name))) continue;
+      if (by[bear]) await importOne(by[bear][0], name, by[bear][1]);
+      else {
+        const [src, opts] = by.brown || by.cream;
+        await importOne(src, name, { ...opts, recolor: bear });
+      }
+    }
   }
   // New Send-tab GIFs: "_name.gif" or "name%.gif".
   for (const src of fs.readdirSync(dir)) {

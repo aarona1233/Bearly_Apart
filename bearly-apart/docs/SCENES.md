@@ -23,6 +23,8 @@ folder overrides them by name, and is reloaded as soon as you save it.
 | ❤️ tapback | `tapback-love` (also `tapback-laugh` and others if you add them) |
 | Sent from the menu or phone | `kiss`, `heart`, `hug`, `poke`, `miss-you` |
 | A **More** button on the Send tab | `send-<name>` (the buttons are listed in `assets/sendables.json`) |
+| Back after 20+ min away, and they sent something | `welcome-back-short` / `-long` (2h+) / `-day` (8h+), then `away-summary` |
+| They come back to the computer after 20+ min | `partner-back` |
 | Status | `status-<name>` if it exists, otherwise `status` |
 | Love note / note jar | `note` / `jar` |
 | Silence | `missing-peek`, `missing-sword`, `missing-poster` (set in config `missing`) |
@@ -30,6 +32,7 @@ folder overrides them by name, and is reloaded as soon as you save it.
 
 ## Variables
 Use these in `asset`, `text`, and `caption`: `{pc}` their bear (`brown`/`cream`), `{mc}` your bear, `{partner}`, `{me}`,
+One-bear art comes in both colours, so write `"asset": "eating-{pc}.png"`; both bears in one picture is `pair-….png`.
 `{hours}` (silence), `{note}`, `{countdown}`, `{emoji}`, `{statusLabel}`, `{caption}`.
 
 ## Positions

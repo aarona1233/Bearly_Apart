@@ -189,11 +189,9 @@ function svg(viewBox, body) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}"><style>${STYLE}</style>${body}</svg>\n`;
 }
 
-// Drawn placeholder bears, only where there's no real animation yet: hungry Dudu (Bubu eats a banana).
-// The rest were replaced by the Bubu & Dudu GIFs; drop a pose here once its scene gets one.
-const POSES = {
-  hungry: { arm: 'rub', eyes: 'big', mouth: 'drool', only: 'brown' },
-};
+// Drawn placeholder bears, only where there's no real animation yet. Every bear scene has a real GIF now
+// (Dudu and Bubu versions of each), so this is empty; only the MISSING poster below is still drawn.
+const POSES = {};
 
 let count = 0;
 const write = (name, content) => {

@@ -72,6 +72,9 @@ const DEFAULT_STATE = {
   lastHeardAt: 0,
   missingLevel: 0,
   partnerStatus: null, // { name, at }
+  partnerPresence: null, // { state: 'here' | 'away', at }, from their app
+  pendingScenes: [], // scenes waiting to play (saved so quitting doesn't lose them)
+  pendingSince: 0,
   myStatus: null, // { name, at }, the last status I sent
   partnerAsleep: false,
   noteJar: [],

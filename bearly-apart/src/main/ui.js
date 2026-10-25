@@ -118,7 +118,9 @@ class UI {
     const status = st.partnerStatus && STATUSES[st.partnerStatus.name];
     const items = [];
     items.push({
-      label: paired ? `💞 ${partner}${status ? `  ${status.emoji} ${status.short} · ${ago(st.partnerStatus.at)}` : ''}` : '💞 Not paired yet — open Bearly Apart',
+      label: paired
+        ? `💞 ${partner}${st.partnerPresence?.state === 'away' ? `  💤 away ${ago(st.partnerPresence.at).replace(' ago', '')}` : st.partnerPresence ? '  🟢 here' : ''}${status ? `  ${status.emoji} ${status.short}` : ''}`
+        : '💞 Not paired yet — open Bearly Apart',
       enabled: false,
     });
     items.push({ label: live.connected ? '● Connected' : '○ Connecting…', enabled: false });

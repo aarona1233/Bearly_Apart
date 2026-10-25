@@ -56,6 +56,11 @@ const SCENES = {
   'good-morning': ['Good morning', 'First time at the computer each day (brings a saved note)'],
   countdown: ['Visit countdown', 'Mornings 30, 14, 7, 3 and 1 days before a visit, and the day itself'],
   hello: ['Paired!', 'When the two apps first connect'],
+  'welcome-back-short': ['Welcome back', 'Back after 20+ minutes away and they sent you something: how their bear felt, then a hug'],
+  'welcome-back-long': ['Welcome back (hours)', 'Same, after 2+ hours away: their bear turns grey without you'],
+  'welcome-back-day': ['Welcome back (all day)', 'Same, after 8+ hours away: their lonely bear'],
+  'away-summary': ['While you were away', 'One line listing everything that came in while you were away'],
+  'partner-back': ['They’re back', 'They come back to the computer after 20+ minutes away'],
   'missing-peek': ['Missing you: peek', 'No texts for 3 hours'],
   'missing-sword': ['Missing you: sword', 'No texts for 6 hours'],
   'missing-poster': ['Missing you: poster', 'No texts for 12 hours'],
@@ -81,6 +86,8 @@ function describe(ev, name) {
   if (ev.type === 'message') return `💬 ${name} texted you`;
   if (ev.type === 'tapback') return `💞 ${name} reacted to your message`;
   if (ev.type === 'hello') return `👋 ${name} paired with you`;
+  if (ev.type === 'presence') return ev.presence === 'away' ? `💤 ${name} stepped away` : `👋 ${name} is here`;
+  if (ev.type === 'seen') return `👀 ${name} saw it`;
   if (ev.type === 'gift') {
     const g = GIFTS[ev.gift];
     return g ? `${g.emoji} ${name} ${g.says}` : `✨ ${name} sent you something`;

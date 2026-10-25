@@ -72,6 +72,13 @@ Want a push on your phone when she sends something? Install the **ntfy** app and
   - **Animations**: every animation with a plain name, when it plays, and a ▶ button to preview it on your own screen.
   - **Settings**: names, bears, time zone, quiet hours, what makes the bears wait, pairing, iPhone shortcut.
   - A yellow banner says when bears are waiting and why (snoozed, quiet hours, screen sharing, away…).
+  - The top shows whether they're **🟢 here** or **💤 away** (their app says so when it changes: idle, screen locked,
+    asleep, quit). Sends to someone who's away wait for them; Recent shows ✓ when it's on its way and **👀 seen** once
+    it played on their screen.
+- **Coming back:** anything that arrived while you were away waits (even through a restart). When you're back: if
+  you were gone 20+ minutes, their bear first shows how they felt without you (sad → turning grey → lonely, by how
+  long), then a hug; then one line listing what came in; then the highlights (each kind once, newest status, every
+  love note). Their screen gets a little "they're back! 👋" bear. "Missing you" nudges pause while they're away.
 - Menu bar / tray 💗: the same sends and statuses, snooze, and open the window. If a send from the menu fails, you get a notification.
 - **Panic button**: ⌘/Ctrl + Alt + Shift + B hides the bears and snoozes for an hour.
 - Bears never play during quiet hours, while the screen is locked or she's away (they wait and replay as a
@@ -79,14 +86,20 @@ Want a push on your phone when she sends something? Install the **ntfy** app and
   Zoom, Teams, FaceTime, Keynote, or PowerPoint is in front.
 
 ## Your own GIFs 🎬
-**Bundled:** the Bubu & Dudu animations in `../animations` are already imported (brown bear = Dudu, white bear = Bubu).
-To add more, put the GIF in `../animations` and run `npx electron tools/import-gifs.js ../animations`. It removes solid
-backgrounds and saves a transparent animated PNG into `assets/`.
+**Bundled:** the Bubu & Dudu animations in `../animations` are imported by `tools/import-gifs.js` (brown bear = Dudu,
+white bear = Bubu). Every animation of **one** bear exists for **both**: `assets/<pose>-brown.png` (Dudu) and
+`assets/<pose>-cream.png` (Bubu). Scenes use `<pose>-{pc}.png`, so a kiss from Dudu shows Dudu and one from Bubu shows
+Bubu. Where only one bear's GIF exists, the importer **recolours** it: they're the same drawing, Dudu tan with orange
+cheeks, Bubu white with pink cheeks (recoloured Bubus keep white ears; Dudu's ears are fur-coloured).
+
+To add more, put the GIF in `../animations`, then run `npx electron tools/import-gifs.js ../animations`. It removes solid
+backgrounds and saves transparent animated PNGs into `assets/`.
+- **One bear:** add `'file.gif': { pose: 'name', bear: 'brown' }` (or `'cream'`) to the map at the top of
+  `tools/import-gifs.js`. You get `name-brown.png` and `name-cream.png`; use `name-{pc}.png` in `assets/scenes.json`.
 - **A new Send button:** start the file name with `_` or put a `%` in it (`_Bubu wave.gif`). The importer adds a
   **✨ Bubu wave** button to `assets/sendables.json` and its scene `send-bubu-wave` to `assets/scenes.json`. Change
   the emoji, label and caption (`says`) in `sendables.json`; button order follows that file.
-- **Anything else:** add a line to the name map at the top of `tools/import-gifs.js`, then use the name in
-  `assets/scenes.json`.
+- **Both bears in one picture:** add `'file.gif': 'pair-name.png'` to the map and use it in `assets/scenes.json`.
 
 Then rebuild with `npm run release`.
 

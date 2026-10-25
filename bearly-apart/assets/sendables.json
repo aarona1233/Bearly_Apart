@@ -89,5 +89,70 @@
     "emoji": "🌌",
     "label": "Dreaming of you",
     "says": "is dreaming of you"
+  },
+  "boba": {
+    "emoji": "🧋",
+    "label": "Boba time",
+    "says": "wants boba with you"
+  },
+  "squish": {
+    "emoji": "🥹",
+    "label": "Squish",
+    "says": "is squishing your cheeks"
+  },
+  "lazy": {
+    "emoji": "🛋️",
+    "label": "Lazy cuddle",
+    "says": "wants a lazy cuddle"
+  },
+  "nap": {
+    "emoji": "💤",
+    "label": "Nap together",
+    "says": "wants to nap with you"
+  },
+  "game-night": {
+    "emoji": "🎮",
+    "label": "Game night",
+    "says": "wants a game night"
+  },
+  "spin-hug": {
+    "emoji": "🌀",
+    "label": "Spin hug",
+    "says": "spin-hugged you"
+  },
+  "yay": {
+    "emoji": "🥳",
+    "label": "Yay!",
+    "says": "is excited"
+  },
+  "scream": {
+    "emoji": "😱",
+    "label": "AAAA",
+    "says": "is screaming"
+  },
+  "tantrum": {
+    "emoji": "😫",
+    "label": "Tantrum",
+    "says": "is throwing a tantrum"
+  },
+  "pew": {
+    "emoji": "🔫",
+    "label": "Pew pew",
+    "says": "is (playfully) coming for you"
+  },
+  "studying": {
+    "emoji": "📚",
+    "label": "Done studying",
+    "says": "is done studying"
+  },
+  "cheek-pinch": {
+    "emoji": "🤏",
+    "label": "Cheek pinch",
+    "says": "wants a cheek pinch"
+  },
+  "lonely": {
+    "emoji": "🥀",
+    "label": "Lonely",
+    "says": "feels lonely without you"
   }
 }

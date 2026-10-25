@@ -342,7 +342,8 @@ code.pre {
 .activity .failed {
   color: var(--bad);
 }
-.activity .sent {
+.activity .sent,
+.activity .seen {
   color: var(--ok);
 }
 .activity .empty {

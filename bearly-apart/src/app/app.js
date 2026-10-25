@@ -51,11 +51,12 @@ function renderLive() {
   const s = data.statuses;
   $('partner-name').textContent = live.paired ? partner() : 'Not paired yet';
   const ps = live.partnerStatus && s[live.partnerStatus.name];
-  $('partner-sub').textContent = ps
-    ? `${ps.emoji} ${ps.short} · ${ago(live.partnerStatus.at)}`
-    : live.paired && live.lastHeardAt
-      ? `Last heard from ${ago(live.lastHeardAt)}`
-      : '';
+  // "🟢 Here now · 💼 At work" / "💤 Away for 2h · 😴 Sleepy". Older apps don't report presence: last heard instead.
+  const pp = live.partnerPresence;
+  const where = !pp ? '' : pp.state === 'away' ? `💤 Away for ${ago(pp.at).replace(' ago', '')}` : '🟢 Here now';
+  const what = ps ? `${ps.emoji} ${ps.short}` : '';
+  $('partner-sub').textContent =
+    where || what ? [where, what].filter(Boolean).join(' · ') : live.paired && live.lastHeardAt ? `Last heard from ${ago(live.lastHeardAt)}` : '';
   $('conn').textContent = live.connected ? '● Connected' : '○ Connecting…';
   $('conn').className = `conn ${live.connected ? 'on' : 'off'}`;
 
@@ -99,7 +100,7 @@ function renderLive() {
   list.replaceChildren(
     ...(live.activity.length
       ? live.activity.map((a) => {
-          const mark = a.dir === 'in' ? '' : a.state === 'sent' ? ' ✓' : a.state === 'failed' ? ' ✗ not sent' : ' …';
+          const mark = { sent: ' ✓', seen: ' ✓ 👀 seen', failed: ' ✗ not sent', sending: ' …' }[a.dir === 'in' ? '' : a.state] || '';
           return el(
             'li',
             {},
@@ -123,6 +124,7 @@ function sendButton(emoji, label, send) {
     b.className = `send-btn ${r.ok ? 'sent' : 'failed'}`;
     b.querySelector('.tick').textContent = r.ok ? '✓' : '✗';
     if (!r.ok) toast(`Couldn’t send: ${r.error}`);
+    else if (r.away) toast(`Sent! ${partner()} is away; it’ll be waiting for them 💌`);
     setTimeout(() => (b.className = 'send-btn'), 2500);
   });
   return b;

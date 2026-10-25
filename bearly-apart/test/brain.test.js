@@ -77,6 +77,35 @@ test('every gift button has its scene and its art', () => {
   for (const name of Object.keys(GIFTS)) assert.ok(scenes[`send-${name}`], `missing scene send-${name}`);
 });
 
+test('presence: stored, "back" after a while pops up their bear, missing-you waits while they are away', async () => {
+  const { brain, played, advance, state } = setup({ morning: { enabled: false } }, { lastHeardAt: new Date(2026, 9, 21, 9, 0).getTime() });
+  brain.onRelayEvent({ type: 'presence', presence: 'away', from: 'him' });
+  assert.strictEqual(state().partnerPresence.state, 'away');
+  await brain.tick(); // 5 hours of silence, but he's away: no nagging
+  assert.deepStrictEqual(names(played), []);
+  advance(30 * 60_000);
+  brain.onRelayEvent({ type: 'presence', presence: 'here', from: 'him' });
+  assert.deepStrictEqual(names(played), ['partner-back']);
+  assert.strictEqual(state().lastHeardAt, new Date(2026, 9, 21, 9, 0).getTime(), 'presence is not a message');
+  let seen = 0;
+  brain.onSeen = (until) => (seen = until);
+  brain.onRelayEvent({ type: 'seen', until: 123, from: 'him' });
+  assert.strictEqual(seen, 123);
+});
+
+test('the welcome-back art exists for both bears', () => {
+  for (const s of ['welcome-back-short', 'welcome-back-long', 'welcome-back-day', 'away-summary', 'partner-back']) assert.ok(scenes[s], `missing scene ${s}`);
+  const fs = require('fs');
+  const path = require('path');
+  const used = new Set();
+  const walk = (o) => (Array.isArray(o) ? o.forEach(walk) : o && typeof o === 'object' && Object.entries(o).forEach(([k, v]) => ((k === 'asset' || k === 'src') && typeof v === 'string' ? used.add(v) : walk(v))));
+  walk(scenes);
+  for (const u of used) for (const bear of ['brown', 'cream']) {
+    const file = u.replace(/\{pc\}|\{mc\}/g, bear);
+    assert.ok(fs.existsSync(path.join(__dirname, '..', 'assets', file)), `missing art ${file}`);
+  }
+});
+
 test('statuses I send are remembered, and clearing works both ways', async () => {
   const { brain, played, state } = setup();
   await brain.send('status', { status: 'work' });

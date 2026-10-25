@@ -2,6 +2,7 @@
 // No Electron in here so it can be unit-tested with a fake clock.
 const { STATUSES, GIFTS, describe } = require('./catalog');
 const { inRange, timeInZone } = require('./guard');
+const { REUNION_AFTER_MS } = require('./welcome');
 
 const HOUR = 3600_000;
 const KEYWORD_COOLDOWN_MS = 30_000;
@@ -61,7 +62,22 @@ class Brain {
       this.log(`[brain] ignoring event from unknown sender "${ev.from}"`);
       return;
     }
+    // Bookkeeping from their app, not something they sent: doesn't count as hearing from them.
+    if (ev.type === 'presence') return this.onPresence(ev);
+    if (ev.type === 'seen') return this.onSeen?.(ev.until);
     this.fromPartner(ev);
+  }
+
+  // Their app says they're at the computer ("here") or not ("away": idle, locked, asleep, quit).
+  onPresence(ev) {
+    const prev = this.state().partnerPresence;
+    const at = ev.at || this.now();
+    this.setState({ partnerPresence: { state: ev.presence, at } });
+    // Back after a while: their bear pops up on this screen to say so.
+    if (ev.presence === 'here' && prev?.state === 'away' && at - prev.at >= REUNION_AFTER_MS && this.hasScene('partner-back')) {
+      const c = this.config();
+      this.play({ scene: 'partner-back', priority: 2, label: `👋 ${c.partner.name || 'your love'} is back`, vars: this.vars() });
+    }
   }
 
   onIMessage(m) {
@@ -162,7 +178,7 @@ class Brain {
   queue(scene, ev, priority, extra = {}) {
     const c = this.config();
     const label = describe(ev, c.partner.name || 'your love');
-    return this.play({ scene, ev, priority, label, vars: this.vars({ text: ev.text || '', ...extra }) });
+    return this.play({ scene, ev, priority, label, fromPartner: true, vars: this.vars({ text: ev.text || '', ...extra }) });
   }
 
   // ---- outgoing -----------------------------------------------------------
@@ -178,9 +194,10 @@ class Brain {
     }
     if (type === 'hello') Object.assign(ev, { character: c.me.character, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, handles: c.me.handles || [] });
     const text = type === 'note' || type === 'jar' ? extra.text : describe(ev, c.me.name || 'Your love');
-    await this.publish(ev, text);
+    const sent = await this.publish(ev, text);
     // Only remember a status once it actually went out.
     if (type === 'status') this.setState({ myStatus: extra.status === 'clear' ? null : { name: extra.status, at: this.now() } });
+    return sent; // the relay's copy of the message ({ id, time }), used to match "seen" receipts
   }
 
   // ---- timers (call every ~30s) ------------------------------------------
@@ -211,6 +228,8 @@ class Brain {
       return;
     }
     if (this.partnerProbablyAsleep()) return;
+    // No "missing you" nagging while their app says they're away from the computer.
+    if (s.partnerPresence?.state === 'away') return;
     const elapsed = this.now() - s.lastHeardAt;
     const levels = [...c.missing].sort((a, b) => a.hours - b.hours);
     let level = 0;

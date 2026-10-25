@@ -1,62 +1,55 @@
-// Plays scenes one at a time. If now isn't a good moment (asleep, away, in a meeting, ...),
-// scenes wait in a queue; a long backlog collapses into one "while you were away" scene.
-const SUMMARY_EMOJI = {
-  message: '💬', tapback: '💞', kiss: '💋', heart: '💗', hug: '🫂', poke: '👉', 'miss-you': '🥺', note: '💌', jar: '🫙', hello: '👋',
-};
+// Plays scenes one at a time. If now isn't a good moment (away, asleep, in a meeting, ...), scenes wait in a
+// queue that survives restarts; when the person is back, welcome.js turns the pile into a welcome-back sequence.
+const { backlogPlan, mergeRepeats, summarize } = require('./welcome');
 
-function summarize(items) {
-  const counts = new Map();
-  const statuses = [];
-  for (const it of items) {
-    const t = it.ev?.type;
-    if (t === 'status') statuses.push(it.vars.emoji || '💬');
-    else if (t === 'gift') counts.set(it.vars.emoji || '✨', (counts.get(it.vars.emoji || '✨') || 0) + 1);
-    else if (t) counts.set(t, (counts.get(t) || 0) + 1);
-  }
-  const parts = [];
-  for (const [t, n] of counts) parts.push(`${SUMMARY_EMOJI[t] || t}${n > 1 ? `×${n}` : ''}`);
-  // Only the latest status matters ("hungry" from 4 hours ago is old news).
-  if (statuses.length) parts.push(statuses[statuses.length - 1]);
-  return parts.join('  ');
-}
-
-// More than this many scenes arriving together become one summary scene.
+// More than this many scenes arriving together are treated like a backlog (summary + highlights).
 const MAX_IN_A_ROW = 4;
-
-// Five pokes in a row play once, captioned "×5", instead of five times.
-function mergeRepeats(items) {
-  const out = [];
-  for (const it of items) {
-    const last = out[out.length - 1];
-    if (last && last.scene === it.scene && it.scene !== 'note' && !it.preview) {
-      last.count = (last.count || 1) + 1;
-      last.vars = { ...last.vars, caption: `${last.label || it.label || ''} ×${last.count}`.trim() };
-    } else out.push({ ...it });
-  }
-  return out;
-}
+// Scenes whose event is older than this when they're about to play were sent while this computer was off or
+// asleep (the relay replays them on reconnect), so they count as "while you were away" too.
+const STALE_MS = 10 * 60_000;
 
 class Player {
   // render(req, front) -> Promise that resolves when the scene finishes
   // check() -> Promise<{ ok, reason, front }>
-  constructor({ render, check, log = () => {}, debounceMs = 1500, retryMs = 15_000 }) {
+  // onChange(queue): the queue changed (save it); onPlayed(items): these real scenes were shown
+  constructor({ render, check, hasScene = () => true, log = () => {}, now = () => Date.now(), debounceMs = 1500, retryMs = 15_000 }) {
     this.render = render;
     this.check = check;
+    this.hasScene = hasScene;
     this.log = log;
+    this.now = now;
     this.debounceMs = debounceMs;
     this.retryMs = retryMs;
     this.queue = [];
     this.playing = false;
     this.timer = null;
     this.blockedReason = null; // why scenes are waiting right now (shown in the app), or null
-    this.held = false; // scenes waited at least once since the last play
+    this.heldSince = 0; // when the current backlog first had to wait
     this.onBlocked = null;
+    this.onChange = null;
+    this.onPlayed = null;
+  }
+
+  // Scenes saved by an earlier run (the app was quit while they waited).
+  restore(queue, heldSince) {
+    if (!queue?.length) return;
+    this.queue.push(...queue);
+    this.heldSince = heldSince || this.now();
+    this.schedule(this.debounceMs);
+  }
+
+  changed() {
+    this.onChange?.(
+      this.queue.filter((i) => !i.preview),
+      this.heldSince,
+    );
   }
 
   // Returns a promise of whether it played; queued scenes resolve true when they eventually play.
   play(req) {
     if (req.live) return this.playLive(req);
     this.queue.push(req);
+    this.changed();
     this.schedule(this.debounceMs);
     return Promise.resolve(true);
   }
@@ -84,27 +77,40 @@ class Player {
         this.blockedReason = g.reason;
         this.onBlocked?.(g.reason);
       }
-      this.held = true;
+      if (!this.heldSince) {
+        this.heldSince = this.now();
+        this.changed();
+      }
       this.schedule(this.retryMs);
       return;
     }
     if (this.blockedReason) this.onBlocked?.(null);
     this.blockedReason = null;
     const items = this.queue.splice(0);
-    const plan = this.held || items.length > MAX_IN_A_ROW ? this.summaryPlan(items, this.held) : mergeRepeats(items);
-    this.held = false;
+    const plan = this.planFor(items);
+    this.heldSince = 0;
+    this.changed();
     await this.run(plan, g.front);
+    const shown = items.filter((i) => !i.preview);
+    if (shown.length) this.onPlayed?.(shown);
     if (this.queue.length) this.schedule(this.debounceMs);
   }
 
-  // After a pause, or a flood, show one scene with a summary caption (plus any notes, which are never dropped).
-  summaryPlan(items, held) {
+  // How long these scenes were kept from being seen: waiting here, or sent while this computer was off.
+  awayMs(items) {
+    const waited = this.heldSince ? this.now() - this.heldSince : 0;
+    const oldest = Math.min(...items.filter((i) => i.ev?.at).map((i) => i.ev.at), this.now());
+    const offline = this.now() - oldest >= STALE_MS ? this.now() - oldest : 0;
+    return Math.max(waited, offline);
+  }
+
+  planFor(items) {
+    const awayMs = this.awayMs(items);
     const real = items.filter((i) => !i.preview);
-    if (real.length <= 1) return items;
-    const best = real.reduce((a, b) => (b.priority >= a.priority ? b : a)); // latest one wins ties
-    const caption = `${held ? 'While you were away' : 'Lots of love incoming'}: ${summarize(real)}`;
-    const notes = real.filter((i) => i.scene === 'note' && i !== best);
-    return [{ ...best, vars: { ...best.vars, caption } }, ...notes];
+    // A single thing after a short wait just plays; a pile, a long absence or a flood gets the welcome sequence.
+    if (awayMs && (real.length > 1 || awayMs >= 20 * 60_000)) return backlogPlan(items, { awayMs, hasScene: this.hasScene });
+    if (real.length > MAX_IN_A_ROW) return backlogPlan(items, { awayMs: 0, hasScene: this.hasScene });
+    return mergeRepeats(items);
   }
 
   async run(plan, front) {

@@ -15,7 +15,7 @@ computer screens whenever you text, send a kiss, set a status, or go quiet for t
 ```
 Bearly Appart/
 ├── WHAT-WE-BUILT.md        ← this file
-├── animations/             ← the original Bubu & Dudu GIFs from your friend (30)
+├── animations/             ← the original Bubu & Dudu GIFs from your friend
 └── bearly-apart/           ← the app
     ├── START-HERE.md       ← step-by-step: build the downloads, install on both computers, test, uninstall
     ├── README.md           ← full feature list, iPhone Shortcut guide, custom GIFs, advanced settings
@@ -24,7 +24,7 @@ Bearly Appart/
     ├── src/                ← the app's code (main process, overlay, app window)
     ├── assets/             ← animations, drawn bears, icons, scenes.json (the choreography)
     ├── docs/SCENES.md      ← how to choreograph new animations
-    ├── test/               ← 28 automated tests
+    ├── test/               ← 37 automated tests
     └── tools/              ← builders: packager (Setup.exe / Mac zip / Linux), GIF importer, test helpers
 ```
 
@@ -67,6 +67,10 @@ Bearly Appart/
   hug, thinking of you, together, hi, happy dance, snack time, grr, I'm sad, cheer up, don't go, chill date, goodnight,
   sleep tight, dreaming of you). New GIFs named with `_` or `%` become new buttons automatically
 - 🫂 Both send a heart within 20 seconds → both screens get a hug
+- 🟢 **Presence:** each app says when its person is here or away (idle, locked, asleep, quit), so the other side sees
+  "here now" / "away for 2h", and Recent shows **👀 seen** once something played on their screen
+- 🩶 **Welcome back:** things sent while you were away wait (even through a restart). Back after 20+ minutes: their bear
+  shows how they felt without you (sad → grey → lonely), a hug, one line of what came in, then the highlights
 - 💌 Love notes, delivered now or saved in the "note jar" for her next morning
 - ☀️ Good-morning bear the first time she's at the computer each day, with a visit countdown and a note from the jar
 - 👆 Click a bear to poke back
@@ -99,9 +103,14 @@ Your friend's 16 GIFs (`animations/`) were imported with `tools/import-gifs.js`:
   saying goodnight, Bubu receiving a love letter (delivers notes), Bubu shouting hello, Bubu cheering Dudu up, Bubu crying,
   and two with painted backgrounds (Dudu dreaming in bed, the "I Miss You" picture), shown framed like little photos.
   `dudu-kiss.gif` is the same file as `bubu-dudu-kiss.gif`, so it was skipped.
-- **Placeholders:** the hand-drawn bears were replaced wherever a real animation fits (heart, poke, miss you, sleepy,
-  goodnight, generic status, love notes, sad, hungry Bubu). Only **hungry Dudu** and the **MISSING poster** are still
-  drawn. Swap those out when GIFs for them come in.
+- **Third batch (Oct 25):** 21 more (hash-named) files: studying/desk flip, screaming, a brown sword dash (Bubu's
+  drawing recoloured, which is how we learned the two bears are the same drawing), bedtime, wiggle, boba, gloom,
+  lonely, chalkboard, tantrum, crying at the phone, cheek pinch, finger gun, plus pair GIFs (lazy cuddle, nap, cheek
+  squish, game night, spin hug). Two .jpg stills and a duplicate squish were left out.
+- **Both bears for everything:** every one-bear animation exists as Dudu *and* Bubu (`<pose>-brown/-cream.png`); where
+  only one was drawn, the importer recolours it (tan + orange cheeks ↔ white + pink cheeks). Scenes always show the
+  **sender's** bear, so nothing shows the wrong bear any more.
+- **Placeholders:** every hand-drawn bear is gone; only the **MISSING poster** is still drawn.
 
 These are licensed to the two of you through your friend, so keep the app private and don't publish it.
 
@@ -125,7 +134,7 @@ These are licensed to the two of you through your friend, so keep the app privat
 
 ## How it was tested
 
-- **Automated tests (26, all passing):** the trigger logic (cooldowns, combos, keywords, hug timing, silence levels,
+- **Automated tests (37, all passing):** the trigger logic (cooldowns, combos, keywords, hug timing, silence levels,
   morning notes, countdown), iMessage reading against a fake message database (including the hidden-text format newer
   macOS uses), the relay (including catching up on messages sent while offline), the queue and summary, and the pairing codes.
 - **Two copies on your PC** ("you" and "her") through a local stand-in relay: kisses, statuses, iMessages in both

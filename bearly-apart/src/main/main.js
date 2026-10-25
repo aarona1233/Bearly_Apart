@@ -137,9 +137,9 @@ function incomingText(ev) {
 async function sendEvent(type, extra = {}, { notify = false } = {}) {
   const id = activity.add({ dir: 'out', text: outText(type, extra), state: 'sending' });
   try {
-    await brain.send(type, extra);
-    activity.update(id, { state: 'sent' });
-    return { ok: true };
+    const sent = await brain.send(type, extra);
+    activity.update(id, { state: 'sent', relayAt: (sent?.time || 0) * 1000 || Date.now() });
+    return { ok: true, away: st().partnerPresence?.state === 'away' };
   } catch (err) {
     log(`[send] ${type}: ${err.message}`);
     activity.update(id, { state: 'failed', error: err.message });
@@ -209,6 +209,34 @@ function resetPairing() {
   return cfg();
 }
 
+// ---------- presence ("here" / "away") -----------------------------------------
+// Their app learns when this computer is in use, so they know whether a kiss will be seen now or later.
+// Sent only when it changes (idle past awayAfterSec, screen locked, asleep, quitting), as a silent message.
+let presence = 'here';
+let announced = null;
+
+// Bookkeeping messages (presence, seen): no Recent entry, no error popups.
+function sendQuiet(type, extra) {
+  if (!cfg().partner.id || !cfg().me.id) return Promise.resolve();
+  return brain.send(type, extra).catch((err) => log(`[${type}] ${err.message}`));
+}
+
+function announcePresence() {
+  if (!relay?.connected || announced === presence) return Promise.resolve();
+  announced = presence;
+  return sendQuiet('presence', { presence });
+}
+
+function setPresence(next) {
+  presence = next;
+  return announcePresence();
+}
+
+function checkPresence() {
+  const idle = powerMonitor.getSystemIdleTime();
+  setPresence(guard?.locked || idle > cfg().awayAfterSec ? 'away' : 'here');
+}
+
 // What the window shows live (pushed whenever something changes).
 function liveState() {
   const s = st();
@@ -218,6 +246,7 @@ function liveState() {
     paused: player.blockedReason,
     snoozedUntil: s.snoozedUntil > Date.now() ? s.snoozedUntil : 0,
     partnerStatus: s.partnerStatus,
+    partnerPresence: s.partnerPresence,
     myStatus: s.myStatus,
     lastHeardAt: s.lastHeardAt,
     noteJar: s.noteJar.length,
@@ -347,8 +376,16 @@ app.whenReady().then(() => {
 
   overlay = new OverlayWindow({ getScene: (name) => scenes[name], getScale: () => cfg().scale, log });
   guard = new Guard({ getConfig: cfg, getState: st, powerMonitor, screen: require('electron').screen });
-  player = new Player({ render: (req, front) => overlay.render(req, front), check: () => guard.check(), log });
+  player = new Player({ render: (req, front) => overlay.render(req, front), check: () => guard.check(), hasScene: (name) => !!scenes[name], log });
   player.onBlocked = () => ui?.refresh();
+  // Waiting scenes are saved, so quitting or a restart doesn't lose them.
+  player.onChange = (queue, since) => stores.state.set({ pendingScenes: queue, pendingSince: queue.length ? since : 0 });
+  player.restore(st().pendingScenes, st().pendingSince);
+  // Tell their app what was actually seen, so their Recent list can show 👀.
+  player.onPlayed = (items) => {
+    const at = Math.max(0, ...items.filter((i) => i.fromPartner && i.ev?.at).map((i) => i.ev.at));
+    if (at) sendQuiet('seen', { until: Math.floor(at / 1000) });
+  };
 
   relay = new Relay({
     getConfig: cfg,
@@ -369,6 +406,7 @@ app.whenReady().then(() => {
     hasScene: (name) => !!scenes[name],
     log,
   });
+  brain.onSeen = (until) => activity.markSeen(until * 1000);
   brain.onHello = (p) => {
     if (!p.id) return;
     const partner = { id: p.id, name: p.name || cfg().partner.name, character: p.character || cfg().partner.character };
@@ -381,7 +419,8 @@ app.whenReady().then(() => {
   relay.on('event', (ev) => {
     if (ev.from !== cfg().me.id) {
       log(`[relay] ← ${ev.type}${ev.status ? `:${ev.status}` : ''} from ${ev.from}`);
-      if (ev.from === cfg().partner.id || ev.type === 'hello') activity.add({ dir: 'in', text: incomingText(ev) });
+      const bookkeeping = ev.type === 'presence' || ev.type === 'seen';
+      if (!bookkeeping && (ev.from === cfg().partner.id || ev.type === 'hello')) activity.add({ dir: 'in', text: incomingText(ev) });
     }
     brain.onRelayEvent(ev);
   });
@@ -392,6 +431,7 @@ app.whenReady().then(() => {
       stores.state.set({ helloSent: true });
       sendEvent('hello');
     }
+    if (up) announcePresence(); // whatever changed while offline
   });
 
   // BA_CHATDB points the watcher at a fake chat.db so the iMessage path can be tested off a Mac.
@@ -427,12 +467,21 @@ app.whenReady().then(() => {
   relay.start();
   applyLoginItem();
 
-  powerMonitor.on('lock-screen', () => (guard.locked = true));
+  powerMonitor.on('lock-screen', () => {
+    guard.locked = true;
+    checkPresence();
+  });
   powerMonitor.on('unlock-screen', () => {
     guard.locked = false;
+    checkPresence();
     player.schedule(2000);
   });
-  powerMonitor.on('resume', () => relay.restart());
+  powerMonitor.on('suspend', () => setPresence('away'));
+  powerMonitor.on('resume', () => {
+    relay.restart();
+    checkPresence();
+  });
+  setInterval(checkPresence, 20_000);
 
   // Panic button: hide whatever is playing and snooze for an hour.
   globalShortcut.register('CommandOrControl+Alt+Shift+B', () => {
@@ -456,6 +505,14 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   /* stay in the tray */
+});
+// Quitting: tell their app we're away first (waiting at most a moment for the relay).
+let quitting = false;
+app.on('before-quit', (e) => {
+  if (quitting || !relay?.connected || !cfg().partner.id) return;
+  quitting = true;
+  e.preventDefault();
+  Promise.race([setPresence('away'), new Promise((r) => setTimeout(r, 1500))]).finally(() => app.quit());
 });
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();

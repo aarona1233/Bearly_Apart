@@ -66,11 +66,14 @@ test('relay delivers live and resumes after reconnect without losing messages', 
   assert.deepStrictEqual(got, ['kiss', 'poke']);
 });
 
-test('player queues while blocked and summarizes a backlog', async () => {
+test('player waits while blocked, then welcomes them back: how they felt, the summary, highlights, notes', async () => {
   let ok = false;
+  let now = 1_000_000;
   const rendered = [];
-  const p = new Player({ render: async (req) => rendered.push(req), check: async () => ({ ok, reason: 'away' }), debounceMs: 5, retryMs: 20 });
-  const req = (scene, type, priority, extra = {}) => ({ scene, priority, ev: { type }, vars: { ...extra } });
+  const saved = [];
+  const p = new Player({ render: async (req) => rendered.push(req), check: async () => ({ ok, reason: 'away' }), now: () => now, debounceMs: 5, retryMs: 20 });
+  p.onChange = (queue) => saved.push(queue.length);
+  const req = (scene, type, priority, extra = {}) => ({ scene, priority, fromPartner: true, label: scene, ev: { type, at: now }, vars: { ...extra } });
   p.play(req('message', 'message', 2));
   p.play(req('kiss', 'kiss', 5));
   p.play(req('message', 'message', 2));
@@ -79,11 +82,55 @@ test('player queues while blocked and summarizes a backlog', async () => {
   assert.strictEqual(await p.play({ scene: 'missing-peek', live: true }), false);
   await new Promise((r) => setTimeout(r, 50));
   assert.strictEqual(rendered.length, 0);
+  assert.ok(saved.at(-1) === 5, 'the waiting queue is saved');
+  now += 3 * 3600_000; // back three hours later
   ok = true;
   await new Promise((r) => setTimeout(r, 60));
-  assert.strictEqual(rendered.length, 1);
-  assert.strictEqual(rendered[0].scene, 'note');
-  assert.match(rendered[0].vars.caption, /While you were away: 💬×2  💋  💌  🍔/);
+  assert.deepStrictEqual(
+    rendered.map((r) => r.scene),
+    ['welcome-back-long', 'away-summary', 'message', 'kiss', 'status-hungry', 'note'],
+  );
+  assert.strictEqual(rendered[0].vars.hours, 3);
+  assert.match(rendered[1].vars.caption, /While you were away: 💬×2  💋  💌  🍔/);
+  assert.strictEqual(rendered[2].vars.caption, 'message ×2');
+  assert.strictEqual(saved.at(-1), 0, 'and cleared once played');
+});
+
+test('things sent while this computer was off count as "while you were away"', async () => {
+  const now = 50_000_000;
+  const rendered = [];
+  const p = new Player({ render: async (req) => rendered.push(req), check: async () => ({ ok: true }), now: () => now, debounceMs: 5 });
+  // The relay replays these on reconnect: sent 30 and 25 minutes ago.
+  p.play({ scene: 'kiss', priority: 5, fromPartner: true, ev: { type: 'kiss', at: now - 30 * 60_000 }, vars: {} });
+  p.play({ scene: 'send-cuddle', priority: 4, fromPartner: true, ev: { type: 'gift', at: now - 25 * 60_000 }, vars: { emoji: '🥰' } });
+  await new Promise((r) => setTimeout(r, 40));
+  assert.deepStrictEqual(rendered.map((r) => r.scene), ['welcome-back-short', 'away-summary', 'kiss', 'send-cuddle']);
+});
+
+test('a single thing after a short wait just plays; restored scenes play after a restart', async () => {
+  let now = 1_000;
+  const rendered = [];
+  const p = new Player({ render: async (req) => rendered.push(req), check: async () => ({ ok: true }), now: () => now, debounceMs: 5 });
+  p.restore([{ scene: 'kiss', priority: 5, fromPartner: true, ev: { type: 'kiss', at: now }, vars: {} }], now);
+  now += 60_000;
+  await new Promise((r) => setTimeout(r, 40));
+  assert.deepStrictEqual(rendered.map((r) => r.scene), ['kiss']);
+});
+
+test('seen receipts tick off what was sent up to that time', () => {
+  const { Activity } = require('../src/main/activity');
+  const a = new Activity();
+  const early = a.add({ dir: 'out', text: 'kiss', state: 'sent', relayAt: 1_000_000 });
+  const late = a.add({ dir: 'out', text: 'hug', state: 'sent', relayAt: 9_000_000 });
+  a.markSeen(2_000_000);
+  assert.strictEqual(a.items.find((i) => i.id === early).state, 'seen');
+  assert.strictEqual(a.items.find((i) => i.id === late).state, 'sent');
+});
+
+test('presence and seen travel as tags', () => {
+  const back = (ev) => fromNtfy({ event: 'message', id: 'x', time: 1, message: '', tags: toTags(ev) });
+  assert.strictEqual(back({ type: 'presence', from: 'her', presence: 'away' }).presence, 'away');
+  assert.strictEqual(back({ type: 'seen', from: 'her', until: 1767225600 }).until, 1767225600);
 });
 
 test('summarize keeps only the latest status', () => {
