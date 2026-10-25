@@ -119,8 +119,9 @@ Touch ID, let her type it.** Then follow the steps below for her.
    the App Store. Click **Done**. (Never pick **Move to Trash**.)
 3. **Allow it (once):** open **System Settings → Privacy & Security**, scroll to the bottom, and next to *"Bearly Apart
    was blocked…"* click **Open Anyway**. Enter her password, then click **Open Anyway** again.
-4. **Install:** it asks **Install Bearly Apart?** → **Install**. It puts itself in **Applications** (replacing any
-   older copy, which it quits first) and opens from there.
+4. **Install:** it asks **Install Bearly Apart?** → **Install**. It puts itself in **Applications** and clears away
+   any other copies in Downloads and old installers, so there's only one. If your Mac asks to let Bearly Apart
+   **control Finder** or **access Downloads**, click **OK** / **Allow**: that's how it removes the old copies.
 5. **Setup** opens:
    1. **Let's go.**
    2. Her name and bear → **Next**. (She can skip the iPhone number.)
@@ -167,10 +168,13 @@ and Focus detection.
 
 1. Run the build command from step 1 again (it pulls the latest code).
 2. **You:** run the new `Bearly Apart Setup.exe`. It replaces the old version; settings and pairing stay.
-3. **Her:** download the new Mac zip, open **Bearly Apart** from Downloads (click **Open Anyway** again if asked),
-   and click **Update**. It quits the old version, replaces it in Applications and reopens. Her pairing and settings
-   stay. **macOS treats each new version as a different app**, so the window then asks her to switch **Full Disk
-   Access** off and back on for Bearly Apart (**Open that setting** takes her there).
+3. **Her:** download the new Mac zip and open **Bearly Apart** from Downloads (click **Open Anyway** if asked). It
+   checks versions first: if it's newer, it asks **Update Bearly Apart to 0.x?** → **Update**. It quits the old one,
+   has Finder move it to the Trash (your Mac may ask to let it **control Finder**: click **OK**), installs itself in
+   Applications, clears away other copies in Downloads, and reopens. If it's the same or older, it just opens the
+   installed one, so opening an old copy by mistake can't downgrade anything. Her pairing and settings stay.
+   **macOS treats each new version as a different app**, so the window then asks her to switch **Full Disk Access**
+   off and back on for Bearly Apart (**Open that setting** takes her there).
 
 ---
 

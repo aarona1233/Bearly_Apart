@@ -190,3 +190,19 @@ test('old configs get the new text triggers', () => {
   assert.strictEqual(again.data.keywords.custom, 'x');
   assert.strictEqual(c.data.setupDone, false); // named but never paired: setup still runs
 });
+
+test('Mac installer: version checks, where it counts as installed, and a cleanup list that stays narrow', () => {
+  const { compareVersions, plistVersion, needsInstall, INSTALL_SH, MAC_TARGET } = require('../src/main/mac-install');
+  assert.strictEqual(compareVersions('0.4.0', '0.3.12'), 1);
+  assert.strictEqual(compareVersions('0.3.2', '0.4.0'), -1);
+  assert.strictEqual(compareVersions('0.4.0', '0.4.0'), 0);
+  assert.strictEqual(plistVersion('<dict><key>CFBundleShortVersionString</key>\n\t<string>0.4.1</string></dict>'), '0.4.1');
+  assert.strictEqual(needsInstall(`${MAC_TARGET}/Contents/MacOS/Bearly Apart`), false);
+  assert.strictEqual(needsInstall('/private/var/folders/ab/T/AppTranslocation/X/d/Bearly Apart.app/Contents/MacOS/Bearly Apart'), true);
+  assert.strictEqual(needsInstall('/Users/her/Applications/Bearly Apart.app/Contents/MacOS/Bearly Apart'), true);
+  // Everything the clean-up loop may delete is a Bearly Apart copy or installer in Downloads, the Trash or ~/Applications.
+  const list = INSTALL_SH.match(/for old in ([\s\S]*?); do/)[1].match(/"[^"]*"/g);
+  assert.ok(list.length >= 6);
+  for (const item of list) assert.match(item, /^"\$home\/(Applications|Downloads|\.Trash)\/Bearly[ -]?Apart/, item);
+  assert.match(INSTALL_SH, /\[ "\$old" = "\$dst" \] && continue/, 'never deletes the installed app');
+});

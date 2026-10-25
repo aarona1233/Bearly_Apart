@@ -13,6 +13,7 @@ const { Brain } = require('./brain');
 const { Activity } = require('./activity');
 const { OverlayWindow } = require('./overlay-window');
 const { UI } = require('./ui');
+const { MAC_TARGET, INSTALL_SH, compareVersions, plistVersion, needsInstall } = require('./mac-install');
 const { STATUSES, SENDABLES, GIFTS, describe } = require('./catalog');
 
 const BUNDLED_ASSETS = path.join(__dirname, '..', '..', 'assets');
@@ -58,7 +59,8 @@ if (process.platform === 'linux') {
 if (process.env.BA_PROFILE) app.setPath('userData', path.join(app.getPath('appData'), `Bearly Apart (${process.env.BA_PROFILE})`));
 // A Mac copy opened from Downloads installs itself (replacing an older copy, which it quits first), so it mustn't
 // hand over to, or be blocked by, that older copy.
-const NEEDS_MOVE = IS_MAC && app.isPackaged && !app.isInApplicationsFolder();
+// (A plain path check: it runs before the app is ready, where Electron's own check isn't promised to work.)
+const NEEDS_MOVE = IS_MAC && app.isPackaged && needsInstall(process.execPath);
 if (!INSTALLER_RUN && !NEEDS_MOVE && !app.requestSingleInstanceLock()) app.quit();
 // Opening the app again brings up its window: the way in when there's no tray icon (stock GNOME), or the 💗 is
 // hidden behind a MacBook's notch. Windows/Linux start a second copy ('second-instance'); a Mac doesn't, it sends
@@ -280,46 +282,64 @@ function applyLoginItem() {
 
 // ---------- installing on the Mac --------------------------------------------
 
-const MAC_TARGET = '/Applications/Bearly Apart.app';
 
-// Quits any running copy from Applications, replaces it with this one, and opens the new one.
-// Done with plain shell tools: Electron's own file functions treat app.asar as a folder and can't delete it.
-// (Not macOS's built-in move: that puts the original in the Trash, and on her Mac the restart afterwards
-// failed, so she kept opening the copy in the Trash.)
-const INSTALL_SH = `
-src="$1"; dst="$2"
-pkill -f "$dst/Contents/" 2>/dev/null
-for i in 1 2 3 4 5 6 7 8 9 10; do pgrep -f "$dst/Contents/" >/dev/null || break; sleep 0.5; done
-pkill -9 -f "$dst/Contents/" 2>/dev/null
-rm -rf "$dst" || exit 1
-/usr/bin/ditto "$src" "$dst" || exit 1
-/usr/bin/xattr -dr com.apple.quarantine "$dst" 2>/dev/null
-exit 0`;
+function installedMacVersion() {
+  try {
+    return plistVersion(fs.readFileSync(path.join(MAC_TARGET, 'Contents', 'Info.plist'), 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function runInstallScript(mode) {
+  // The bundle this copy runs from (macOS may run a downloaded app from a hidden read-only copy; that's fine).
+  const bundle = path.resolve(process.execPath, '..', '..', '..');
+  const r = require('child_process').spawnSync('/bin/sh', ['-c', INSTALL_SH, 'sh', bundle, MAC_TARGET, app.getPath('home'), mode], {
+    encoding: 'utf8',
+    timeout: 120_000,
+  });
+  if (r.status !== 0) log(`[install] ${mode} failed (${r.status}): ${r.stderr || r.error?.message || ''}`);
+  return r.status === 0;
+}
+
+function openInstalledAndQuit() {
+  require('child_process').spawn('/bin/sh', ['-c', 'sleep 1; open "$1"', 'sh', MAC_TARGET], { detached: true, stdio: 'ignore' }).unref();
+  app.exit(0);
+}
 
 function installToApplications() {
   app.focus({ steal: true }); // a menu-bar app isn't brought to the front by itself; the message could hide
-  const upgrading = fs.existsSync(MAC_TARGET);
+  const installed = installedMacVersion();
+  const mine = app.getVersion();
+  // An older download opened by mistake (Safari names a second download "Bearly Apart 2"): never downgrade.
+  if (installed && compareVersions(installed, mine) >= 0) {
+    dialog.showMessageBoxSync({
+      type: 'info',
+      title: 'Bearly Apart',
+      message: installed === mine ? 'Bearly Apart is already installed.' : `You already have a newer Bearly Apart (${installed}).`,
+      detail: 'Opening the one in Applications, and tidying away this extra copy.',
+      buttons: ['OK'],
+    });
+    runInstallScript('tidy');
+    return openInstalledAndQuit();
+  }
   const choice = dialog.showMessageBoxSync({
     type: 'info',
     title: 'Bearly Apart',
-    message: upgrading ? 'Update Bearly Apart?' : 'Install Bearly Apart?',
-    detail: upgrading
-      ? 'This replaces the Bearly Apart in your Applications folder with this new version. Your settings and pairing are kept.'
-      : 'Bearly Apart goes into your Applications folder and opens from there.',
-    buttons: [upgrading ? 'Update' : 'Install', 'Cancel'],
+    message: installed ? `Update Bearly Apart to ${mine}?` : 'Install Bearly Apart?',
+    detail:
+      (installed
+        ? `This replaces Bearly Apart ${installed} in your Applications folder. Your settings and pairing are kept.`
+        : 'Bearly Apart goes into your Applications folder and opens from there.') +
+      '\n\nAny other copies in Downloads and old installers are cleared away, so there is only one.' +
+      (installed ? '\n\nYour Mac may ask whether Bearly Apart can control Finder (that is how it swaps out the old version): click OK.' : ''),
+    buttons: [installed ? 'Update' : 'Install', 'Cancel'],
     defaultId: 0,
     cancelId: 1,
   });
   if (choice === 1) return app.quit();
-  // The bundle this copy runs from (macOS may run a downloaded app from a hidden read-only copy; that's fine).
-  const bundle = path.resolve(process.execPath, '..', '..', '..');
-  const r = require('child_process').spawnSync('/bin/sh', ['-c', INSTALL_SH, 'sh', bundle, MAC_TARGET], { encoding: 'utf8', timeout: 120_000 });
-  if (r.status !== 0) {
-    log(`[install] failed (${r.status}): ${r.stderr || r.error?.message || ''}`);
-    return askToMoveToApplications();
-  }
-  require('child_process').spawn('/bin/sh', ['-c', 'sleep 1; open "$1"', 'sh', MAC_TARGET], { detached: true, stdio: 'ignore' }).unref();
-  app.exit(0);
+  if (!runInstallScript('install')) return askToMoveToApplications();
+  openInstalledAndQuit();
 }
 
 // Fallback if installing didn't work (for example an account that can't write to Applications).
