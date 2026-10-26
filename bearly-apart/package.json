@@ -5,7 +5,7 @@
   "description": "Cute bears run across your partner's screen whenever you text, poke, or go quiet for too long.",
   "main": "src/main/main.js",
   "updates": {
-    "feed": "https://github.com/aarona1233/Bearly_Apart/releases/latest/download/latest-mac.json"
+    "github": "aarona1233/Bearly_Apart"
   },
   "private": true,
   "license": "UNLICENSED",

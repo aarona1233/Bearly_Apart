@@ -394,7 +394,7 @@ function relaunch() {
 }
 
 // ---------- updating itself (see updater.js) ----------------------------------
-// Where the signed update info lives ("updates.feed" in package.json) and the key it must be signed with.
+// Which GitHub repo's releases to update from ("updates.github" in package.json) and the key they must be signed with.
 const PKG = require('../../package.json');
 const UPDATE_KEY = path.join(BUNDLED_ASSETS, 'update-public.pem');
 
@@ -409,8 +409,13 @@ async function installMacUpdate(zip, m) {
     execFile('/usr/bin/ditto', ['-x', '-k', zip, unpacked], (err) => (err ? reject(new Error(`could not unpack the update (${err.message})`)) : resolve())),
   );
   const bundle = path.join(unpacked, 'Bearly Apart.app');
-  const version = plistVersion(fs.readFileSync(path.join(bundle, 'Contents', 'Info.plist'), 'utf8'));
+  const plist = fs.readFileSync(path.join(bundle, 'Contents', 'Info.plist'), 'utf8');
+  const version = plistVersion(plist);
   if (version !== m.version) throw new Error(`the download is version ${version}, not ${m.version}`);
+  // The same app, not some other one that happens to be signed: its bundle id has to match this copy's.
+  const id = (xml) => String(xml).match(/<key>CFBundleIdentifier<\/key>\s*<string>([^<]+)<\/string>/)?.[1];
+  const mine = id(fs.readFileSync(path.join(MAC_TARGET, 'Contents', 'Info.plist'), 'utf8'));
+  if (!mine || id(plist) !== mine) throw new Error('the download is not Bearly Apart');
   stores.state.set({ updatedFrom: app.getVersion() });
   stores.state.flush();
   await Promise.race([setPresence('away'), new Promise((r) => setTimeout(r, 1500))]);
@@ -434,9 +439,12 @@ function startUpdater() {
   }
   updater = new Updater({
     version: app.getVersion(),
-    feedUrl: PKG.updates?.feed || '',
+    repo: PKG.updates?.github || '',
     publicKey,
-    fetch: (url, opts) => net.fetch(url, opts),
+    getToken: () => cfg().updateToken,
+    // Node's fetch rather than net.fetch: the updater follows GitHub's redirects itself (redirect: 'manual'), so the
+    // update key is never sent along to the storage server.
+    fetch: (url, opts) => globalThis.fetch(url, opts),
     downloadDir: path.join(app.getPath('temp'), 'bearly-apart-update'),
     install: installMacUpdate,
     // Only an installed Mac copy swaps itself; Windows and Linux (and running from source) just say a newer one exists.
@@ -450,6 +458,15 @@ function startUpdater() {
 
 function checkForUpdates() {
   return updater ? updater.check() : null;
+}
+
+// Settings → Updates: the read-only GitHub key for a private repo ('' removes it). Saved in config.json only.
+function setUpdateKey(key) {
+  const token = String(key || '').trim();
+  if (token && !/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(token)) return { ok: false, error: 'That doesn’t look like a GitHub key (it starts with github_pat_).' };
+  stores.config.set({ updateToken: token });
+  ui.refresh();
+  return { ok: true };
 }
 
 // ---------- startup --------------------------------------------------------
@@ -565,7 +582,7 @@ app.whenReady().then(() => {
     pairingCode: () => encodePairing(cfg()),
     linkCode: () => encodeLink(cfg()),
     deviceName: DEVICE_NAME,
-    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, checkTextAccess, relaunch, checkForUpdates },
+    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, checkTextAccess, relaunch, checkForUpdates, setUpdateKey },
   });
   activity.on('change', () => ui.refresh());
   ui.start();

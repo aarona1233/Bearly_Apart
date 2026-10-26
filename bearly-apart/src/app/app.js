@@ -70,6 +70,10 @@ function renderUpdate() {
   $('update-summary').textContent = off || u.status === 'up-to-date' || u.status === 'idle' ? 'Updates' : u.status === 'error' ? 'Updates · ⚠️' : 'Updates · new version';
   $('check-update').disabled = off || ['checking', 'downloading', 'installing'].includes(u.status);
   $('auto-update').closest('label').hidden = off || !mac;
+  const hasKey = !!data.config.updateToken;
+  $('update-key-box').hidden = off;
+  $('update-key-set').hidden = !hasKey;
+  $('update-key').hidden = $('update-key-save').hidden = hasKey;
 }
 
 function renderLive() {
@@ -336,6 +340,16 @@ $('check-update').addEventListener('click', async () => {
   const s = await window.ba.checkUpdate();
   if (s?.status === 'up-to-date') toast('You have the newest version 🐻');
 });
+async function saveUpdateKey(key) {
+  const r = await window.ba.setUpdateKey(key);
+  if (!r.ok) return toast(r.error);
+  $('update-key').value = '';
+  await reload();
+  toast(key ? 'Key saved. Checking for updates…' : 'Key removed');
+  if (key) window.ba.checkUpdate();
+}
+$('update-key-save').addEventListener('click', () => saveUpdateKey($('update-key').value.trim()));
+$('update-key-remove').addEventListener('click', () => confirm('Remove the update key from this computer?') && saveUpdateKey(''));
 $('auto-update').addEventListener('change', async () => {
   await window.ba.save({ autoUpdate: $('auto-update').checked });
   data.config.autoUpdate = $('auto-update').checked;

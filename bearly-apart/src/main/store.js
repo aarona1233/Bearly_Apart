@@ -68,6 +68,8 @@ const DEFAULT_CONFIG = {
   launchAtLogin: true,
   // The Mac downloads and installs new versions by itself (checked every hour).
   autoUpdate: true,
+  // Read-only GitHub key, only needed while the releases repo is private (Settings → Updates).
+  updateToken: '',
 };
 
 const DEFAULT_STATE = {

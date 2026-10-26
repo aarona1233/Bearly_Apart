@@ -200,9 +200,19 @@ password. Settings → **Updates** shows the version and has **Check for updates
    - The certificate gives every version the same signature, so macOS normally keeps Full Disk Access across
      updates. If the folder was made without rcodesign, run `npm run signing` again on the desktop: it adds the
      certificate and keeps the update key.
-2. **Where updates live.** A **public** GitHub repo's Releases (it can be an empty repo made just for this, such as
-   `bearly-apart-updates`). Put it in `package.json`:
-   `"updates": { "feed": "https://github.com/OWNER/REPO/releases/latest/download/latest-mac.json" }`
+2. **Where updates live.** The Releases of the repo in `package.json` → `"updates": { "github": "aarona1233/Bearly_Apart" }`.
+   It can be **public or private**:
+   - **Public:** nothing more to do.
+   - **Private (recommended):** make a read-only key that her Mac uses to download releases. GitHub → your picture →
+     **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
+     Repository access: **Only select repositories → Bearly_Apart**. Permissions → Repository → **Contents:
+     Read-only** (nothing else). Pick the longest expiry, and note the date. Paste it once into her Bearly Apart:
+     **Settings → Updates → Update key → Save key** (do it over Zoom when you install 0.6.0). It's sent only to
+     api.github.com and the window can't read it back. If it expires or you revoke it, her Settings says so; paste a new one.
+   - Don't add her as a collaborator: that gives her account write access to the repo, and the app can't use
+     her GitHub login anyway. Only you can publish releases either way.
+   - Even someone who got into the repo or your GitHub account couldn't push an update she'd install: every update
+     must be signed with the release key in `.bearly-apart-signing`, which never goes on GitHub.
 3. **(Optional) GitHub CLI.** Install it and run `gh auth login` once; then publishing uploads by itself.
 4. **Her first self-updating copy goes in by hand**, the old way (the steps below). Every one after that is
    automatic.

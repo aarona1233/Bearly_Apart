@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('ba', {
   pair: (code) => ipcRenderer.invoke('app:pair', code),
   resetPairing: () => ipcRenderer.invoke('app:reset-pairing'),
   checkUpdate: () => ipcRenderer.invoke('app:check-update'),
+  setUpdateKey: (key) => ipcRenderer.invoke('app:update-key', key),
   open: (what) => ipcRenderer.invoke('app:open', what),
   clipboardCode: () => ipcRenderer.invoke('app:clipboard-code'),
   setup: (step) => ipcRenderer.invoke('app:setup', step),

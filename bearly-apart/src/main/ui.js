@@ -206,7 +206,8 @@ class UI {
   setupIpc() {
     const { actions } = this;
     ipcMain.handle('app:get', () => ({
-      config: this.stores.config.data,
+      // The update key stays in the main process: the window only learns whether there is one.
+      config: { ...this.stores.config.data, updateToken: this.stores.config.data.updateToken ? 'set' : '' },
       pairing: this.pairingCode(),
       linkCode: this.linkCode(),
       deviceName: this.deviceName,
@@ -242,6 +243,7 @@ class UI {
     });
     ipcMain.handle('app:reset-pairing', () => actions.resetPairing());
     ipcMain.handle('app:check-update', () => actions.checkForUpdates());
+    ipcMain.handle('app:update-key', (_, key) => actions.setUpdateKey(key));
     ipcMain.handle('app:clipboard-code', () => findPairingCode(clipboard.readText()));
     ipcMain.handle('app:setup', (_, step) => {
       if (step === 'texts') return actions.checkTextAccess();

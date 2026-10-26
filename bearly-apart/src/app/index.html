@@ -290,6 +290,12 @@
           <p class="hint" id="update-status"></p>
           <label class="check"><input type="checkbox" id="auto-update" /> Download and install updates by itself <small>checks every hour</small></label>
           <div class="actions"><button class="ghost" id="check-update">Check for updates now</button></div>
+          <div id="update-key-box">
+            <label for="update-key">Update key <small>only if the GitHub repo is private: a read-only key, pasted once</small></label>
+            <p class="hint" id="update-key-set" hidden>✓ An update key is saved on this computer. <button class="link" id="update-key-remove">Remove it</button></p>
+            <input id="update-key" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…" />
+            <div class="actions"><button class="ghost" id="update-key-save">Save key</button></div>
+          </div>
         </details>
 
         <details class="card">
