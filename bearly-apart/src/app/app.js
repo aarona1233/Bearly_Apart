@@ -96,6 +96,7 @@ function renderLive() {
     `“Save for their morning” keeps it a secret until the first time ${partner()} is at the computer the next day.` +
     (live.noteJar ? ` ${partner()} saved ${live.noteJar} note${live.noteJar > 1 ? 's' : ''} for your morning 🫙` : '');
 
+  renderDevices();
   const list = $('activity');
   list.replaceChildren(
     ...(live.activity.length
@@ -211,6 +212,8 @@ function fillSettings() {
   $('login').checked = c.launchAtLogin;
   $('my-code').textContent = c.me.name ? data.pairing : 'Save your name first';
   $('pair-summary').textContent = c.partner.id ? `Connection · paired with ${partner()} 💞` : 'Connection · not paired yet';
+  $('link-code').textContent = c.me.name && c.partner.id ? data.linkCode : 'Finish setting up first';
+  renderDevices();
   $('profile').textContent = data.profileDir;
   $('sc-url').textContent = `${c.relay.server.replace(/\/+$/, '')}/${c.relay.topic}`;
   const id = c.me.id || '(save your name first)';
@@ -270,6 +273,29 @@ $('pair').addEventListener('click', async () => {
   $('their-code').value = '';
   await reload();
   toast('Paired! 💞');
+});
+// "Your computers": this one plus any other computer of mine the relay has heard from.
+function renderDevices() {
+  const others = Object.values(live?.myDevices || {});
+  const row = (name, sub) => el('li', {}, el('span', { textContent: name }), el('span', { className: 'meta', textContent: sub }));
+  $('devices').replaceChildren(
+    row(`💻 ${data.deviceName}`, 'this computer'),
+    ...others.map((d) => row(`💻 ${d.name}`, d.state === 'away' ? `away · ${ago(d.at)}` : `active ${ago(d.at)}`)),
+  );
+  $('devices-summary').textContent = `Your computers · ${1 + others.length}`;
+}
+$('copy-link').addEventListener('click', () => {
+  navigator.clipboard.writeText($('link-code').textContent);
+  toast('Copied. Paste it into your other computer’s setup.');
+});
+$('use-link').addEventListener('click', async () => {
+  if (!confirm('Make this computer use your other computer’s name, bear and connection?')) return;
+  const r = await window.ba.pair($('their-link').value);
+  if (!r.ok) return toast(r.error);
+  if (!r.linked) return toast('That was an invite, so you are now paired with them. For your own computers, use a link code.');
+  $('their-link').value = '';
+  await reload();
+  toast('Linked! This computer now matches your other one 💻💻');
 });
 $('reset').addEventListener('click', async () => {
   if (!confirm('Make a brand-new code? You will need to pair again.')) return;

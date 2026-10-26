@@ -34,6 +34,17 @@
           <h2>Hi! Let’s set up Bearly Apart</h2>
           <p>Little bears will run across your screens when you two text, send kisses, or miss each other. Setup takes about a minute.</p>
           <div class="actions"><button id="w-start">Let’s go</button></div>
+          <p class="hint">Already use Bearly Apart on another computer? <button class="link" id="w-link-start">Link this one to it</button></p>
+        </div>
+
+        <div class="card wiz" data-step="link">
+          <h2>Link this computer</h2>
+          <p>On your other computer, open Bearly Apart → <b>Settings → Your computers → Copy link code</b>, send it to yourself, and paste it here. This computer becomes you too: same name, same bear, connected to the same person. Nothing changes on their side.</p>
+          <textarea id="w-link-code" rows="3" placeholder="BA1-…"></textarea>
+          <div class="actions">
+            <button id="w-link-go">Link</button>
+            <button class="ghost" id="w-link-back">Back</button>
+          </div>
         </div>
 
         <div class="card wiz" data-step="you">
@@ -259,6 +270,18 @@
             <button id="pair">Connect</button>
             <button class="ghost" id="reset">Start over with a new code</button>
           </div>
+        </details>
+
+        <details class="card">
+          <summary id="devices-summary">Your computers</summary>
+          <p class="hint">Use Bearly Apart on more than one computer (say a laptop and a desktop). Everything they send shows up on all of them, and what you send or set on one shows on the others.</p>
+          <ul class="activity" id="devices"></ul>
+          <label>Link another computer <small>copy this, then paste it into the new computer’s setup (“Link this one to it”)</small></label>
+          <code class="pair" id="link-code"></code>
+          <div class="actions"><button class="ghost" id="copy-link">Copy link code</button></div>
+          <label for="their-link">Or make <b>this</b> computer match another one of yours <small>paste that computer’s link code</small></label>
+          <input id="their-link" placeholder="BA1-…" />
+          <div class="actions"><button class="ghost" id="use-link">Use that computer’s connection</button></div>
         </details>
 
         <details class="card">

@@ -22,7 +22,10 @@ function daysUntil(dateStr, now) {
 class Brain {
   // play(req) -> Promise<boolean played>; req = { scene, vars, priority, label, ev, live }
   //   live: play now or not at all (don't save it for later)
-  constructor({ config, state, setState, play, publish, hasScene, now = () => Date.now(), log = () => {} }) {
+  // device / deviceName: this computer. Someone can use several computers: same id, same relay, different device.
+  constructor({ config, state, setState, play, publish, hasScene, device = '', deviceName = '', now = () => Date.now(), log = () => {} }) {
+    this.device = device;
+    this.deviceName = deviceName;
     this.config = config;
     this.state = state;
     this.setState = setState;
@@ -57,7 +60,11 @@ class Brain {
 
   onRelayEvent(ev) {
     const c = this.config();
-    if (ev.from === c.me.id) return; // our own echo
+    if (ev.from === c.me.id) {
+      // Sent by me: from this computer it's just the echo; from my other computer, keep this one in step.
+      if (ev.device && ev.device !== this.device) this.fromMyOtherComputer(ev);
+      return;
+    }
     if (c.partner.id && ev.from !== c.partner.id && ev.type !== 'hello') {
       this.log(`[brain] ignoring event from unknown sender "${ev.from}"`);
       return;
@@ -68,13 +75,30 @@ class Brain {
     this.fromPartner(ev);
   }
 
-  // Their app says they're at the computer ("here") or not ("away": idle, locked, asleep, quit).
+  // What I did on my other computer: same status, same heart timing (for the hug), and a line in Recent.
+  fromMyOtherComputer(ev) {
+    const at = ev.at || this.now();
+    const prev = this.state().myDevices?.[ev.device] || {};
+    const seen = { name: ev.deviceName || prev.name || 'other computer', at };
+    if (ev.type === 'presence') seen.state = ev.presence;
+    this.setState({ myDevices: { [ev.device]: { ...prev, ...seen } } });
+    if (ev.type === 'status') this.setState({ myStatus: ev.status === 'clear' ? null : { name: ev.status, at } });
+    if (ev.type === 'heart') this.setState({ sentHeartAt: at });
+    if (!['presence', 'seen', 'hello'].includes(ev.type)) this.onMyOtherComputer?.(ev, seen.name);
+  }
+
+  // Their app says they're at the computer ("here") or not ("away": idle, locked, asleep, quit). They may use
+  // several computers: they count as here if any of them is.
   onPresence(ev) {
     const prev = this.state().partnerPresence;
     const at = ev.at || this.now();
-    this.setState({ partnerPresence: { state: ev.presence, at } });
+    const devices = { ...this.state().partnerDevices, [ev.device || 'main']: { state: ev.presence, at } };
+    const all = Object.values(devices);
+    const here = all.filter((d) => d.state === 'here');
+    const now = here.length ? { state: 'here', at: Math.max(...here.map((d) => d.at)) } : { state: 'away', at: Math.max(...all.map((d) => d.at)) };
+    this.setState({ partnerDevices: { [ev.device || 'main']: { state: ev.presence, at } }, partnerPresence: now });
     // Back after a while: their bear pops up on this screen to say so.
-    if (ev.presence === 'here' && prev?.state === 'away' && at - prev.at >= REUNION_AFTER_MS && this.hasScene('partner-back')) {
+    if (now.state === 'here' && prev?.state === 'away' && at - prev.at >= REUNION_AFTER_MS && this.hasScene('partner-back')) {
       const c = this.config();
       this.play({ scene: 'partner-back', priority: 2, label: `👋 ${c.partner.name || 'your love'} is back`, vars: this.vars() });
     }
@@ -185,7 +209,8 @@ class Brain {
 
   async send(type, extra = {}) {
     const c = this.config();
-    const ev = { type, from: c.me.id, ...extra };
+    const ev = { type, from: c.me.id, device: this.device, ...extra };
+    if (type === 'presence' || type === 'hello') ev.deviceName = this.deviceName;
     if (type === 'heart') {
       this.setState({ sentHeartAt: this.now() });
       if (this.now() - this.state().gotHeartAt < c.hugWindowSec * 1000) {

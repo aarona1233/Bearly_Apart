@@ -78,6 +78,16 @@ function pickBear(bear) {
 for (const b of document.querySelectorAll('.bear')) b.addEventListener('click', () => pickBear(b.dataset.bear));
 
 $('w-start').addEventListener('click', () => goStep('you'));
+$('w-link-start').addEventListener('click', () => goStep('link'));
+$('w-link-back').addEventListener('click', () => goStep('welcome'));
+$('w-link-go').addEventListener('click', async () => {
+  const r = await window.ba.pair($('w-link-code').value);
+  if (!r.ok) return toast(r.error);
+  await reload();
+  if (!r.linked) return goStep('them'); // it was an invite from them after all: carry on as a normal pairing
+  toast('Linked 💻💻');
+  goStep(setupStepFor());
+});
 
 $('w-you-next').addEventListener('click', async () => {
   const name = $('w-name').value.trim();

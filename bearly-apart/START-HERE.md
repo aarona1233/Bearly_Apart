@@ -164,6 +164,24 @@ and Focus detection.
 
 ---
 
+## Using it on more than one computer (laptop + desktop)
+
+Everything they send shows up on **all** your computers, and what you send or set on one (a status, a love note)
+shows on the others too. Their app sees you as **here** if any of your computers is in use.
+
+1. Install Bearly Apart on the new computer (step 2, Windows or Linux; a Mac works too).
+2. On the computer that's already set up: **Settings → Your computers → Copy link code**, and send it to yourself
+   (email, a note, anything).
+3. On the new computer, on the first setup screen, click **Link this one to it** (under *Let's go*), paste the code,
+   click **Link**.
+
+That's it: same name, same bear, same connection. **Don't** use *Send an invite* for your own second computer: that
+starts a new connection, and she'd have to paste the new invite (your other computer would be left out).
+Already set up a computer the wrong way? In its **Settings → Your computers**, paste the link code from the computer
+that works under *Make this computer match another one of yours*.
+
+---
+
 ## Updating later
 
 1. Run the build command from step 1 again (it pulls the latest code).

@@ -54,6 +54,8 @@ const MAP = {
   'bf75c6e556294f5a54f528de2d0d1dae.gif': { pose: 'cry-phone', bear: 'cream' },
   'e07734846e176698c0597912804c95aa.gif': { pose: 'pinched', bear: 'brown' },
   'fe1cf8ad79748c4c26045817b17b5c76.gif': { pose: 'finger-gun', bear: 'cream' },
+  // The first frames of the desk flip, before the flip: writing at a desk with books, slowed into a calm loop.
+  '0b8567569e3c0b74bf7324876d4cc0a6.gif#studying': { pose: 'studying', bear: 'cream', frames: [0, 1, 2, 1], delay: 260 },
   // ---- both bears ----
   'bubu-cute-attack.gif': 'pair-tackle-hug.png',
   'Bubu -Love-Kiss.gif': 'pair-love-kiss.png',
@@ -139,7 +141,9 @@ const DECODE = `async (b64, max, opts) => {
       changed[q] = 2; // filled in, but not used as a neighbour for others
     }
   }
-  for (let i = 0; i < count; i++) {
+  // opts.frames: play only these frames, in this order (a calm loop cut out of a longer GIF); opts.delay: ms each.
+  const order = opts.frames || Array.from({ length: count }, (_, i) => i);
+  for (const i of order) {
     const { image } = await dec.decode({ frameIndex: i });
     if (opts.halve && i % 2) {
       if (frames.length) frames[frames.length - 1].delay += Math.max(20, Math.round((image.duration || 100000) / 1000));
@@ -148,7 +152,7 @@ const DECODE = `async (b64, max, opts) => {
     }
     sctx.clearRect(0, 0, W, H);
     sctx.drawImage(image, 0, 0);
-    const delay = Math.max(20, Math.round((image.duration || 100000) / 1000));
+    const delay = opts.delay || Math.max(20, Math.round((image.duration || 100000) / 1000));
     image.close();
     const img = sctx.getImageData(0, 0, W, H);
     const d = img.data;
@@ -319,7 +323,7 @@ app.whenReady().then(async () => {
   await win.loadFile(path.join(__dirname, '..', 'src', 'overlay', 'index.html'));
   const force = process.argv.includes('--force');
   const importOne = async (src, name, { max = MAX, ...opts } = {}) => {
-    const b64 = fs.readFileSync(path.join(dir, src)).toString('base64');
+    const b64 = fs.readFileSync(path.join(dir, src.split('#')[0])).toString('base64');
     const r = await win.webContents.executeJavaScript(`(${DECODE})(${JSON.stringify(b64)}, ${max}, ${JSON.stringify(opts)})`);
     const frames = r.frames.map((f) => {
       const img = nativeImage.createFromBuffer(Buffer.from(f.png, 'base64'));
@@ -330,7 +334,8 @@ app.whenReady().then(async () => {
     const how = [opts.recolor && `recoloured to ${opts.recolor === 'brown' ? 'Dudu' : 'Bubu'}`, r.keyed && 'background removed'].filter(Boolean).join(', ');
     console.log(`✓ ${src.slice(0, 30).padEnd(30)} → ${name.padEnd(24)} ${r.original.join('x')} → ${r.w}x${r.h}, ${frames.length} frames${how ? `, ${how}` : ''}, ${(out.length / 1024).toFixed(0)} KB`);
   };
-  const missing = (src) => !fs.existsSync(path.join(dir, src)) && console.log(`- skip ${src} (not found)`);
+  const fileOf = (src) => src.split('#')[0]; // "file.gif#name": a second pose cut from the same GIF
+  const missing = (src) => !fs.existsSync(path.join(dir, fileOf(src))) && console.log(`- skip ${src} (not found)`);
   const poses = {}; // pose → { brown: [src, options], cream: [src, options] }
   for (const [src, entry] of Object.entries(MAP)) {
     if (missing(src)) continue;

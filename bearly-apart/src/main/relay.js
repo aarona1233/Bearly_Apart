@@ -1,6 +1,6 @@
 // Relay over ntfy (https://ntfy.sh or self-hosted). Events travel as ntfy messages:
 //   body  = human-readable text (so the ntfy iPhone app shows a nice push)
-//   tags  = "ba,e.<type>,f.<senderId>[,s.<status>][,g.<gift>][,p.<here|away>][,u.<seen until, unix s>][,k.<keyword>]"  (hello adds c.<bear>, z.<zone>, h.<imessage handle>)
+//   tags  = "ba,e.<type>,f.<senderId>[,s.<status>][,g.<gift>][,p.<here|away>][,u.<seen until, unix s>][,d.<computer id>][,n.<computer name>][,k.<keyword>]"  (hello adds c.<bear>, z.<zone>, h.<imessage handle>)
 // That format is simple enough to send from an iPhone Shortcut.
 const { EventEmitter } = require('events');
 
@@ -14,6 +14,8 @@ function toTags(ev) {
   if (ev.gift) tags.push(`g.${ev.gift}`);
   if (ev.presence) tags.push(`p.${ev.presence}`);
   if (ev.until) tags.push(`u.${ev.until}`);
+  if (ev.device) tags.push(`d.${ev.device}`);
+  if (ev.deviceName) tags.push(`n.${ev.deviceName}`);
   for (const k of ev.keywords || []) tags.push(`k.${k}`);
   if (ev.tapback) tags.push(`t.${ev.tapback}`);
   if (ev.character) tags.push(`c.${ev.character}`);
@@ -37,6 +39,8 @@ function fromNtfy(msg) {
     else if (key === 'g') ev.gift = val;
     else if (key === 'p') ev.presence = val;
     else if (key === 'u') ev.until = Number(val) || 0;
+    else if (key === 'd') ev.device = val;
+    else if (key === 'n') ev.deviceName = val;
     else if (key === 'k') ev.keywords.push(val);
     else if (key === 't') ev.tapback = val;
     else if (key === 'c') ev.character = val;

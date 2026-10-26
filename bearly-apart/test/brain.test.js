@@ -106,6 +106,31 @@ test('the welcome-back art exists for both bears', () => {
   }
 });
 
+test("two computers of mine: status and hearts from the other one carry over, and this computer's own echo is ignored", () => {
+  const { brain, state, played } = setup();
+  brain.device = 'laptop1';
+  const others = [];
+  brain.onMyOtherComputer = (ev, name) => others.push([ev.type, name]);
+  brain.onRelayEvent({ type: 'presence', presence: 'here', from: 'her', device: 'desk1', deviceName: 'DESKTOP' });
+  brain.onRelayEvent({ type: 'status', status: 'studying', from: 'her', device: 'desk1' });
+  brain.onRelayEvent({ type: 'heart', from: 'her', device: 'desk1' });
+  brain.onRelayEvent({ type: 'kiss', from: 'her', device: 'laptop1' }); // this computer's own echo
+  assert.strictEqual(state().myStatus.name, 'studying');
+  assert.ok(state().sentHeartAt > 0);
+  assert.deepStrictEqual(state().myDevices.desk1.name, 'DESKTOP');
+  assert.deepStrictEqual(others, [['status', 'DESKTOP'], ['heart', 'DESKTOP']]);
+  assert.strictEqual(played.length, 0, 'nothing I sent plays on my own screen');
+});
+
+test('their presence across two computers: here if either is in use', () => {
+  const { brain, state } = setup();
+  brain.onRelayEvent({ type: 'presence', presence: 'here', from: 'him', device: 'mac' });
+  brain.onRelayEvent({ type: 'presence', presence: 'away', from: 'him', device: 'pc' });
+  assert.strictEqual(state().partnerPresence.state, 'here');
+  brain.onRelayEvent({ type: 'presence', presence: 'away', from: 'him', device: 'mac' });
+  assert.strictEqual(state().partnerPresence.state, 'away');
+});
+
 test('statuses I send are remembered, and clearing works both ways', async () => {
   const { brain, played, state } = setup();
   await brain.send('status', { status: 'work' });

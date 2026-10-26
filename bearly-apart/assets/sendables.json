@@ -140,6 +140,11 @@
     "label": "Pew pew",
     "says": "is (playfully) coming for you"
   },
+  "study-mode": {
+    "emoji": "📖",
+    "label": "I’m studying",
+    "says": "is studying (send good vibes!)"
+  },
   "studying": {
     "emoji": "📚",
     "label": "Done studying",

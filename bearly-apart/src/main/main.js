@@ -4,7 +4,8 @@ const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
 const { app, dialog, shell, powerMonitor, powerSaveBlocker, protocol, net, globalShortcut, Notification } = require('electron');
-const { openStores, slug, newTopic, encodePairing, decodePairing } = require('./store');
+const os = require('os');
+const { openStores, slug, newTopic, encodePairing, encodeLink, decodePairing } = require('./store');
 const { Relay } = require('./relay');
 const { IMessageWatcher } = require('./imessage');
 const { Guard } = require('./guard');
@@ -79,6 +80,8 @@ let justUpdated = false; // a newer version than last time, on an already set-up
 let aliases = {}; // "_aliases" in scenes.json: short names like "happy-brown" → real files
 
 const cfg = () => stores.config.data;
+// This computer's name as the other computers show it ("DESKTOP-4F2K", "Aarons-MacBook-Air").
+const DEVICE_NAME = os.hostname().replace(/\.local$/i, '').replace(/[^A-Za-z0-9-]+/g, '-').slice(0, 32) || 'computer';
 const st = () => stores.state.data;
 const partnerName = () => cfg().partner.name || 'your love';
 
@@ -189,9 +192,22 @@ function saveSettings(patch) {
   return cfg();
 }
 
+// An invite from them, or a link code from my other computer (then this computer simply becomes me as well:
+// same name, bear, partner and relay, and no "paired" hello, since nothing changes for them).
 function pair(code) {
   const p = decodePairing(code);
+  if (p.link) {
+    if (!p.me.id || !p.partner.id) throw new Error('That link code is from a computer that isn’t set up yet.');
+    stores.config.set({ me: p.me, partner: p.partner, relay: p.relay });
+    stores.state.set({ relaySince: '', lastHeardAt: Date.now(), helloSent: true });
+    relay.restart();
+    ui.refresh();
+    return { ...cfg(), linked: true };
+  }
   if (!p.partner.id) throw new Error('That invite is from an app with no name set yet.');
+  if (cfg().me.id && p.partner.id === cfg().me.id && p.partner.name === cfg().me.name) {
+    throw new Error('That’s your own invite. To use Bearly Apart on another computer of yours, use a link code (Settings → Your computers).');
+  }
   // Two people called the same thing would look like one person's echo.
   if (p.partner.id === cfg().me.id) stores.config.set({ me: { id: `${cfg().me.id}2` } });
   stores.config.set({ relay: p.relay, partner: { ...cfg().partner, ...p.partner } });
@@ -224,7 +240,8 @@ function sendQuiet(type, extra) {
 }
 
 function announcePresence() {
-  if (!relay?.connected || announced === presence) return Promise.resolve();
+  // Not until there's someone to tell (a new computer announces once it's paired or linked).
+  if (!relay?.connected || !cfg().partner.id || !cfg().me.id || announced === presence) return Promise.resolve();
   announced = presence;
   return sendQuiet('presence', { presence });
 }
@@ -250,6 +267,7 @@ function liveState() {
     partnerStatus: s.partnerStatus,
     partnerPresence: s.partnerPresence,
     myStatus: s.myStatus,
+    myDevices: s.myDevices,
     lastHeardAt: s.lastHeardAt,
     noteJar: s.noteJar.length,
     imessage: imessage?.status || 'off',
@@ -424,9 +442,13 @@ app.whenReady().then(() => {
     play: (req) => player.play(req),
     publish: (ev, text) => relay.publish(ev, text),
     hasScene: (name) => !!scenes[name],
+    device: st().deviceId,
+    deviceName: DEVICE_NAME,
     log,
   });
   brain.onSeen = (until) => activity.markSeen(until * 1000);
+  brain.onMyOtherComputer = (ev, name) =>
+    activity.add({ dir: 'out', text: `${outText(ev.type, ev)} (on ${name})`, state: 'sent', relayAt: ev.at });
   brain.onHello = (p) => {
     if (!p.id) return;
     const partner = { id: p.id, name: p.name || cfg().partner.name, character: p.character || cfg().partner.character };
@@ -480,6 +502,8 @@ app.whenReady().then(() => {
     getScene: (name) => scenes[name],
     liveState,
     pairingCode: () => encodePairing(cfg()),
+    linkCode: () => encodeLink(cfg()),
+    deviceName: DEVICE_NAME,
     actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, checkTextAccess, relaunch },
   });
   activity.on('change', () => ui.refresh());

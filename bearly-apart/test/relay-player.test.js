@@ -35,6 +35,22 @@ test('hello tags carry time zone and handles', () => {
   assert.deepStrictEqual(back.handles, ['a@b.c']);
 });
 
+test('link codes make another computer the same person on the same relay', () => {
+  const { encodeLink } = require('../src/main/store');
+  const c = merge(structuredClone(DEFAULT_CONFIG), {
+    me: { id: 'aaron', name: 'Aaron', character: 'brown', handles: ['+1 555'] },
+    partner: { id: 'yimei', name: 'Yimei', character: 'cream', timezone: 'America/New_York' },
+    relay: { topic: 'ba-xyz' },
+  });
+  const p = decodePairing(`here: ${encodeLink(c)}`);
+  assert.strictEqual(p.link, true);
+  assert.strictEqual(p.relay.topic, 'ba-xyz');
+  assert.deepStrictEqual([p.me.id, p.me.name, p.me.character, p.me.handles[0]], ['aaron', 'Aaron', 'brown', '+1 555']);
+  assert.deepStrictEqual([p.partner.id, p.partner.timezone], ['yimei', 'America/New_York']);
+  assert.strictEqual(decodePairing(encodePairing(c)).link, undefined, 'an invite is not a link');
+  assert.strictEqual(fromNtfy({ event: 'message', id: '1', time: 1, message: '', tags: toTags({ type: 'kiss', from: 'aaron', device: 'ab12' }) }).device, 'ab12');
+});
+
 test('pairing codes round-trip', () => {
   const c = merge(structuredClone(DEFAULT_CONFIG), { me: { id: 'him', name: 'Him', character: 'brown' }, relay: { topic: 'ba-abc' } });
   const p = decodePairing(encodePairing(c));

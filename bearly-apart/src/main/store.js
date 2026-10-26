@@ -72,7 +72,10 @@ const DEFAULT_STATE = {
   lastHeardAt: 0,
   missingLevel: 0,
   partnerStatus: null, // { name, at }
-  partnerPresence: null, // { state: 'here' | 'away', at }, from their app
+  partnerPresence: null, // { state: 'here' | 'away', at }: here if any of their computers is in use
+  partnerDevices: {}, // their computers: id → { state, at }
+  deviceId: '', // this computer, so my other computers (same person, same relay) can tell us apart
+  myDevices: {}, // my other computers: id → { name, state, at }
   pendingScenes: [], // scenes waiting to play (saved so quitting doesn't lose them)
   pendingSince: 0,
   myStatus: null, // { name, at }, the last status I sent
@@ -171,6 +174,20 @@ function encodePairing(config, timezone = Intl.DateTimeFormat().resolvedOptions(
   return 'BA1-' + Buffer.from(JSON.stringify(payload)).toString('base64url');
 }
 
+// A link code: like an invite, but for another computer of mine. It carries me *and* my partner, so the new
+// computer becomes the same person on the same relay (nothing changes on their side).
+function encodeLink(config) {
+  const payload = {
+    l: 1,
+    s: config.relay.server,
+    t: config.relay.topic,
+    k: config.relay.token || undefined,
+    me: { id: config.me.id, n: config.me.name, c: config.me.character, h: config.me.handles?.length ? config.me.handles : undefined },
+    p: { id: config.partner.id, n: config.partner.name, c: config.partner.character, z: config.partner.timezone || undefined, h: config.partner.imessageHandles?.length ? config.partner.imessageHandles : undefined },
+  };
+  return 'BA1-' + Buffer.from(JSON.stringify(payload)).toString('base64url');
+}
+
 // Finds a code anywhere in what was pasted (a whole text message is fine).
 function findPairingCode(text) {
   return String(text || '').match(/BA1-[A-Za-z0-9_-]{20,}/)?.[0] || null;
@@ -186,10 +203,19 @@ function decodePairing(text) {
     throw new Error('That invite code is cut off. Copy the whole thing and try again.');
   }
   if (!p.s || !p.t) throw new Error('That invite code is missing the relay details.');
+  const relay = { server: p.s, topic: p.t, token: p.k || '' };
+  if (p.l) {
+    const me = { id: p.me?.id || '', name: p.me?.n || '', character: p.me?.c || 'brown' };
+    if (Array.isArray(p.me?.h)) me.handles = p.me.h.map(String);
+    const partner = { id: p.p?.id || '', name: p.p?.n || '', character: p.p?.c || 'cream' };
+    if (p.p?.z) partner.timezone = p.p.z;
+    if (Array.isArray(p.p?.h)) partner.imessageHandles = p.p.h.map(String);
+    return { link: true, relay, me, partner };
+  }
   const partner = { id: p.id || '', name: p.n || '', character: p.c || 'brown' };
   if (p.z) partner.timezone = p.z;
   if (Array.isArray(p.h) && p.h.length) partner.imessageHandles = p.h.map(String);
-  return { relay: { server: p.s, topic: p.t, token: p.k || '' }, partner };
+  return { relay, partner };
 }
 
 function openStores(dir) {
@@ -197,8 +223,9 @@ function openStores(dir) {
   const state = new JsonFile(path.join(dir, 'state.json'), DEFAULT_STATE, { debounceMs: 500 });
   migrate(config);
   if (!config.data.relay.topic) config.data.relay.topic = newTopic();
+  if (!state.data.deviceId) state.set({ deviceId: crypto.randomBytes(4).toString('hex') });
   config.save(); // also writes out newly added default keys so they are easy to edit
   return { config, state };
 }
 
-module.exports = { openStores, JsonFile, DEFAULT_CONFIG, DEFAULT_STATE, KEYWORDS, merge, migrate, slug, newTopic, encodePairing, decodePairing, findPairingCode };
+module.exports = { openStores, JsonFile, DEFAULT_CONFIG, DEFAULT_STATE, KEYWORDS, merge, migrate, slug, newTopic, encodePairing, encodeLink, decodePairing, findPairingCode };

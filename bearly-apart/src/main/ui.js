@@ -34,7 +34,9 @@ function ago(ms) {
 }
 
 class UI {
-  constructor({ stores, log, sceneNames, getScene, liveState, pairingCode, actions }) {
+  constructor({ stores, log, sceneNames, getScene, liveState, pairingCode, linkCode, deviceName, actions }) {
+    this.linkCode = linkCode;
+    this.deviceName = deviceName;
     this.stores = stores;
     this.log = log;
     this.sceneNames = sceneNames;
@@ -197,6 +199,8 @@ class UI {
     ipcMain.handle('app:get', () => ({
       config: this.stores.config.data,
       pairing: this.pairingCode(),
+      linkCode: this.linkCode(),
+      deviceName: this.deviceName,
       platform: process.platform,
       profileDir: app.getPath('userData'),
       statuses: STATUSES,
@@ -221,8 +225,8 @@ class UI {
     ipcMain.handle('app:save', (_, patch) => actions.saveSettings(patch));
     ipcMain.handle('app:pair', (_, code) => {
       try {
-        actions.pair(code);
-        return { ok: true };
+        const r = actions.pair(code);
+        return { ok: true, linked: !!r.linked };
       } catch (err) {
         return { ok: false, error: err.message };
       }

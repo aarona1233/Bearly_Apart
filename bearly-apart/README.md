@@ -75,6 +75,8 @@ Want a push on your phone when she sends something? Install the **ntfy** app and
   - The top shows whether they're **🟢 here** or **💤 away** (their app says so when it changes: idle, screen locked,
     asleep, quit). Sends to someone who's away wait for them; Recent shows ✓ when it's on its way and **👀 seen** once
     it played on their screen.
+- **Several computers:** Settings → **Your computers** → *Copy link code*, then on the new computer's setup choose
+  *Link this one to it*. Everything they send reaches all of them; your status and what you send show on each.
 - **Coming back:** anything that arrived while you were away waits (even through a restart). When you're back: if
   you were gone 20+ minutes, their bear first shows how they felt without you (sad → turning grey → lonely, by how
   long), then a hug; then one line listing what came in; then the highlights (each kind once, newest status, every
