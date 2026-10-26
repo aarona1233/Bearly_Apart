@@ -104,7 +104,8 @@
         </div>
 
         <div class="card wiz" data-step="texts">
-          <h2>Let the bears see your texts</h2>
+          <h2 id="w-texts-title">Let the bears see your texts</h2>
+          <p id="w-texts-updated" hidden>Bearly Apart just updated itself, and macOS wants you to switch it back on once. In the list, switch <b>Bearly Apart</b> off and on again (your Mac asks for your password). That’s all.</p>
           <p>Bearly Apart reads your Messages on this Mac to know when your person texts you. It only looks at their messages, never sends anything, and your texts never leave this Mac.</p>
           <ol class="steps">
             <li>Click <b>Open System Settings</b>.</li>
@@ -282,6 +283,13 @@
           <label for="their-link">Or make <b>this</b> computer match another one of yours <small>paste that computer’s link code</small></label>
           <input id="their-link" placeholder="BA1-…" />
           <div class="actions"><button class="ghost" id="use-link">Use that computer’s connection</button></div>
+        </details>
+
+        <details class="card">
+          <summary id="update-summary">Updates</summary>
+          <p class="hint" id="update-status"></p>
+          <label class="check"><input type="checkbox" id="auto-update" /> Download and install updates by itself <small>checks every hour</small></label>
+          <div class="actions"><button class="ghost" id="check-update">Check for updates now</button></div>
         </details>
 
         <details class="card">

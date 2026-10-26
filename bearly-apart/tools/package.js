@@ -156,6 +156,28 @@ function checkSymlinks() {
   }
 }
 
+// 'certificate' when signed with the release certificate, else 'ad-hoc'.
+function signMac(rcodesign, app) {
+  const id = require('./signing').codesignIdentity();
+  if (id) {
+    const base = ['sign', '--p12-file', id.p12, '--p12-password-file', id.passwordFile];
+    // No timestamp server: Apple's only stamps Apple-issued certificates. (Older rcodesign lacks "none".)
+    for (const args of [[...base, '--timestamp-url', 'none', app], [...base, app]]) {
+      try {
+        execFileSync(rcodesign, args, { stdio: ['ignore', 'ignore', 'inherit'] });
+        return 'certificate';
+      } catch {
+        /* try the next way */
+      }
+    }
+    console.warn('! signing with the release certificate failed: falling back to ad-hoc (Full Disk Access will need re-enabling after this update)');
+  } else {
+    console.warn('! no release certificate (node tools/signing.js makes one): ad-hoc signing');
+  }
+  execFileSync(rcodesign, ['sign', app], { stdio: ['ignore', 'ignore', 'inherit'] });
+  return 'ad-hoc';
+}
+
 async function mac() {
   checkSymlinks();
   const [appDir] = await packager({
@@ -173,16 +195,17 @@ async function mac() {
   const app = path.join(appDir, `${NAME}.app`);
   const rcodesign = findRcodesign();
   if (rcodesign) {
-    // Apple Silicon refuses to run unsigned code; an ad-hoc signature is enough for personal use.
-    execFileSync(rcodesign, ['sign', app], { stdio: ['ignore', 'ignore', 'inherit'] });
-    // (`rcodesign verify` can't check ad-hoc signatures, so just confirm each binary carries one.)
-    const bins = walk(app).filter((f) => /[\\/]MacOS[\\/]/.test(f));
-    const frameworks = walk(path.join(app, 'Contents', 'Frameworks'), 4).filter((f) => /\.framework[\\/]Versions[\\/]A[\\/][^\\/.]+$/.test(f));
+    // Apple Silicon refuses to run unsigned code. With the release certificate (tools/signing.js) every version
+    // carries the same signature, so macOS keeps Full Disk Access across updates; without it, ad-hoc.
+    const kind = signMac(rcodesign, app);
+    // (`rcodesign verify` can't check these signatures, so just confirm each binary carries one.)
+    const bins = walk(app).filter((f) => /[\/]MacOS[\/]/.test(f));
+    const frameworks = walk(path.join(app, 'Contents', 'Frameworks'), 4).filter((f) => /\.framework[\/]Versions[\/]A[\/][^\/.]+$/.test(f));
     for (const bin of [...bins, ...frameworks]) {
       const info = execFileSync(rcodesign, ['print-signature-info', bin], { encoding: 'utf8' });
-      if (!/ADHOC/.test(info)) throw new Error(`not signed: ${bin}`);
+      if (!(kind === 'ad-hoc' ? /ADHOC/.test(info) : /certificat|cms|signer/i.test(info))) throw new Error(`not signed: ${bin}`);
     }
-    console.log(`✓ ad-hoc signed (${bins.length} executables, ${frameworks.length} frameworks checked)`);
+    console.log(`✓ ${kind} signed (${bins.length} executables, ${frameworks.length} frameworks checked)`);
   } else {
     console.warn('! rcodesign not found — run `codesign --force --deep -s - "Bearly Apart.app"` on the Mac before opening it');
   }
@@ -250,4 +273,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { mac, linux, win, zipDir, DIST, BUILD, NAME, IS_WIN };
+module.exports = { mac, linux, win, zipDir, findRcodesign, DIST, BUILD, NAME, IS_WIN };

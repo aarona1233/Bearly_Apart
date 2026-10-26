@@ -3,6 +3,7 @@ const IS_MAC_APP = () => data.platform === 'darwin';
 let wizStep = null;
 let fdaTimer = null;
 let skipTexts = false;
+let accessOnly = false; // opened after an update just to switch Full Disk Access back on
 
 function setupStepFor() {
   const c = data.config;
@@ -48,6 +49,8 @@ const ENTER = {
     $('w-phandles-block').hidden = !IS_MAC_APP();
   },
   texts() {
+    $('w-texts-updated').hidden = !accessOnly;
+    $('w-texts-title').textContent = accessOnly ? 'One more switch after the update' : 'Let the bears see your texts';
     const status = $('w-fda-status');
     status.className = 'waiting';
     status.textContent = '⏳ Waiting for the switch…';
@@ -61,7 +64,7 @@ const ENTER = {
       clearInterval(fdaTimer);
       status.className = 'waiting ok';
       status.textContent = '✓ Bearly Apart can see your texts now';
-      setTimeout(() => goStep('done'), 1200);
+      setTimeout(() => (accessOnly ? finishAccess() : goStep('done')), 1200);
     };
     check();
     fdaTimer = setInterval(check, 2000);
@@ -130,6 +133,7 @@ $('w-fda').addEventListener('click', () => window.ba.open('fda'));
 $('w-restart').addEventListener('click', () => window.ba.setup('relaunch'));
 $('w-fda-skip').addEventListener('click', () => {
   skipTexts = true;
+  if (accessOnly) return finishAccess();
   goStep('done');
 });
 
@@ -149,5 +153,18 @@ async function setupOnLive() {
 }
 
 function startSetup() {
+  accessOnly = false;
   goStep(setupStepFor());
+}
+
+function startAccessCheck() {
+  accessOnly = true;
+  goStep('texts');
+}
+
+function finishAccess() {
+  accessOnly = false;
+  clearInterval(fdaTimer);
+  showTab('send');
+  toast('All set 💕');
 }

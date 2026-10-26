@@ -184,6 +184,39 @@ that works under *Make this computer match another one of yours*.
 
 ## Updating later
 
+From 0.6.0 on, **her Mac updates itself**. Every hour it checks for a new version, downloads it, checks that
+it was signed with *your* release key, swaps it into Applications (the old one goes to the Trash), and reopens.
+Her pairing and settings stay. If macOS wants Full Disk Access switched on again afterwards, the app opens
+straight onto that one step. She clicks **Open System Settings**, switches Bearly Apart off and on, and types her
+password. Settings → **Updates** shows the version and has **Check for updates now**.
+
+### One-time setup (you)
+
+1. **Release keys.** On the computer you build releases on: `npm run signing`. It makes
+   `%USERPROFILE%\.bearly-apart-signing\` (the update key, plus a code-signing certificate if rcodesign is installed)
+   and `assets\update-public.pem`. **Commit `update-public.pem`; never commit or share the folder.** If you build
+   on another computer too, copy the folder there (USB stick). Making a new one would mean installed copies
+   refuse your updates.
+   - The certificate gives every version the same signature, so macOS normally keeps Full Disk Access across
+     updates. If the folder was made without rcodesign, run `npm run signing` again on the desktop: it adds the
+     certificate and keeps the update key.
+2. **Where updates live.** A **public** GitHub repo's Releases (it can be an empty repo made just for this, such as
+   `bearly-apart-updates`). Put it in `package.json`:
+   `"updates": { "feed": "https://github.com/OWNER/REPO/releases/latest/download/latest-mac.json" }`
+3. **(Optional) GitHub CLI.** Install it and run `gh auth login` once; then publishing uploads by itself.
+4. **Her first self-updating copy goes in by hand**, the old way (the steps below). Every one after that is
+   automatic.
+
+### Each new version
+
+1. Bump `"version"` in `package.json` (for example 0.6.0 → 0.6.1).
+2. `npm run publish:mac`. It builds and signs the Mac app, writes `dist\update\latest-mac.json`, and creates the
+   GitHub release (or tells you the two files to drag onto a new release).
+3. Her Mac picks it up within the hour. For your Windows computers, run the new `Bearly Apart Setup.exe` as before;
+   their Settings → Updates says when a newer version is out.
+
+### By hand (before 0.6.0, or if the automatic update fails)
+
 1. Run the build command from step 1 again (it pulls the latest code).
 2. **You:** run the new `Bearly Apart Setup.exe`. It replaces the old version; settings and pairing stay.
 3. **Her:** download the new Mac zip and open **Bearly Apart** from Downloads (click **Open Anyway** if asked). It

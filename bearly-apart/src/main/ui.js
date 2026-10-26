@@ -173,6 +173,15 @@ class UI {
           },
     );
     items.push({ label: '🐻  Open Bearly Apart…', click: () => this.openWindow() });
+    const up = live.update;
+    if (up && up.status !== 'off') {
+      const busy = ['checking', 'downloading', 'installing'].includes(up.status);
+      items.push({
+        label: up.status === 'downloading' ? '⬇️  Downloading an update…' : up.status === 'installing' ? '⬆️  Installing an update…' : `Check for updates (${app.getVersion()})`,
+        enabled: !busy,
+        click: () => this.actions.checkForUpdates(),
+      });
+    }
     items.push({ type: 'separator' });
     items.push({ label: 'Quit Bearly Apart', click: () => app.quit() }); // no role: its Ctrl+Q accelerator makes GTK complain without a tray
     return Menu.buildFromTemplate(items);
@@ -232,6 +241,7 @@ class UI {
       }
     });
     ipcMain.handle('app:reset-pairing', () => actions.resetPairing());
+    ipcMain.handle('app:check-update', () => actions.checkForUpdates());
     ipcMain.handle('app:clipboard-code', () => findPairingCode(clipboard.readText()));
     ipcMain.handle('app:setup', (_, step) => {
       if (step === 'texts') return actions.checkTextAccess();

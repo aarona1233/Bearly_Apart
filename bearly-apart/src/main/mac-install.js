@@ -42,6 +42,23 @@ done
 [ -x "$lsreg" ] && "$lsreg" -f "$dst" 2>/dev/null
 exit 0`;
 
+// A self-update, run detached after the app has quit: INSTALL_SH (passed in $BA_INSTALL_SH) swaps the new copy in,
+// then it opens again. If that failed, the new copy is opened from where it was unpacked instead, which asks
+// "Update Bearly Apart?" like a manual download would (and falls back to dragging it across).
+//   $1 the unpacked new app  $2 /Applications/Bearly Apart.app  $3 home folder  $4 folder to clear  $5 log file
+const UPDATE_SH = `
+exec >>"$5" 2>&1
+echo "== $(date) updating to $1"
+for i in 1 2 3 4 5 6 7 8 9 10; do pgrep -f "$2/Contents/MacOS/" >/dev/null || break; sleep 0.5; done
+if /bin/sh -c "$BA_INSTALL_SH" sh "$1" "$2" "$3" install; then
+  rm -rf "$4"
+  echo "installed"
+  /usr/bin/open "$2"
+else
+  echo "install failed, opening the new copy so it can ask"
+  /usr/bin/open "$1"
+fi`;
+
 // "0.4.0" vs "0.3.12": 1 if a is newer, -1 if older, 0 if the same.
 function compareVersions(a, b) {
   const pa = String(a).split('.').map(Number);
@@ -61,4 +78,4 @@ function needsInstall(execPath) {
   return !String(execPath).startsWith(`${MAC_TARGET}/`);
 }
 
-module.exports = { MAC_TARGET, INSTALL_SH, compareVersions, plistVersion, needsInstall };
+module.exports = { MAC_TARGET, INSTALL_SH, UPDATE_SH, compareVersions, plistVersion, needsInstall };

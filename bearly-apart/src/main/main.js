@@ -14,7 +14,8 @@ const { Brain } = require('./brain');
 const { Activity } = require('./activity');
 const { OverlayWindow } = require('./overlay-window');
 const { UI } = require('./ui');
-const { MAC_TARGET, INSTALL_SH, compareVersions, plistVersion, needsInstall } = require('./mac-install');
+const { MAC_TARGET, INSTALL_SH, UPDATE_SH, compareVersions, plistVersion, needsInstall } = require('./mac-install');
+const { Updater } = require('./updater');
 const { STATUSES, SENDABLES, GIFTS, describe } = require('./catalog');
 
 const BUNDLED_ASSETS = path.join(__dirname, '..', '..', 'assets');
@@ -73,7 +74,7 @@ app.on('activate', () => Date.now() - readyAt > 3000 && ui?.openWindow());
 protocol.registerSchemesAsPrivileged([{ scheme: 'ba', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
 
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
-let stores, relay, imessage, guard, player, brain, overlay, ui;
+let stores, relay, imessage, guard, player, brain, overlay, ui, updater;
 const activity = new Activity();
 let scenes = {};
 let justUpdated = false; // a newer version than last time, on an already set-up install
@@ -272,6 +273,7 @@ function liveState() {
     noteJar: s.noteJar.length,
     imessage: imessage?.status || 'off',
     justUpdated,
+    update: updater?.state || null,
     activity: activity.items,
   };
 }
@@ -391,6 +393,65 @@ function relaunch() {
   app.exit(0);
 }
 
+// ---------- updating itself (see updater.js) ----------------------------------
+// Where the signed update info lives ("updates.feed" in package.json) and the key it must be signed with.
+const PKG = require('../../package.json');
+const UPDATE_KEY = path.join(BUNDLED_ASSETS, 'update-public.pem');
+
+// The Mac: unpack the verified zip, check it's the version promised, then quit and let UPDATE_SH swap it in and
+// reopen it. Settings and pairing live in Application Support, so they carry over.
+async function installMacUpdate(zip, m) {
+  const { execFile, spawn } = require('child_process');
+  const work = path.dirname(zip);
+  const unpacked = path.join(work, `unpacked-${m.version}`);
+  fs.rmSync(unpacked, { recursive: true, force: true });
+  await new Promise((resolve, reject) =>
+    execFile('/usr/bin/ditto', ['-x', '-k', zip, unpacked], (err) => (err ? reject(new Error(`could not unpack the update (${err.message})`)) : resolve())),
+  );
+  const bundle = path.join(unpacked, 'Bearly Apart.app');
+  const version = plistVersion(fs.readFileSync(path.join(bundle, 'Contents', 'Info.plist'), 'utf8'));
+  if (version !== m.version) throw new Error(`the download is version ${version}, not ${m.version}`);
+  stores.state.set({ updatedFrom: app.getVersion() });
+  stores.state.flush();
+  await Promise.race([setPresence('away'), new Promise((r) => setTimeout(r, 1500))]);
+  const logFile = path.join(app.getPath('logs'), 'update.log');
+  fs.mkdirSync(path.dirname(logFile), { recursive: true });
+  spawn('/bin/sh', ['-c', UPDATE_SH, 'sh', bundle, MAC_TARGET, app.getPath('home'), work, logFile], {
+    detached: true,
+    stdio: 'ignore',
+    env: { ...process.env, BA_INSTALL_SH: INSTALL_SH },
+  }).unref();
+  quitting = true; // skip the "away" round trip in before-quit, it was just sent
+  app.exit(0);
+}
+
+function startUpdater() {
+  let publicKey = '';
+  try {
+    publicKey = fs.readFileSync(UPDATE_KEY, 'utf8');
+  } catch {
+    /* no release key in this build: updates stay off */
+  }
+  updater = new Updater({
+    version: app.getVersion(),
+    feedUrl: PKG.updates?.feed || '',
+    publicKey,
+    fetch: (url, opts) => net.fetch(url, opts),
+    downloadDir: path.join(app.getPath('temp'), 'bearly-apart-update'),
+    install: installMacUpdate,
+    // Only an installed Mac copy swaps itself; Windows and Linux (and running from source) just say a newer one exists.
+    canInstall: IS_MAC && app.isPackaged && !NEEDS_MOVE,
+    enabled: () => cfg().autoUpdate !== false,
+    onChange: () => ui?.refresh(),
+    log,
+  });
+  updater.start();
+}
+
+function checkForUpdates() {
+  return updater ? updater.check() : null;
+}
+
 // ---------- startup --------------------------------------------------------
 
 app.whenReady().then(() => {
@@ -504,12 +565,13 @@ app.whenReady().then(() => {
     pairingCode: () => encodePairing(cfg()),
     linkCode: () => encodeLink(cfg()),
     deviceName: DEVICE_NAME,
-    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, checkTextAccess, relaunch },
+    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, checkTextAccess, relaunch, checkForUpdates },
   });
   activity.on('change', () => ui.refresh());
   ui.start();
   relay.start();
   applyLoginItem();
+  startUpdater();
 
   powerMonitor.on('lock-screen', () => {
     guard.locked = true;
@@ -536,11 +598,13 @@ app.whenReady().then(() => {
   setInterval(() => brain.tick({ idleSec: powerMonitor.getSystemIdleTime() }), 30_000);
 
   justUpdated = cfg().setupDone && st().lastVersion !== app.getVersion();
-  stores.state.set({ lastVersion: app.getVersion() });
+  const selfUpdated = justUpdated && !!st().updatedFrom;
+  stores.state.set({ lastVersion: app.getVersion(), updatedFrom: '' });
   if (!cfg().setupDone) ui.openWindow('setup');
-  // Each new Mac version counts as a different app to macOS, so Full Disk Access must be switched off and on
-  // again. Open the window so the banner says so, instead of the bears quietly missing her texts.
-  else if (IS_MAC && justUpdated && imessage?.status === 'no-access') ui.openWindow('send');
+  // A new Mac version can count as a different app to macOS, so Full Disk Access may need switching off and on
+  // again. Open straight onto that one step (it ticks itself off), instead of the bears quietly missing her texts.
+  else if (IS_MAC && justUpdated && imessage?.status === 'no-access') ui.openWindow('access');
+  else if (selfUpdated && Notification.isSupported()) new Notification({ title: 'Bearly Apart', body: `Updated to ${app.getVersion()} 🐻`, silent: true }).show();
   if (process.env.BA_DEMO) setTimeout(() => process.env.BA_DEMO.split(',').forEach(preview), 1500);
   if (process.env.BA_OPEN) ui.openWindow(process.env.BA_OPEN);
   readyAt = Date.now();

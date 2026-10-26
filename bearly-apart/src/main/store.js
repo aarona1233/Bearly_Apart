@@ -66,6 +66,8 @@ const DEFAULT_CONFIG = {
   hugWindowSec: 20,
   scale: 1,
   launchAtLogin: true,
+  // The Mac downloads and installs new versions by itself (checked every hour).
+  autoUpdate: true,
 };
 
 const DEFAULT_STATE = {

@@ -31,9 +31,12 @@ const timeOf = (ms) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', mi
 // ---------- tabs ------------------------------------------------------------
 
 function showTab(name) {
-  if (!document.querySelector(`[data-page="${name}"]`) || (name === 'setup' && data.config.setupDone)) name = 'send';
+  const access = name === 'access'; // after an update: only the Full Disk Access step of setup
+  if (access) name = 'setup';
+  else if (!document.querySelector(`[data-page="${name}"]`) || (name === 'setup' && data.config.setupDone)) name = 'send';
   document.body.classList.toggle('setup', name === 'setup');
-  if (name === 'setup') startSetup();
+  if (access) startAccessCheck();
+  else if (name === 'setup') startSetup();
   for (const b of document.querySelectorAll('.tabs button')) b.classList.toggle('on', b.dataset.tab === name);
   for (const s of document.querySelectorAll('[data-page]')) s.classList.toggle('on', s.dataset.page === name);
   if (name === 'send' && location.hash === '#send') $('note').focus();
@@ -46,7 +49,31 @@ window.ba.onShowTab((tab) => {
 
 // ---------- live parts (header, banner, status, recent) ----------------------
 
+// Settings → Updates: what the updater is doing, in words.
+function renderUpdate() {
+  const u = live.update;
+  const off = !u || u.status === 'off';
+  const when = u?.lastCheckedAt ? ` · checked ${ago(u.lastCheckedAt)}` : '';
+  const mac = data.platform === 'darwin';
+  const text = off
+    ? 'Automatic updates aren’t set up in this build.'
+    : {
+        idle: `Version ${u.version}. Checks for a new one every hour.`,
+        checking: 'Checking for a new version…',
+        'up-to-date': `✓ Up to date (version ${u.version})${when}`,
+        available: `Version ${u.latest} is out (you have ${u.version}).${mac ? '' : ' Run the new installer to get it.'}`,
+        downloading: `⬇️ Downloading version ${u.latest}… ${u.total ? Math.round((100 * u.received) / u.total) : 0}%`,
+        installing: `Installing version ${u.latest}: Bearly Apart closes and opens again by itself in a few seconds.`,
+        error: `Couldn’t update: ${u.error}${when}`,
+      }[u.status] || `Version ${u.version}`;
+  $('update-status').textContent = text;
+  $('update-summary').textContent = off || u.status === 'up-to-date' || u.status === 'idle' ? 'Updates' : u.status === 'error' ? 'Updates · ⚠️' : 'Updates · new version';
+  $('check-update').disabled = off || ['checking', 'downloading', 'installing'].includes(u.status);
+  $('auto-update').closest('label').hidden = off || !mac;
+}
+
 function renderLive() {
+  renderUpdate();
   const c = data.config;
   const s = data.statuses;
   $('partner-name').textContent = live.paired ? partner() : 'Not paired yet';
@@ -210,6 +237,7 @@ function fillSettings() {
   $('visit').value = c.visitDate;
   c.missing.slice(0, 3).forEach((m, i) => ($(`miss-${i}`).value = m.hours));
   $('login').checked = c.launchAtLogin;
+  $('auto-update').checked = c.autoUpdate !== false;
   $('my-code').textContent = c.me.name ? data.pairing : 'Save your name first';
   $('pair-summary').textContent = c.partner.id ? `Connection · paired with ${partner()} 💞` : 'Connection · not paired yet';
   $('link-code').textContent = c.me.name && c.partner.id ? data.linkCode : 'Finish setting up first';
@@ -243,6 +271,7 @@ function collect() {
     visitDate: $('visit').value,
     missing: c.missing.map((m, i) => ({ ...m, hours: Number($(`miss-${i}`)?.value) || m.hours })),
     launchAtLogin: $('login').checked,
+    autoUpdate: $('auto-update').checked,
   };
 }
 
@@ -303,6 +332,14 @@ $('reset').addEventListener('click', async () => {
   await reload();
 });
 $('open-fda').addEventListener('click', () => window.ba.open('fda'));
+$('check-update').addEventListener('click', async () => {
+  const s = await window.ba.checkUpdate();
+  if (s?.status === 'up-to-date') toast('You have the newest version 🐻');
+});
+$('auto-update').addEventListener('change', async () => {
+  await window.ba.save({ autoUpdate: $('auto-update').checked });
+  data.config.autoUpdate = $('auto-update').checked;
+});
 $('open-profile').addEventListener('click', () => window.ba.open('profile'));
 $('open-gifs').addEventListener('click', () => window.ba.open('gifs'));
 
