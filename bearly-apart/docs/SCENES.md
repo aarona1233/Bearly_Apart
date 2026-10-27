@@ -17,10 +17,8 @@ folder overrides them by name, and is reloaded as soon as you save it.
 ## Which scene plays when
 | Trigger | Scene |
 |---|---|
-| Text (cooldown applies) | `message` |
-| 5 texts in 90s | `combo` |
-| Keyword in a text (miss you, kiss, hug) | `kw-<keyword>` if it exists (for example `kw-miss-you`), otherwise the button's scene (`kiss`, `hug`) |
-| ❤️ tapback | `tapback-love` (also `tapback-laugh` and others if you add them) |
+| Keyword in a text (hug, miss you, love you) | `kw-<keyword>` if it exists (`kw-hug`, `kw-miss-you`, `kw-love-you`), otherwise the button's scene |
+| Any other text, or a tapback | nothing |
 | Sent from the menu or phone | `kiss`, `heart`, `hug`, `poke`, `miss-you` |
 | A **More** button on the Send tab | `send-<name>` (the buttons are listed in `assets/sendables.json`) |
 | Back after 20+ min away, and they sent something | `welcome-back-short` / `-long` (2h+) / `-day` (8h+), then `away-summary` |

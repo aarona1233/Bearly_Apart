@@ -19,13 +19,13 @@ test('normalizes phone numbers and emails', () => {
   assert.strictEqual(normalizeHandle('Her@iCloud.com'), 'her@icloud.com');
 });
 
-test('keywords match whole words and emoji only', () => {
+test('keywords match whole words only: hug, miss you, love you', () => {
   const kw = DEFAULT_CONFIG.keywords;
   assert.deepStrictEqual(matchKeywords('I MISS YOU', kw), ['miss-you']);
   assert.deepStrictEqual(matchKeywords('I want to hug you', kw), ['hug']);
-  assert.deepStrictEqual(matchKeywords('sending kisses 😘', kw), ['kiss']);
-  assert.deepStrictEqual(matchKeywords('thug life, kissimmee', kw), []); // "hug"/"kiss" inside a word
-  assert.deepStrictEqual(matchKeywords('love you, goodnight', kw), []); // only miss you / kiss / hug for now
+  assert.deepStrictEqual(matchKeywords('love you, goodnight', kw), ['love-you']);
+  assert.deepStrictEqual(matchKeywords('thug life, gloves', kw), []); // "hug"/"love" inside a word
+  assert.deepStrictEqual(matchKeywords('sending kisses 😘 🥺', kw), []); // no kiss, no emoji
 });
 
 test('apple dates convert', () => {

@@ -4,9 +4,8 @@
 
 Little bears run across your partner's screen when you text, poke, or go quiet for too long.
 
-- **You text her on iMessage** → a bear runs onto her Mac's screen and kisses it 💋
-- **She texts you** → her Mac notices and sends a bear to *your* computer
-- **"miss you", "kiss" or "hug"** in a text (also 🥺, 😘, 💋, "mwah", 🫂) → that animation. Only these three for now.
+- **"hug", "miss you" or "love you"** in an iMessage (either direction: her Mac reads both) → that bear on the other one's screen.
+  Every other text plays nothing (it only resets the "missing you" timer).
 - **Nobody's texted for 3 / 6 / 12 hours** → a sad bear peeks in → a bear drags a sword across her window ⚔️ → a MISSING poster
 - **Status from your phone** (🍔 hungry, 😴 sleepy, 🏋️ gym…) → a bear acts it out
 - **Love notes**: delivered right away, or saved in the "note jar" for her next morning
@@ -123,9 +122,8 @@ See [docs/SCENES.md](docs/SCENES.md) for the choreography format.
 
 ## Advanced settings
 `config.json` lives in the profile folder (shown at the bottom of Settings):
-- `keywords`: phrase → keyword name. `kw-<name>` plays when it appears in a text, or the button scene of the same name (`kiss`, `hug`).
+- `keywords`: phrase → keyword name. `kw-<name>` plays when it appears in a text, or the button scene of the same name (`hug`).
 - `missing`: hours and scene for each "missing you" level.
-- `cooldownSec`, `combo`: how often plain texts animate, and when a burst becomes a combo.
 - `pauseApps`: apps that pause the bears while they're in front.
 - `partner.timezone`, `partnerSleepHours`: no nagging while they sleep.
 - `relay.server`, `relay.token`: self-hosted ntfy.

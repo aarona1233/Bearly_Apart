@@ -3,25 +3,22 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+// The only texts that play a bear: "hug", "miss you" and "love you". Every other text plays nothing.
 const KEYWORDS = {
-  'miss you': 'miss-you',
-  'missing you': 'miss-you',
-  'miss u': 'miss-you',
-  '🥺': 'miss-you',
-  kiss: 'kiss',
-  kisses: 'kiss',
-  kissy: 'kiss',
-  mwah: 'kiss',
-  '😘': 'kiss',
-  '💋': 'kiss',
   hug: 'hug',
   hugs: 'hug',
   hugging: 'hug',
-  '🫂': 'hug',
+  'miss you': 'miss-you',
+  'missing you': 'miss-you',
+  'miss u': 'miss-you',
+  'love you': 'love-you',
+  'love u': 'love-you',
+  'luv you': 'love-you',
+  'luv u': 'love-you',
 };
 
 // Bump when a default has to replace what's saved in existing config.json files (see migrate()).
-const CONFIG_VERSION = 3;
+const CONFIG_VERSION = 4;
 
 const DEFAULT_CONFIG = {
   version: CONFIG_VERSION,
@@ -40,9 +37,6 @@ const DEFAULT_CONFIG = {
   },
   relay: { server: 'https://ntfy.sh', topic: '', token: '' },
   imessage: { enabled: true, pollSec: 3 },
-  // Plain-message animations play at most this often; extra texts count toward a combo.
-  cooldownSec: 90,
-  combo: { count: 5, windowSec: 90 },
   // Escalating "you haven't heard from them" scenes.
   missing: [
     { hours: 3, scene: 'missing-peek' },
@@ -145,10 +139,11 @@ class JsonFile {
 // Brings an older config.json up to date.
 //   2: only the three text triggers (miss you, kiss, hug)
 //   3: first-run setup; anyone already named and paired skips it
+//   4: the text triggers become hug, miss you and love you (no kiss, no emoji)
 function migrate(config) {
   const from = config.raw.version || 1;
   if (from >= CONFIG_VERSION) return;
-  if (from < 2) config.data.keywords = { ...KEYWORDS };
+  if (from < 4) config.data.keywords = { ...KEYWORDS };
   if (from < 3) config.data.setupDone = !!(config.data.me.name && config.data.partner.id);
   config.data.version = CONFIG_VERSION;
 }

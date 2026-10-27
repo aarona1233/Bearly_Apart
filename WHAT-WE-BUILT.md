@@ -55,9 +55,7 @@ Bearly Appart/
 ## Features
 
 **Triggers**
-- 💬 You text her → Dudu runs onto the screen, turns into the Love-Kiss, zooms into the screen, and leaves a lipstick mark
-- 🔑 Texts with "miss you", "kiss" or "hug" (🥺, 😘, 💋, 🫂 too) → that animation (only these three for now)
-- 🔥 5 texts in 90 seconds → cuddle combo with heart rain (otherwise text animations have a 90-second cooldown)
+- 🔑 Texts with "hug", "miss you" or "love you" → that animation. Every other text plays nothing (since 0.8.0)
 - 💞 ❤️ tapback on a message → cute kiss + hearts
 - ⚔️ **Silence:** 3h a sad bear peeks in, 6h **Bubu drags a sword across her front window leaving scratch marks**, 12h a MISSING poster drops in
   - Doesn't nag while the other person sleeps (their time zone, or after a "goodnight" status)

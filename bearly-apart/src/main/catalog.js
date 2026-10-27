@@ -42,16 +42,14 @@ const GIFTS = loadGifts();
 
 // Friendly names for the Animations tab: what it's called and when it plays.
 const SCENES = {
-  kiss: ['Kiss', 'The 💋 button, or a text with "kiss", "mwah" or 😘'],
+  kiss: ['Kiss', 'The 💋 button'],
   hug: ['Hug', 'The 🫂 button, or both sending 💗 within 20 seconds'],
   heart: ['Heart', 'The 💗 button'],
   poke: ['Poke', 'The 👉 button, or clicking one of their bears'],
   'miss-you': ['Miss you', 'The 🥺 button'],
-  'kw-miss-you': ['"Miss you" text', 'A text that says "miss you" or 🥺'],
-  'kw-hug': ['"Hug" text', 'A text that says "hug" (like "I want to hug you") or 🫂'],
-  message: ['Text', 'Any other text (at most once every 90 seconds)'],
-  combo: ['Text flurry', '5 texts in 90 seconds'],
-  'tapback-love': ['Heart reaction', 'A ❤️ reaction on a message'],
+  'kw-miss-you': ['"Miss you" text', 'A text that says "miss you"'],
+  'kw-hug': ['"Hug" text', 'A text that says "hug" (like "I want to hug you")'],
+  'kw-love-you': ['"Love you" text', 'A text that says "love you"'],
   note: ['Love note', 'A love note arrives'],
   jar: ['Note for the morning', 'A note saved for the next morning'],
   'good-morning': ['Good morning', 'First time at the computer each day (brings a saved note)'],

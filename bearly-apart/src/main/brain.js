@@ -34,8 +34,6 @@ class Brain {
     this.hasScene = hasScene;
     this.now = now;
     this.log = log;
-    this.msgTimes = [];
-    this.lastMsgSceneAt = 0;
     this.lastKeywordAt = {};
     this.busyLive = false;
   }
@@ -128,11 +126,8 @@ class Brain {
     switch (ev.type) {
       case 'message':
         return this.onMessage(ev);
-      case 'tapback': {
-        const scene = `tapback-${ev.tapback}`;
-        if (this.hasScene(scene)) return this.queue(scene, ev, 2);
-        return;
-      }
+      case 'tapback':
+        return; // a reaction on a text counts as hearing from them, but plays nothing
       case 'heart': {
         const s = this.state();
         this.setState({ gotHeartAt: this.now() });
@@ -170,37 +165,26 @@ class Brain {
         return this.queue('hello', ev, 3);
       }
       case 'test':
-        return this.queue(ev.status || 'message', ev, 1);
+        return this.queue(ev.status || 'heart', ev, 1);
       default:
         this.log(`[brain] unknown event ${ev.type} (${name})`);
     }
   }
 
+  // Only a text with one of the keywords (hug, miss you, love you) plays a bear; any other text plays nothing.
+  // Only this app's own list counts, so an older app on the other side that still sends "kiss" plays nothing.
   onMessage(ev) {
-    const c = this.config();
     const t = this.now();
-    for (const k of ev.keywords || []) {
-      // "kw-kiss" if there's a text-only version, otherwise the same scene as the 💋 button.
+    const triggers = new Set(Object.values(this.config().keywords || {}));
+    for (const k of (ev.keywords || []).filter((x) => triggers.has(x))) {
+      // "kw-hug" if there's a text-only version, otherwise the same scene as the 🫂 button.
       const scene = [`kw-${k}`, k].find((s) => this.hasScene(s));
       if (!scene) continue;
       // Each keyword animation at most every 30 seconds, so "miss you miss you" isn't spammy.
       if (t - (this.lastKeywordAt[k] || 0) < KEYWORD_COOLDOWN_MS) continue;
       this.lastKeywordAt[k] = t;
-      this.lastMsgSceneAt = t;
       return this.queue(scene, ev, 4);
     }
-    this.msgTimes = this.msgTimes.filter((x) => t - x < c.combo.windowSec * 1000);
-    this.msgTimes.push(t);
-    if (this.msgTimes.length >= c.combo.count) {
-      this.msgTimes = [];
-      this.lastMsgSceneAt = t;
-      return this.queue('combo', ev, 3);
-    }
-    if (t - this.lastMsgSceneAt >= c.cooldownSec * 1000) {
-      this.lastMsgSceneAt = t;
-      return this.queue('message', ev, 2);
-    }
-    this.log('[brain] message animation on cooldown');
   }
 
   queue(scene, ev, priority, extra = {}) {

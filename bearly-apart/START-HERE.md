@@ -148,7 +148,8 @@ and stay on the call.
 |---|---|---|
 | Send tab → 💋 Kiss | Kiss bear | ✓ under Recent |
 | Text her "I miss you" | Miss-you bear | |
-| Text her "kiss" / "I want to hug you" | Kiss / hug bear | |
+| Text her "I want to hug you" / "love you" | Hug / love-you bear | |
+| Text her anything else ("lol") | Nothing | |
 | Send a love note | Bubu brings the letter and the note pops up | ✓ |
 | My status → 💼 At work | Status bear once; her 💗 menu shows it | |
 | Both press 💗 Heart within 20 seconds | Hug | Hug |

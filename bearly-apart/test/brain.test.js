@@ -1,7 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { Brain, daysUntil } = require('../src/main/brain');
-const { DEFAULT_CONFIG, DEFAULT_STATE, merge } = require('../src/main/store');
+const { DEFAULT_CONFIG, DEFAULT_STATE, KEYWORDS, merge } = require('../src/main/store');
+const { matchKeywords } = require('../src/main/imessage');
 const scenes = require('../assets/scenes.json');
 
 function setup(cfgPatch = {}, statePatch = {}) {
@@ -29,37 +30,55 @@ function setup(cfgPatch = {}, statePatch = {}) {
 const names = (played) => played.map((p) => p.scene);
 
 test('every scene the brain can ask for exists', () => {
-  for (const s of ['message', 'combo', 'kiss', 'heart', 'hug', 'poke', 'miss-you', 'status', 'note', 'jar', 'hello', 'good-morning', 'countdown', 'missing-peek', 'missing-sword', 'missing-poster'])
+  for (const s of ['kw-hug', 'kw-miss-you', 'kw-love-you', 'kiss', 'heart', 'hug', 'poke', 'miss-you', 'status', 'note', 'jar', 'hello', 'good-morning', 'countdown', 'missing-peek', 'missing-sword', 'missing-poster'])
     assert.ok(scenes[s], s);
 });
 
-test('messages respect cooldown, then a burst becomes a combo', () => {
-  const { brain, played, advance } = setup();
-  brain.onRelayEvent({ type: 'message', from: 'him', keywords: [] });
-  advance(5_000);
-  brain.onRelayEvent({ type: 'message', from: 'him', keywords: [] });
-  assert.deepStrictEqual(names(played), ['message']);
-  for (let i = 0; i < 3; i++) {
+test('plain texts and reactions play nothing, however many arrive', () => {
+  const { brain, played, advance, state } = setup();
+  for (let i = 0; i < 8; i++) {
     advance(5_000);
     brain.onRelayEvent({ type: 'message', from: 'him', keywords: [] });
+    brain.onIMessage({ direction: 'in', type: 'message', keywords: [], text: 'what are you doing' });
+    brain.onIMessage({ direction: 'in', type: 'tapback', tapback: 'love', keywords: [] });
   }
-  assert.deepStrictEqual(names(played), ['message', 'combo']);
+  assert.deepStrictEqual(played, []);
+  assert.ok(state().lastHeardAt > 0, 'still counts as hearing from them');
 });
 
-test('keyword scenes win over the plain message', () => {
-  const { brain, played } = setup();
-  brain.onIMessage({ direction: 'in', type: 'message', keywords: ['miss-you'], text: 'miss you' });
-  assert.deepStrictEqual(names(played), ['kw-miss-you']);
-});
-
-test('"kiss" and "hug" texts play their scenes, at most every 30 seconds each', () => {
+test('"hug", "miss you" and "love you" texts play their scenes, at most every 30 seconds each', () => {
   const { brain, played, advance } = setup();
-  brain.onIMessage({ direction: 'in', type: 'message', keywords: ['kiss'], text: 'kisses' });
+  brain.onIMessage({ direction: 'in', type: 'message', keywords: ['miss-you'], text: 'miss you' });
+  brain.onIMessage({ direction: 'in', type: 'message', keywords: ['love-you'], text: 'love you' });
   brain.onIMessage({ direction: 'in', type: 'message', keywords: ['hug'], text: 'I want to hug you' });
   brain.onIMessage({ direction: 'in', type: 'message', keywords: ['hug'], text: 'hug!!' }); // too soon
+  brain.onIMessage({ direction: 'in', type: 'message', keywords: ['kiss'], text: 'kisses' }); // from an older version: not a trigger now
   advance(31_000);
   brain.onIMessage({ direction: 'in', type: 'message', keywords: ['hug'], text: 'hug again' });
-  assert.deepStrictEqual(names(played).filter((n) => n !== 'message'), ['kiss', 'kw-hug', 'kw-hug']);
+  assert.deepStrictEqual(names(played), ['kw-miss-you', 'kw-love-you', 'kw-hug', 'kw-hug']);
+});
+
+test('"love you" names the sender: "Yimei loves you" on his PC, "Aaron loves you" on her Mac', () => {
+  const caption = (p) => scenes[p.scene].caption.replace(/\{(\w+)\}/g, (_, k) => p.vars[k]);
+  const hisPc = setup({ me: { id: 'aaron', name: 'Aaron', character: 'brown' }, partner: { id: 'yimei', name: 'Yimei', character: 'cream' } });
+  const herMac = setup({ me: { id: 'yimei', name: 'Yimei', character: 'cream' }, partner: { id: 'aaron', name: 'Aaron', character: 'brown' } });
+  // He texts her: her Mac reads it as incoming.
+  herMac.brain.onIMessage({ direction: 'in', type: 'message', keywords: ['love-you'], text: 'love you' });
+  assert.strictEqual(caption(herMac.played[0]), 'Aaron loves you 💕');
+  // She texts him: her Mac plays nothing for her and forwards it; his PC plays it.
+  herMac.brain.onIMessage({ direction: 'out', type: 'message', keywords: ['love-you'], text: 'love you' });
+  assert.strictEqual(herMac.played.length, 1);
+  hisPc.brain.onRelayEvent(herMac.published[0].ev);
+  assert.strictEqual(caption(hisPc.played[0]), 'Yimei loves you 💕');
+});
+
+test('only hug, miss you and love you match as text triggers', () => {
+  const m = (t) => matchKeywords(t, KEYWORDS);
+  assert.deepStrictEqual(m('I want to hug you'), ['hug']);
+  assert.deepStrictEqual(m('I miss you sm'), ['miss-you']);
+  assert.deepStrictEqual(m('I LOVE YOU'), ['love-you']);
+  assert.deepStrictEqual(m('love u 😘'), ['love-you']);
+  for (const t of ['kisses 😘', 'mwah', 'lol', '🥺', '🫂', 'I love your shoes', 'thug life', 'glove you lost']) assert.deepStrictEqual(m(t), [], t);
 });
 
 test('gifts play their send- scene with the caption bits, and unknown ones still show something', () => {
@@ -203,7 +222,7 @@ test('missing-you escalates once per level and resets when they text', async () 
   brain.onRelayEvent({ type: 'message', from: 'him', keywords: [] });
   advance(3600_000);
   await brain.tick();
-  assert.deepStrictEqual(names(played), ['missing-peek', 'missing-sword', 'message']);
+  assert.deepStrictEqual(names(played), ['missing-peek', 'missing-sword']); // a plain text resets it but plays nothing
 });
 
 test('no missing-you nagging while the partner said goodnight', async () => {

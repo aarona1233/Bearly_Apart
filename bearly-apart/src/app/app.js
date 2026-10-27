@@ -238,7 +238,6 @@ function fillSettings() {
   $('fullscreen').checked = c.pauseWhenFullscreen;
   $('focus').checked = c.respectFocus;
   $('scale').value = c.scale;
-  $('cooldown').value = c.cooldownSec;
   $('visit').value = c.visitDate;
   c.missing.slice(0, 3).forEach((m, i) => ($(`miss-${i}`).value = m.hours));
   $('login').checked = c.launchAtLogin;
@@ -272,7 +271,6 @@ function collect() {
     pauseWhenFullscreen: $('fullscreen').checked,
     respectFocus: $('focus').checked,
     scale: Number($('scale').value),
-    cooldownSec: Number($('cooldown').value) || 0,
     visitDate: $('visit').value,
     missing: c.missing.map((m, i) => ({ ...m, hours: Number($(`miss-${i}`)?.value) || m.hours })),
     launchAtLogin: $('login').checked,

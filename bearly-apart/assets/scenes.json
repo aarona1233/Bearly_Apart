@@ -1,105 +1,6 @@
 {
   "_comment": "Scene choreography. {pc} = their bear (the sender), {mc} = your bear (brown = Dudu, cream = Bubu). One-bear art is \"<pose>-{pc}.png\"; both bears in one picture is \"pair-….png\". See docs/SCENES.md.",
   "_aliases": {},
-  "message": {
-    "actors": [
-      {
-        "asset": "happy-{pc}.png",
-        "size": 170,
-        "at": [
-          "left-off",
-          "bottom"
-        ],
-        "pokeable": true,
-        "steps": [
-          {
-            "do": "move",
-            "x": "center",
-            "ms": 1700
-          },
-          {
-            "do": "asset",
-            "src": "pair-love-kiss.png"
-          },
-          {
-            "do": "zoom",
-            "scale": 3.2,
-            "ms": 450,
-            "ease": "ease-in"
-          },
-          {
-            "do": "stamp",
-            "src": "lips.svg",
-            "size": 210,
-            "life": 3200,
-            "atY": 0.5
-          },
-          {
-            "do": "wait",
-            "ms": 500
-          },
-          {
-            "do": "zoom",
-            "scale": 1,
-            "ms": 380
-          },
-          {
-            "do": "asset",
-            "src": "happy-{pc}.png"
-          },
-          {
-            "do": "move",
-            "x": "right-off",
-            "ms": 1500
-          }
-        ]
-      }
-    ]
-  },
-  "combo": {
-    "caption": "{partner} can't stop texting you 💕",
-    "rain": {
-      "src": "heart.svg",
-      "count": 26,
-      "ms": 4200
-    },
-    "actors": [
-      {
-        "asset": "pair-cuddle.png",
-        "size": 230,
-        "at": [
-          "center",
-          "off-bottom"
-        ],
-        "pokeable": true,
-        "steps": [
-          {
-            "do": "move",
-            "y": "bottom",
-            "ms": 650,
-            "hop": false,
-            "ease": "ease-out"
-          },
-          {
-            "do": "say",
-            "text": "you + me 💞",
-            "ms": 2600
-          },
-          {
-            "do": "wait",
-            "ms": 3200
-          },
-          {
-            "do": "move",
-            "y": "off-bottom",
-            "ms": 600,
-            "hop": false,
-            "ease": "ease-in"
-          }
-        ]
-      }
-    ]
-  },
   "kw-miss-you": {
     "caption": "{partner} is dreaming about you 🥺",
     "rain": {
@@ -178,44 +79,6 @@
             "do": "move",
             "y": "off-bottom",
             "ms": 700,
-            "hop": false,
-            "ease": "ease-in"
-          }
-        ]
-      }
-    ]
-  },
-  "tapback-love": {
-    "rain": {
-      "src": "heart.svg",
-      "count": 18,
-      "ms": 3200
-    },
-    "actors": [
-      {
-        "asset": "pair-cute-kiss.png",
-        "size": 200,
-        "at": [
-          "center",
-          "off-bottom"
-        ],
-        "pokeable": true,
-        "steps": [
-          {
-            "do": "move",
-            "y": "bottom",
-            "ms": 650,
-            "hop": false,
-            "ease": "ease-out"
-          },
-          {
-            "do": "wait",
-            "ms": 2400
-          },
-          {
-            "do": "move",
-            "y": "off-bottom",
-            "ms": 600,
             "hop": false,
             "ease": "ease-in"
           }
@@ -1903,6 +1766,45 @@
         ]
       }
     ]
+  },
+  "kw-love-you": {
+    "caption": "{partner} loves you 💕",
+    "actors": [
+      {
+        "asset": "pair-love-kiss.png",
+        "size": 230,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ],
+    "rain": {
+      "src": "heart.svg",
+      "count": 30,
+      "ms": 3500
+    }
   },
   "status-eating": {
     "actors": [

@@ -32,7 +32,9 @@ class Player {
 
   // Scenes saved by an earlier run (the app was quit while they waited).
   restore(queue, heldSince) {
-    if (!queue?.length) return;
+    // Drop any whose animation is gone since (an update removed the plain "texted you" bear).
+    queue = (queue || []).filter((i) => this.hasScene(i.scene));
+    if (!queue.length) return;
     this.queue.push(...queue);
     this.heldSince = heldSince || this.now();
     this.schedule(this.debounceMs);
