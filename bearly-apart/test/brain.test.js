@@ -131,6 +131,20 @@ test('their presence across two computers: here if either is in use', () => {
   assert.strictEqual(state().partnerPresence.state, 'away');
 });
 
+test('checks: their ping and the answer to ours reach the hooks; our own check message is ignored', () => {
+  const { brain, played, state } = setup();
+  const seen = [];
+  brain.onPing = (ev) => seen.push(['ping', ev.nonce]);
+  brain.onPong = (ev) => seen.push(['pong', ev.nonce]);
+  const heardBefore = state().lastHeardAt;
+  brain.onRelayEvent({ type: 'ping', nonce: 'n1', from: 'him' });
+  brain.onRelayEvent({ type: 'pong', nonce: 'n2', from: 'him' });
+  brain.onRelayEvent({ type: 'diag', nonce: 'n3', from: 'him' });
+  assert.deepStrictEqual(seen, [['ping', 'n1'], ['pong', 'n2']]);
+  assert.strictEqual(played.length, 0, 'no animation for a check');
+  assert.strictEqual(state().lastHeardAt, heardBefore, 'a check is not hearing from them');
+});
+
 test('statuses I send are remembered, and clearing works both ways', async () => {
   const { brain, played, state } = setup();
   await brain.send('status', { status: 'work' });

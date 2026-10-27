@@ -22,6 +22,7 @@
       <button data-tab="send">💌 Send</button>
       <button data-tab="animations">🎬 Animations</button>
       <button data-tab="settings">⚙️ Settings</button>
+      <button data-tab="check">🩺 Check</button>
     </nav>
 
     <div class="banner" id="banner" hidden></div>
@@ -172,6 +173,23 @@
         <div class="card">
           <p class="hint">Press ▶ to play one on <b>this</b> screen. It's only a preview: nothing is sent.</p>
           <div class="gallery" id="gallery"></div>
+        </div>
+      </section>
+
+      <!-- ============================== CHECK ============================= -->
+      <section data-page="check">
+        <div class="card">
+          <h2>🩺 Check that everything works</h2>
+          <p class="hint">Tests the connection, a real send-and-receive, every animation for both bears, whether bears can play right now, statuses, text reading (on a Mac), starting with the computer and updates. It also runs by itself after every install or update.</p>
+          <label class="check"><input type="checkbox" id="check-partner" checked /> <span id="check-partner-label">Also ask their app how it’s doing</span></label>
+          <div class="actions">
+            <button id="check-run">Run the check</button>
+            <button class="ghost" id="check-copy">Copy report</button>
+            <button class="ghost" id="check-log">Show log file</button>
+          </div>
+          <p class="check-summary" id="check-summary"></p>
+          <ul class="checks" id="check-results"></ul>
+          <p class="hint">Something wrong? <b>Copy report</b> and send it over: it has these results and the app’s recent log, nothing private.</p>
         </div>
       </section>
 

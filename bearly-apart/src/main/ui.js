@@ -173,6 +173,13 @@ class UI {
           },
     );
     items.push({ label: '🐻  Open Bearly Apart…', click: () => this.openWindow() });
+    items.push({
+      label: '🩺  Check that everything works…',
+      click: () => {
+        this.openWindow('check');
+        this.actions.runChecks({ partner: true });
+      },
+    });
     const up = live.update;
     if (up && up.status !== 'off') {
       const busy = ['checking', 'downloading', 'installing'].includes(up.status);
@@ -257,7 +264,14 @@ class UI {
         shell.openPath(actions.userAssetsDir());
       }
       if (what === 'profile') shell.openPath(app.getPath('userData'));
+      if (what === 'log' && actions.logFile()) shell.showItemInFolder(actions.logFile());
     });
+    // The Check tab: run every check (optionally asking their app too), and the report to copy.
+    ipcMain.handle('app:check', async (_, { partner = true } = {}) => {
+      const r = await actions.runChecks({ partner: !!partner });
+      return { ...r, report: actions.checkReport() };
+    });
+    ipcMain.handle('app:check-report', () => actions.checkReport());
     // From the overlay: someone clicked a bear.
     ipcMain.on('poke-back', () => actions.sendEvent('poke'));
   }

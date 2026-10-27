@@ -71,6 +71,10 @@ class Brain {
     }
     // Bookkeeping from their app, not something they sent: doesn't count as hearing from them.
     if (ev.type === 'presence') return this.onPresence(ev);
+    // Checks (Check tab): their app asks how this one is doing; this one gets the answer to its own question.
+    if (ev.type === 'ping') return this.onPing?.(ev);
+    if (ev.type === 'pong') return this.onPong?.(ev);
+    if (ev.type === 'diag') return;
     if (ev.type === 'seen') return this.onSeen?.(ev.until);
     this.fromPartner(ev);
   }
@@ -218,7 +222,8 @@ class Brain {
       }
     }
     if (type === 'hello') Object.assign(ev, { character: c.me.character, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, handles: c.me.handles || [] });
-    const text = type === 'note' || type === 'jar' ? extra.text : describe(ev, c.me.name || 'Your love');
+    // Notes carry their text; a pong carries this app's health (JSON) for the other side's check.
+    const text = type === 'note' || type === 'jar' || type === 'pong' ? extra.text : describe(ev, c.me.name || 'Your love');
     const sent = await this.publish(ev, text);
     // Only remember a status once it actually went out.
     if (type === 'status') this.setState({ myStatus: extra.status === 'clear' ? null : { name: extra.status, at: this.now() } });

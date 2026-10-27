@@ -1,6 +1,7 @@
 // App startup: wires the relay, iMessage watcher, brain, player and windows together, and holds the
 // actions the window and tray menu call (send, preview, snooze, settings).
 const path = require('path');
+const crypto = require('crypto');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
 const { app, dialog, shell, powerMonitor, powerSaveBlocker, protocol, net, globalShortcut, Notification } = require('electron');
@@ -13,7 +14,9 @@ const { Player } = require('./player');
 const { Brain } = require('./brain');
 const { Activity } = require('./activity');
 const { OverlayWindow } = require('./overlay-window');
-const { UI } = require('./ui');
+const { UI, pauseText } = require('./ui');
+const { createLogger } = require('./logger');
+const { runDiagnostics, formatReport, summary } = require('./diagnostics');
 const { MAC_TARGET, INSTALL_SH, UPDATE_SH, compareVersions, plistVersion, needsInstall } = require('./mac-install');
 const { Updater } = require('./updater');
 const { STATUSES, SENDABLES, GIFTS, describe } = require('./catalog');
@@ -73,7 +76,12 @@ app.on('activate', () => Date.now() - readyAt > 3000 && ui?.openWindow());
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'ba', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
 
-const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
+// Printed as before, and kept in bearly-apart.log in the settings folder (see logger.js).
+const log = createLogger();
+log.setFile(path.join(app.getPath('userData'), 'bearly-apart.log'));
+// An unexpected error in the background part goes into the log instead of a crash dialog: the app keeps going.
+process.on('uncaughtException', (err) => log('[crash] uncaught error:', err));
+process.on('unhandledRejection', (err) => log('[crash] unhandled promise:', err));
 let stores, relay, imessage, guard, player, brain, overlay, ui, updater;
 const activity = new Activity();
 let scenes = {};
@@ -274,6 +282,7 @@ function liveState() {
     imessage: imessage?.status || 'off',
     justUpdated,
     update: updater?.state || null,
+    check: lastCheck,
     activity: activity.items,
   };
 }
@@ -469,6 +478,154 @@ function setUpdateKey(key) {
   return { ok: true };
 }
 
+// ---------- checks (the Check tab; see diagnostics.js) ----------------------------
+
+let lastCheck = { running: false, at: 0, results: [], summary: '' };
+const newNonce = () => crypto.randomBytes(4).toString('hex');
+const OS_NAME = `${IS_MAC ? 'macOS' : IS_WIN ? 'Windows' : 'Linux'} ${process.getSystemVersion?.() || ''}`.trim();
+
+// Resolves with the first relay event that matches, or null after ms.
+function waitForEvent(match, ms) {
+  return new Promise((resolve) => {
+    const onEvent = (ev) => match(ev) && done(ev);
+    const timer = setTimeout(() => done(null), ms);
+    function done(value) {
+      clearTimeout(timer);
+      relay.off('event', onEvent);
+      resolve(value);
+    }
+    relay.on('event', onEvent);
+  });
+}
+
+// Log lines from the last day that look like something went wrong.
+function recentErrors() {
+  const since = Date.now() - 24 * 3600_000;
+  return log
+    .tail(600)
+    .filter((line) => Date.parse(line.slice(0, 24)) >= since && /\b(error|failed|cannot|crash|refused|denied|no keepalive)\b/i.test(line));
+}
+
+// The few facts their app's check wants to know about this one (sent back in a pong).
+async function healthSnapshot() {
+  const g = await guard.check().catch(() => ({ ok: true }));
+  return { version: app.getVersion(), os: OS_NAME, connected: relay.connected, imessage: imessage?.status || 'off', paused: g.ok ? '' : pauseText(g.reason), errors: recentErrors().length };
+}
+
+function diagnosticsContext() {
+  return {
+    version: app.getVersion(),
+    os: OS_NAME,
+    deviceName: DEVICE_NAME,
+    config: cfg(),
+    isMac: IS_MAC,
+    packaged: app.isPackaged,
+    imessage: imessage?.status || 'off',
+    update: updater?.state || null,
+    relayConnected: () => relay.connected,
+    relayReachable: async () => {
+      const started = Date.now();
+      const { server, topic } = cfg().relay;
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 8000);
+      try {
+        // Only the answer's status matters; the body is dropped (some relays keep the line open).
+        const res = await net.fetch(`${server.replace(/\/+$/, '')}/${encodeURIComponent(topic)}/json?poll=1&since=1s`, { signal: ctrl.signal });
+        if (!res.ok) throw new Error(`the relay answered HTTP ${res.status}`);
+        res.body?.cancel().catch(() => {});
+        return Date.now() - started;
+      } catch (err) {
+        if (err.name === 'AbortError') throw new Error(`${server} didn’t answer within 8 seconds (no internet, or the relay is down)`);
+        throw err;
+      } finally {
+        clearTimeout(timer);
+      }
+    },
+    // A quiet message to ourselves: it has to go out and come back through the live connection.
+    roundTrip: async () => {
+      const nonce = newNonce();
+      const started = Date.now();
+      const back = waitForEvent((ev) => ev.type === 'diag' && ev.nonce === nonce, 10_000);
+      await brain.send('diag', { nonce });
+      if (!(await back)) throw new Error('the test message went out but never came back: the live connection may be stuck (it reconnects by itself; try again in a minute)');
+      return Date.now() - started;
+    },
+    // Their app answers a ping with a pong carrying its health (if it's running and 0.7 or newer).
+    askPartner: async () => {
+      const nonce = newNonce();
+      const back = waitForEvent((ev) => ev.type === 'pong' && ev.nonce === nonce && ev.from === cfg().partner.id, 20_000);
+      await brain.send('ping', { nonce });
+      const ev = await back;
+      if (!ev) return null;
+      try {
+        return JSON.parse(ev.text);
+      } catch {
+        return { version: '?' };
+      }
+    },
+    artCheck: () => {
+      const used = new Set();
+      const walk = (o) => {
+        if (Array.isArray(o)) o.forEach(walk);
+        else if (o && typeof o === 'object') for (const [k, v] of Object.entries(o)) (k === 'asset' || k === 'src') && typeof v === 'string' ? used.add(v) : walk(v);
+      };
+      walk(scenes);
+      const missing = new Set();
+      for (const a of used) for (const bear of ['brown', 'cream']) {
+        const name = a.replace(/\{pc\}|\{mc\}/g, bear);
+        if (!resolveAsset(name)) missing.add(name);
+      }
+      return { scenes: Object.keys(scenes).length, missing: [...missing] };
+    },
+    overlayOk: () => !!overlay?.win && !overlay.win.isDestroyed() && !overlay.win.webContents.isCrashed(),
+    pausedReason: async () => {
+      const g = await guard.check();
+      return g.ok ? '' : pauseText(g.reason);
+    },
+    statusesWithoutScene: () => (scenes.status ? [] : Object.keys(STATUSES).filter((s) => !scenes[`status-${s}`])),
+    recentErrors,
+  };
+}
+
+// Runs every check, keeps the result for the Check tab, and writes diagnostics.txt next to the log.
+async function runChecks({ partner = true } = {}) {
+  if (lastCheck.running) return lastCheck;
+  lastCheck = { running: true, at: Date.now(), results: [], summary: '' };
+  ui?.refresh();
+  const results = await runDiagnostics(diagnosticsContext(), {
+    partner: partner && !!cfg().partner.id,
+    onProgress: (r) => {
+      lastCheck = { ...lastCheck, results: [...r] };
+      ui?.refresh();
+    },
+  });
+  lastCheck = { running: false, at: Date.now(), results, summary: summary(results) };
+  log(`[check] ${lastCheck.summary}: ${results.filter((r) => r.status !== 'ok' && r.status !== 'skip').map((r) => `${r.label}: ${r.detail}`).join(' | ') || 'all ok'}`);
+  try {
+    fs.writeFileSync(path.join(app.getPath('userData'), 'diagnostics.txt'), checkReport());
+  } catch {
+    /* the report is still in the window */
+  }
+  ui?.refresh();
+  return lastCheck;
+}
+
+function checkReport() {
+  return formatReport(lastCheck.results, { when: new Date(lastCheck.at || Date.now()), logTail: log.tail(60) });
+}
+
+// Once per new version: run the checks and, if something is broken, say so (notification + the Check tab).
+async function autoCheck() {
+  if (!cfg().setupDone || st().lastCheckedVersion === app.getVersion()) return;
+  const r = await runChecks({ partner: true });
+  stores.state.set({ lastCheckedVersion: app.getVersion() });
+  const broken = r.results.filter((x) => x.status === 'fail');
+  if (!broken.length) return;
+  if (Notification.isSupported()) new Notification({ title: 'Bearly Apart: something isn’t working', body: `${broken[0].label}: ${broken[0].detail}` }).show();
+  // Full Disk Access after an update has its own step that opens by itself; don't pull her away from it.
+  if (broken.some((x) => x.id !== 'texts')) ui.openWindow('check');
+}
+
 // ---------- startup --------------------------------------------------------
 
 app.whenReady().then(() => {
@@ -491,6 +648,11 @@ app.whenReady().then(() => {
   });
 
   overlay = new OverlayWindow({ getScene: (name) => scenes[name], getScale: () => cfg().scale, log });
+  // If the see-through window's page dies, log it and bring it back rather than leaving bears invisible.
+  overlay.win.webContents.on('render-process-gone', (_, d) => {
+    log(`[crash] animation window: ${d.reason}`);
+    if (!overlay.win.isDestroyed()) overlay.win.reload();
+  });
   guard = new Guard({ getConfig: cfg, getState: st, powerMonitor, screen: require('electron').screen });
   player = new Player({ render: (req, front) => overlay.render(req, front), check: () => guard.check(), hasScene: (name) => !!scenes[name], log });
   player.onBlocked = () => ui?.refresh();
@@ -525,6 +687,8 @@ app.whenReady().then(() => {
     log,
   });
   brain.onSeen = (until) => activity.markSeen(until * 1000);
+  // Their app's check asked how this one is doing: answer with a short health summary.
+  brain.onPing = async (ev) => sendQuiet('pong', { nonce: ev.nonce, text: JSON.stringify(await healthSnapshot()) });
   brain.onMyOtherComputer = (ev, name) =>
     activity.add({ dir: 'out', text: `${outText(ev.type, ev)} (on ${name})`, state: 'sent', relayAt: ev.at });
   brain.onHello = (p) => {
@@ -539,7 +703,7 @@ app.whenReady().then(() => {
   relay.on('event', (ev) => {
     if (ev.from !== cfg().me.id) {
       log(`[relay] ← ${ev.type}${ev.status ? `:${ev.status}` : ''} from ${ev.from}`);
-      const bookkeeping = ev.type === 'presence' || ev.type === 'seen';
+      const bookkeeping = ['presence', 'seen', 'diag', 'ping', 'pong'].includes(ev.type);
       if (!bookkeeping && (ev.from === cfg().partner.id || ev.type === 'hello')) activity.add({ dir: 'in', text: incomingText(ev) });
     }
     brain.onRelayEvent(ev);
@@ -582,13 +746,15 @@ app.whenReady().then(() => {
     pairingCode: () => encodePairing(cfg()),
     linkCode: () => encodeLink(cfg()),
     deviceName: DEVICE_NAME,
-    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, checkTextAccess, relaunch, checkForUpdates, setUpdateKey },
+    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, checkTextAccess, relaunch, checkForUpdates, setUpdateKey, runChecks, checkReport, logFile: () => log.file() },
   });
   activity.on('change', () => ui.refresh());
   ui.start();
   relay.start();
   applyLoginItem();
   startUpdater();
+  // After every install or update: check everything once, and say so if something's wrong.
+  setTimeout(autoCheck, 30_000);
 
   powerMonitor.on('lock-screen', () => {
     guard.locked = true;

@@ -128,6 +128,7 @@ function renderLive() {
     (live.noteJar ? ` ${partner()} saved ${live.noteJar} note${live.noteJar > 1 ? 's' : ''} for your morning 🫙` : '');
 
   renderDevices();
+  renderCheck();
   const list = $('activity');
   list.replaceChildren(
     ...(live.activity.length
@@ -307,6 +308,37 @@ $('pair').addEventListener('click', async () => {
   await reload();
   toast('Paired! 💞');
 });
+// ---------- check tab -------------------------------------------------------
+
+const CHECK_MARK = { ok: '✓', warn: '⚠', fail: '✗', skip: '–' };
+function renderCheck() {
+  const c = live?.check;
+  $('check-partner-label').textContent = `Also ask ${partner()}’s app how it’s doing`;
+  $('check-run').disabled = !!c?.running;
+  $('check-run').textContent = c?.running ? 'Checking…' : 'Run the check';
+  if (!c?.at) {
+    $('check-summary').textContent = 'Not run yet.';
+    $('check-results').replaceChildren();
+    return;
+  }
+  $('check-summary').textContent = c.running ? 'Checking…' : `${c.summary} · ${ago(c.at)}`;
+  $('check-summary').className = `check-summary ${c.results.some((r) => r.status === 'fail') ? 'bad' : c.results.some((r) => r.status === 'warn') ? 'meh' : 'good'}`;
+  $('check-results').replaceChildren(
+    ...c.results.map((r) =>
+      el('li', { className: r.status }, el('span', { className: 'mark', textContent: CHECK_MARK[r.status] }), el('div', {}, el('b', { textContent: r.label }), el('small', { textContent: r.detail }))),
+    ),
+  );
+}
+$('check-run').addEventListener('click', async () => {
+  const r = await window.ba.check({ partner: $('check-partner').checked });
+  toast(r.summary === 'everything works' ? 'Everything works 💕' : r.summary);
+});
+$('check-copy').addEventListener('click', async () => {
+  navigator.clipboard.writeText(await window.ba.checkReport());
+  toast('Report copied. Paste it in a message.');
+});
+$('check-log').addEventListener('click', () => window.ba.open('log'));
+
 // "Your computers": this one plus any other computer of mine the relay has heard from.
 function renderDevices() {
   const others = Object.values(live?.myDevices || {});

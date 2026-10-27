@@ -24,7 +24,7 @@ Bearly Appart/
     ├── src/                ← the app's code (main process, overlay, app window)
     ├── assets/             ← animations, drawn bears, icons, scenes.json (the choreography)
     ├── docs/SCENES.md      ← how to choreograph new animations
-    ├── test/               ← 41 automated tests
+    ├── test/               ← 61 automated tests
     └── tools/              ← builders: packager (Setup.exe / Mac zip / Linux), GIF importer, test helpers
 ```
 
@@ -72,6 +72,9 @@ Bearly Appart/
 - 💻💻 **More than one computer:** a link code (Settings → Your computers) makes a laptop and a desktop the same
   person on the same connection; everything she sends reaches both, your status and sends show on each, and she sees
   you as here if either is in use
+- 🩺 **Check tab + log:** a self-check after every install/update and on demand (connection, real round trip,
+  animations, statuses, texts, updates, recent errors), which can also ask her app how it's doing; Copy report;
+  a log file per copy; unexpected errors are logged instead of crashing
 - 📖 **I'm studying:** a status and a Send button (Bubu or Dudu at the desk, writing)
 - 🩶 **Welcome back:** things sent while you were away wait (even through a restart). Back after 20+ minutes: their bear
   shows how they felt without you (sad → grey → lonely), a hug, one line of what came in, then the highlights
@@ -138,7 +141,7 @@ These are licensed to the two of you through your friend, so keep the app privat
 
 ## How it was tested
 
-- **Automated tests (41, all passing):** the trigger logic (cooldowns, combos, keywords, hug timing, silence levels,
+- **Automated tests (61, all passing):** the trigger logic (cooldowns, combos, keywords, hug timing, silence levels,
   morning notes, countdown), iMessage reading against a fake message database (including the hidden-text format newer
   macOS uses), the relay (including catching up on messages sent while offline), the queue and summary, and the pairing codes.
 - **Two copies on your PC** ("you" and "her") through a local stand-in relay: kisses, statuses, iMessages in both

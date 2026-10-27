@@ -93,6 +93,7 @@ const DEFAULT_STATE = {
   snoozedUntil: 0,
   helloSent: false,
   lastVersion: '', // the app version that last ran here, to notice updates
+  lastCheckedVersion: '', // the version the automatic check (Check tab) last ran for
 };
 
 function isObj(v) {

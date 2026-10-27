@@ -78,6 +78,9 @@ Want a push on your phone when she sends something? Install the **ntfy** app and
 - **Updates:** the Mac checks every hour, then downloads, verifies (signed with your release key), installs and
   reopens by itself. Settings → **Updates** has *Check for updates now*. Publishing a version: `npm run publish:mac`
   (see START-HERE.md → Updating later).
+- **🩺 Check tab:** tests everything (connection, a real round trip, animations, statuses, texts, updates) and can
+  ask the other person's app how it's doing. Runs by itself after each install/update; **Copy report** for help.
+  Each copy keeps a log, `bearly-apart.log`, in its settings folder.
 - **Several computers:** Settings → **Your computers** → *Copy link code*, then on the new computer's setup choose
   *Link this one to it*. Everything they send reaches all of them; your status and what you send show on each.
 - **Coming back:** anything that arrived while you were away waits (even through a restart). When you're back: if

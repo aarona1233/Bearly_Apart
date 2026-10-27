@@ -18,4 +18,6 @@ contextBridge.exposeInMainWorld('ba', {
   open: (what) => ipcRenderer.invoke('app:open', what),
   clipboardCode: () => ipcRenderer.invoke('app:clipboard-code'),
   setup: (step) => ipcRenderer.invoke('app:setup', step),
+  check: (opts) => ipcRenderer.invoke('app:check', opts),
+  checkReport: () => ipcRenderer.invoke('app:check-report'),
 });

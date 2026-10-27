@@ -239,6 +239,20 @@ password. Settings → **Updates** shows the version and has **Check for updates
 
 ---
 
+## If something isn't working: the Check tab
+
+Every copy has a **🩺 Check** tab (also in the 💗 menu: *Check that everything works…*). It tests the connection, a
+real send-and-receive, every animation for both bears, whether bears can play right now (and why not), statuses,
+text reading on a Mac, starting with the computer and updates, and, if ticked, **asks the other person's app how it's
+doing** (its version, connection, text access, and why its bears might be waiting). It also runs by itself after
+every install or update; if something fails you get a notification and the tab opens.
+
+- **Copy report** puts the results and the app's recent log on the clipboard: paste it into a message.
+- **Show log file** opens the folder with `bearly-apart.log` (and `diagnostics.txt`, the last report).
+- From your own computer, the "Their app answers" line already tells you a lot about hers without touching her Mac.
+
+---
+
 ## Troubleshooting
 
 | Problem | Fix |

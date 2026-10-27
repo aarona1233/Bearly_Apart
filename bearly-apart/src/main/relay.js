@@ -4,9 +4,10 @@
 // That format is simple enough to send from an iPhone Shortcut.
 const { EventEmitter } = require('events');
 
-const TYPES = new Set(['message', 'tapback', 'kiss', 'heart', 'hug', 'poke', 'miss-you', 'gift', 'status', 'note', 'jar', 'hello', 'presence', 'seen', 'test']);
+const TYPES = new Set(['message', 'tapback', 'kiss', 'heart', 'hug', 'poke', 'miss-you', 'gift', 'status', 'note', 'jar', 'hello', 'presence', 'seen', 'diag', 'ping', 'pong', 'test']);
 // Bookkeeping between the two apps, not something a person sent: silent if a phone is subscribed to the topic.
-const QUIET = new Set(['presence', 'seen']);
+// diag: a check message to ourselves; ping/pong: asking their app how it's doing (see diagnostics.js).
+const QUIET = new Set(['presence', 'seen', 'diag', 'ping', 'pong']);
 
 function toTags(ev) {
   const tags = ['ba', `e.${ev.type}`, `f.${ev.from}`];
@@ -14,6 +15,7 @@ function toTags(ev) {
   if (ev.gift) tags.push(`g.${ev.gift}`);
   if (ev.presence) tags.push(`p.${ev.presence}`);
   if (ev.until) tags.push(`u.${ev.until}`);
+  if (ev.nonce) tags.push(`x.${ev.nonce}`);
   if (ev.device) tags.push(`d.${ev.device}`);
   if (ev.deviceName) tags.push(`n.${ev.deviceName}`);
   for (const k of ev.keywords || []) tags.push(`k.${k}`);
@@ -39,6 +41,7 @@ function fromNtfy(msg) {
     else if (key === 'g') ev.gift = val;
     else if (key === 'p') ev.presence = val;
     else if (key === 'u') ev.until = Number(val) || 0;
+    else if (key === 'x') ev.nonce = val;
     else if (key === 'd') ev.device = val;
     else if (key === 'n') ev.deviceName = val;
     else if (key === 'k') ev.keywords.push(val);

@@ -89,6 +89,7 @@ function describe(ev, name) {
   if (ev.type === 'hello') return `👋 ${name} paired with you`;
   if (ev.type === 'presence') return ev.presence === 'away' ? `💤 ${name} stepped away` : `👋 ${name} is here`;
   if (ev.type === 'seen') return `👀 ${name} saw it`;
+  if (ev.type === 'diag' || ev.type === 'ping' || ev.type === 'pong') return `🩺 ${name}'s app is running a check`;
   if (ev.type === 'gift') {
     const g = GIFTS[ev.gift];
     return g ? `${g.emoji} ${name} ${g.says}` : `✨ ${name} sent you something`;
