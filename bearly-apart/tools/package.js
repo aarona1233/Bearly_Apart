@@ -199,8 +199,10 @@ async function mac() {
     // carries the same signature, so macOS keeps Full Disk Access across updates; without it, ad-hoc.
     const kind = signMac(rcodesign, app);
     // (`rcodesign verify` can't check these signatures, so just confirm each binary carries one.)
-    const bins = walk(app).filter((f) => /[\/]MacOS[\/]/.test(f));
-    const frameworks = walk(path.join(app, 'Contents', 'Frameworks'), 4).filter((f) => /\.framework[\/]Versions[\/]A[\/][^\/.]+$/.test(f));
+    // [\\/]: Windows paths use backslashes, so both separators must match or nothing gets checked.
+    const bins = walk(app).filter((f) => /[\\/]MacOS[\\/]/.test(f));
+    const frameworks = walk(path.join(app, 'Contents', 'Frameworks'), 4).filter((f) => /\.framework[\\/]Versions[\\/]A[\\/][^\\/.]+$/.test(f));
+    if (!bins.length || !frameworks.length) throw new Error('found no executables to check in the Mac app');
     for (const bin of [...bins, ...frameworks]) {
       const info = execFileSync(rcodesign, ['print-signature-info', bin], { encoding: 'utf8' });
       if (!(kind === 'ad-hoc' ? /ADHOC/.test(info) : /certificat|cms|signer/i.test(info))) throw new Error(`not signed: ${bin}`);
