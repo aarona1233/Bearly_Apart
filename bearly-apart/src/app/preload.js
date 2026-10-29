@@ -20,4 +20,5 @@ contextBridge.exposeInMainWorld('ba', {
   setup: (step) => ipcRenderer.invoke('app:setup', step),
   check: (opts) => ipcRenderer.invoke('app:check', opts),
   checkReport: () => ipcRenderer.invoke('app:check-report'),
+  theirLog: () => ipcRenderer.invoke('app:their-log'),
 });

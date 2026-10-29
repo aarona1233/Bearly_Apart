@@ -312,6 +312,8 @@ const CHECK_MARK = { ok: '✓', warn: '⚠', fail: '✗', skip: '–' };
 function renderCheck() {
   const c = live?.check;
   $('check-partner-label').textContent = `Also ask ${partner()}’s app how it’s doing`;
+  $('their-log-title').textContent = `${partner()}’s app log`;
+  if (!$('their-log-get').disabled) $('their-log-get').textContent = `Get ${partner()}’s log`;
   $('check-run').disabled = !!c?.running;
   $('check-run').textContent = c?.running ? 'Checking…' : 'Run the check';
   if (!c?.at) {
@@ -336,6 +338,25 @@ $('check-copy').addEventListener('click', async () => {
   toast('Report copied. Paste it in a message.');
 });
 $('check-log').addEventListener('click', () => window.ba.open('log'));
+// Their app's recent log, fetched over the relay (it comes back in a few pieces, up to 25 seconds).
+$('their-log-get').addEventListener('click', async () => {
+  $('their-log-get').disabled = true;
+  $('their-log-get').textContent = 'Asking…';
+  $('their-log-status').textContent = `Waiting for ${partner()}’s app…`;
+  const r = await window.ba.theirLog();
+  $('their-log-get').disabled = false;
+  $('their-log-get').textContent = `Get ${partner()}’s log`;
+  $('their-log-status').textContent = r.ok ? `Got it at ${new Date(r.at).toLocaleTimeString()}. ${r.note}` : r.error;
+  $('their-log').hidden = $('their-log-copy').hidden = !r.ok;
+  if (r.ok) {
+    $('their-log').textContent = r.text;
+    $('their-log').scrollTop = $('their-log').scrollHeight; // newest at the bottom
+  }
+});
+$('their-log-copy').addEventListener('click', () => {
+  navigator.clipboard.writeText($('their-log').textContent);
+  toast('Log copied.');
+});
 
 // "Your computers": this one plus any other computer of mine the relay has heard from.
 function renderDevices() {

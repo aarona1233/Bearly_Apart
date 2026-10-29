@@ -78,7 +78,8 @@ Want a push on your phone when she sends something? Install the **ntfy** app and
   reopens by itself. Settings → **Updates** has *Check for updates now*. Publishing a version: `npm run publish:mac`
   (see START-HERE.md → Updating later).
 - **🩺 Check tab:** tests everything (connection, a real round trip, animations, statuses, texts, updates) and can
-  ask the other person's app how it's doing. Runs by itself after each install/update; **Copy report** for help.
+  ask the other person's app how it's doing. Runs by itself after each install/update; **Copy report** for help, and **Get their log** pulls the other
+  app's recent log over the relay (pieces under 3.5 KB, since ntfy.sh turns bigger messages into attachments).
   Each copy keeps a log, `bearly-apart.log`, in its settings folder.
 - **Several computers:** Settings → **Your computers** → *Copy link code*, then on the new computer's setup choose
   *Link this one to it*. Everything they send reaches all of them; your status and what you send show on each.

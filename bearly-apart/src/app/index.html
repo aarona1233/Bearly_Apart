@@ -191,6 +191,16 @@
           <ul class="checks" id="check-results"></ul>
           <p class="hint">Something wrong? <b>Copy report</b> and send it over: it has these results and the app’s recent log, nothing private.</p>
         </div>
+        <div class="card">
+          <h2>📜 <span id="their-log-title">Their app’s log</span></h2>
+          <p class="hint">Asks their app for its recent log through the relay, so you can see what happened over there without being at their computer. It shows what the app did (connections, updates, which bears played), never what a text said. Their app needs 0.9 or newer and has to be open.</p>
+          <div class="actions">
+            <button class="ghost" id="their-log-get">Get their log</button>
+            <button class="ghost" id="their-log-copy" hidden>Copy it</button>
+          </div>
+          <p class="hint" id="their-log-status"></p>
+          <pre class="logbox" id="their-log" hidden></pre>
+        </div>
       </section>
 
       <!-- ============================= SETTINGS =========================== -->

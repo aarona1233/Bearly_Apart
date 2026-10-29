@@ -272,6 +272,7 @@ class UI {
       return { ...r, report: actions.checkReport() };
     });
     ipcMain.handle('app:check-report', () => actions.checkReport());
+    ipcMain.handle('app:their-log', () => actions.fetchPartnerLog());
     // From the overlay: someone clicked a bear.
     ipcMain.on('poke-back', () => actions.sendEvent('poke'));
   }

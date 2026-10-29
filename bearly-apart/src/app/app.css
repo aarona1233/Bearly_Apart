@@ -510,6 +510,17 @@ button.link {
 .checks small {
   color: var(--muted);
 }
+.logbox {
+  max-height: 320px;
+  overflow: auto;
+  margin: 8px 0 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font: 11px/1.45 ui-monospace, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 
 .toast {
   position: fixed;

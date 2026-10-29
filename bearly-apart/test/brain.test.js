@@ -134,6 +134,7 @@ test("two computers of mine: status and hearts from the other one carry over, an
   brain.onRelayEvent({ type: 'status', status: 'studying', from: 'her', device: 'desk1' });
   brain.onRelayEvent({ type: 'heart', from: 'her', device: 'desk1' });
   brain.onRelayEvent({ type: 'kiss', from: 'her', device: 'laptop1' }); // this computer's own echo
+  for (const type of ['ping', 'logreq', 'diag']) brain.onRelayEvent({ type, nonce: 'n', from: 'her', device: 'desk1' }); // the desktop's checks: not in Recent
   assert.strictEqual(state().myStatus.name, 'studying');
   assert.ok(state().sentHeartAt > 0);
   assert.deepStrictEqual(state().myDevices.desk1.name, 'DESKTOP');
@@ -162,6 +163,21 @@ test('checks: their ping and the answer to ours reach the hooks; our own check m
   assert.deepStrictEqual(seen, [['ping', 'n1'], ['pong', 'n2']]);
   assert.strictEqual(played.length, 0, 'no animation for a check');
   assert.strictEqual(state().lastHeardAt, heardBefore, 'a check is not hearing from them');
+});
+
+test('log requests: only theirs reach the hook; log pieces play nothing; a piece carries its lines', async () => {
+  const { brain, played, published, state } = setup();
+  const asked = [];
+  brain.onLogRequest = (ev) => asked.push(ev.nonce);
+  const heardBefore = state().lastHeardAt;
+  brain.onRelayEvent({ type: 'logreq', nonce: 'n1', from: 'him' });
+  brain.onRelayEvent({ type: 'logreq', nonce: 'n2', from: 'mallory' }); // a stranger on the topic gets nothing
+  brain.onRelayEvent({ type: 'logpart', nonce: 'n1', part: '1-1', from: 'him', text: 'a log line' });
+  assert.deepStrictEqual(asked, ['n1']);
+  assert.strictEqual(played.length, 0);
+  assert.strictEqual(state().lastHeardAt, heardBefore);
+  await brain.send('logpart', { nonce: 'n9', part: '2-3', text: 'line one\nline two' });
+  assert.strictEqual(published[0].text, 'line one\nline two');
 });
 
 test('statuses I send are remembered, and clearing works both ways', async () => {

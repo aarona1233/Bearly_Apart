@@ -250,6 +250,8 @@ every install or update; if something fails you get a notification and the tab o
 
 - **Copy report** puts the results and the app's recent log on the clipboard: paste it into a message.
 - **Show log file** opens the folder with `bearly-apart.log` (and `diagnostics.txt`, the last report).
+- **Get her log** (under the check) asks her app for its recent log through the relay, so you can see what happened on
+  her Mac from your PC. Her app has to be open and on 0.9 or newer. It has what the app did, never what a text said.
 - From your own computer, the "Their app answers" line already tells you a lot about hers without touching her Mac.
 
 ---

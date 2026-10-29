@@ -1,13 +1,14 @@
 // Relay over ntfy (https://ntfy.sh or self-hosted). Events travel as ntfy messages:
 //   body  = human-readable text (so the ntfy iPhone app shows a nice push)
-//   tags  = "ba,e.<type>,f.<senderId>[,s.<status>][,g.<gift>][,p.<here|away>][,u.<seen until, unix s>][,d.<computer id>][,n.<computer name>][,k.<keyword>]"  (hello adds c.<bear>, z.<zone>, h.<imessage handle>)
+//   tags  = "ba,e.<type>,f.<senderId>[,s.<status>][,g.<gift>][,p.<here|away>][,u.<seen until, unix s>][,d.<computer id>][,n.<computer name>][,k.<keyword>]"  (hello adds c.<bear>, z.<zone>, h.<imessage handle>; logpart adds i.<piece>-<of>)
 // That format is simple enough to send from an iPhone Shortcut.
 const { EventEmitter } = require('events');
 
-const TYPES = new Set(['message', 'tapback', 'kiss', 'heart', 'hug', 'poke', 'miss-you', 'gift', 'status', 'note', 'jar', 'hello', 'presence', 'seen', 'diag', 'ping', 'pong', 'test']);
+const TYPES = new Set(['message', 'tapback', 'kiss', 'heart', 'hug', 'poke', 'miss-you', 'gift', 'status', 'note', 'jar', 'hello', 'presence', 'seen', 'diag', 'ping', 'pong', 'logreq', 'logpart', 'test']);
 // Bookkeeping between the two apps, not something a person sent: silent if a phone is subscribed to the topic.
-// diag: a check message to ourselves; ping/pong: asking their app how it's doing (see diagnostics.js).
-const QUIET = new Set(['presence', 'seen', 'diag', 'ping', 'pong']);
+// diag: a check message to ourselves; ping/pong: asking their app how it's doing (see diagnostics.js);
+// logreq/logpart: asking their app for its recent log, which comes back in a few pieces.
+const QUIET = new Set(['presence', 'seen', 'diag', 'ping', 'pong', 'logreq', 'logpart']);
 
 function toTags(ev) {
   const tags = ['ba', `e.${ev.type}`, `f.${ev.from}`];
@@ -23,6 +24,7 @@ function toTags(ev) {
   if (ev.character) tags.push(`c.${ev.character}`);
   if (ev.timezone) tags.push(`z.${ev.timezone}`);
   for (const h of ev.handles || []) tags.push(`h.${h}`);
+  if (ev.part) tags.push(`i.${ev.part}`);
   return tags;
 }
 
@@ -49,6 +51,7 @@ function fromNtfy(msg) {
     else if (key === 'c') ev.character = val;
     else if (key === 'z') ev.timezone = val;
     else if (key === 'h') ev.handles.push(val);
+    else if (key === 'i') ev.part = val;
   }
   if (!ev.type || !ev.from || !TYPES.has(ev.type)) return null;
   return ev;

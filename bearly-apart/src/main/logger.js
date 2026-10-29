@@ -15,6 +15,36 @@ function oneLine(err) {
   return `${err.name || 'Error'}: ${err.message}${frames.length ? ` (at ${frames.join(' ← ')})` : ''}`;
 }
 
+// Splits the newest log lines into at most maxParts pieces of up to maxBytes (UTF-8) each, oldest first, so they
+// fit in relay messages (ntfy.sh turns anything over 4 KB into an attachment the app can't read). Older lines that
+// don't fit are left out; a single line that's too long is cut short.
+function packLog(lines, { maxBytes = 3500, maxParts = 4 } = {}) {
+  const limit = maxBytes - 1; // room for the newline
+  const fit = (s) => {
+    if (Buffer.byteLength(s) <= limit) return s;
+    let t = s.slice(0, limit);
+    while (Buffer.byteLength(t) > limit - 3) t = t.slice(0, -1);
+    return `${t}…`;
+  };
+  const pieces = [];
+  let cur = [];
+  let size = 0;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = fit(lines[i]);
+    const n = Buffer.byteLength(line) + 1;
+    if (size + n > maxBytes) {
+      if (pieces.length + 1 >= maxParts) break;
+      pieces.push(cur);
+      cur = [];
+      size = 0;
+    }
+    cur.unshift(line);
+    size += n;
+  }
+  if (cur.length) pieces.push(cur);
+  return pieces.reverse().map((p) => p.join('\n'));
+}
+
 function createLogger({ print = console.log, now = () => new Date() } = {}) {
   let file = null;
   let early = []; // lines logged before the file was known
@@ -72,4 +102,4 @@ function createLogger({ print = console.log, now = () => new Date() } = {}) {
   return log;
 }
 
-module.exports = { createLogger, MAX_BYTES };
+module.exports = { createLogger, packLog, MAX_BYTES };

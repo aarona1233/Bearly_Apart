@@ -15,7 +15,7 @@ const { Brain } = require('./brain');
 const { Activity } = require('./activity');
 const { OverlayWindow } = require('./overlay-window');
 const { UI, pauseText } = require('./ui');
-const { createLogger } = require('./logger');
+const { createLogger, packLog } = require('./logger');
 const { runDiagnostics, formatReport, summary } = require('./diagnostics');
 const { MAC_TARGET, INSTALL_SH, UPDATE_SH, compareVersions, plistVersion, needsInstall } = require('./mac-install');
 const { Updater } = require('./updater');
@@ -614,6 +614,57 @@ function checkReport() {
   return formatReport(lastCheck.results, { when: new Date(lastCheck.at || Date.now()), logTail: log.tail(60) });
 }
 
+// Their app asked for this one's log: the newest lines, in up to 4 relay messages (see packLog). The log has what the
+// app did (connections, updates, which bears played), never what a text said.
+async function sendLogTo(nonce) {
+  log(`[check] ${partnerName()}’s app asked for this app’s log; sending it`);
+  const head = `Bearly Apart ${app.getVersion()} on ${OS_NAME} (${DEVICE_NAME}), log sent ${new Date().toISOString()}`;
+  const parts = packLog(log.tail(300), { maxBytes: 3300 });
+  if (!parts.length) parts.push('(the log is empty)');
+  parts[0] = `${head}\n${parts[0]}`;
+  for (let i = 0; i < parts.length; i++) await sendQuiet('logpart', { nonce, part: `${i + 1}-${parts.length}`, text: parts[i] });
+}
+
+// Check → "Get their log": asks their app (0.9 or newer) for its recent log and puts the pieces back together.
+async function fetchPartnerLog() {
+  if (!cfg().partner.id) return { ok: false, error: 'Not paired yet.' };
+  if (!relay.connected) return { ok: false, error: 'This app isn’t connected to the relay right now; try again in a minute.' };
+  const nonce = newNonce();
+  const parts = new Map();
+  let total = 0;
+  const done = new Promise((resolve) => {
+    const onEvent = (ev) => {
+      if (ev.type !== 'logpart' || ev.nonce !== nonce || ev.from !== cfg().partner.id) return;
+      const [i, n] = String(ev.part || '1-1').split('-').map(Number);
+      total = n || 1;
+      parts.set(i || 1, ev.text);
+      if (parts.size >= total) finish();
+    };
+    const timer = setTimeout(finish, 25_000);
+    function finish() {
+      clearTimeout(timer);
+      relay.off('event', onEvent);
+      resolve();
+    }
+    relay.on('event', onEvent);
+  });
+  try {
+    await brain.send('logreq', { nonce });
+  } catch (err) {
+    return { ok: false, error: `Couldn’t ask: ${err.message}` };
+  }
+  await done;
+  if (!parts.size) return { ok: false, error: `${partnerName()}’s app didn’t answer within 25 seconds: it may be closed or asleep, or older than 0.9 (it can’t send its log).` };
+  const missing = total - parts.size;
+  log(`[check] got ${partnerName()}’s log (${parts.size} of ${total} pieces)`);
+  return {
+    ok: true,
+    at: Date.now(),
+    text: [...parts.keys()].sort((a, b) => a - b).map((k) => parts.get(k)).join('\n'),
+    note: missing ? `${missing} of ${total} pieces didn’t arrive; this is what came through.` : '',
+  };
+}
+
 // Once per new version: run the checks and, if something is broken, say so (notification + the Check tab).
 async function autoCheck() {
   if (!cfg().setupDone || st().lastCheckedVersion === app.getVersion()) return;
@@ -689,6 +740,8 @@ app.whenReady().then(() => {
   brain.onSeen = (until) => activity.markSeen(until * 1000);
   // Their app's check asked how this one is doing: answer with a short health summary.
   brain.onPing = async (ev) => sendQuiet('pong', { nonce: ev.nonce, text: JSON.stringify(await healthSnapshot()) });
+  // Their Check tab asked for this app's recent log ("Get their log").
+  brain.onLogRequest = (ev) => sendLogTo(ev.nonce);
   brain.onMyOtherComputer = (ev, name) =>
     activity.add({ dir: 'out', text: `${outText(ev.type, ev)} (on ${name})`, state: 'sent', relayAt: ev.at });
   brain.onHello = (p) => {
@@ -703,7 +756,7 @@ app.whenReady().then(() => {
   relay.on('event', (ev) => {
     if (ev.from !== cfg().me.id) {
       log(`[relay] ← ${ev.type}${ev.status ? `:${ev.status}` : ''} from ${ev.from}`);
-      const bookkeeping = ['presence', 'seen', 'diag', 'ping', 'pong'].includes(ev.type);
+      const bookkeeping = ['presence', 'seen', 'diag', 'ping', 'pong', 'logreq', 'logpart'].includes(ev.type);
       if (!bookkeeping && (ev.from === cfg().partner.id || ev.type === 'hello')) activity.add({ dir: 'in', text: incomingText(ev) });
     }
     brain.onRelayEvent(ev);
@@ -746,7 +799,7 @@ app.whenReady().then(() => {
     pairingCode: () => encodePairing(cfg()),
     linkCode: () => encodeLink(cfg()),
     deviceName: DEVICE_NAME,
-    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, checkTextAccess, relaunch, checkForUpdates, setUpdateKey, runChecks, checkReport, logFile: () => log.file() },
+    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, checkTextAccess, relaunch, checkForUpdates, setUpdateKey, runChecks, checkReport, fetchPartnerLog, logFile: () => log.file() },
   });
   activity.on('change', () => ui.refresh());
   ui.start();

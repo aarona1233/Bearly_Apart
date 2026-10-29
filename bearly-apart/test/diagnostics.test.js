@@ -4,7 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { runDiagnostics, formatReport, summary } = require('../src/main/diagnostics');
-const { createLogger } = require('../src/main/logger');
+const { createLogger, packLog } = require('../src/main/logger');
 const { toTags, fromNtfy } = require('../src/main/relay');
 
 function ctx(overrides = {}) {
@@ -92,6 +92,27 @@ test('log file: lines before the file is known are kept, tail reads back, big fi
   assert.ok(fs.existsSync(path.join(dir, 'bearly-apart.log.old')));
   assert.match(log.tail(1)[0], /after roll$/);
   assert.strictEqual(printed.length, 3);
+});
+
+test('log pieces: newest lines kept, oldest first, each under the relay limit, at most 4', () => {
+  const lines = Array.from({ length: 400 }, (_, i) => `2026-10-29T12:00:00.000Z line ${i} 🐻 ${'x'.repeat(60)}`);
+  const parts = packLog(lines);
+  assert.ok(parts.length === 4, `4 pieces, got ${parts.length}`);
+  for (const p of parts) assert.ok(Buffer.byteLength(p) <= 3500, `piece is ${Buffer.byteLength(p)} bytes`);
+  const back = parts.join('\n').split('\n');
+  assert.strictEqual(back.at(-1), lines.at(-1), 'the newest line is there');
+  assert.deepStrictEqual(back, lines.slice(-back.length), 'a run of the newest lines, in order');
+  // a short log is one piece; a giant line is cut to fit; nothing in, nothing out
+  assert.deepStrictEqual(packLog(['a', 'b']), ['a\nb']);
+  const [big] = packLog(['é'.repeat(5000)]);
+  assert.ok(Buffer.byteLength(big) <= 3500 && big.endsWith('…'));
+  assert.deepStrictEqual(packLog([]), []);
+});
+
+test('log messages round-trip through the relay format with their piece number', () => {
+  const back = fromNtfy({ event: 'message', id: '2', time: 1, message: 'l1\nl2', tags: toTags({ type: 'logpart', from: 'yimei', nonce: 'cd', part: '2-3' }) });
+  assert.deepStrictEqual([back.type, back.nonce, back.part, back.text], ['logpart', 'cd', '2-3', 'l1\nl2']);
+  assert.strictEqual(fromNtfy({ event: 'message', id: '3', time: 1, message: 'x', tags: toTags({ type: 'logreq', from: 'aaron', nonce: 'cd' }) }).type, 'logreq');
 });
 
 test('check messages carry their nonce', () => {
