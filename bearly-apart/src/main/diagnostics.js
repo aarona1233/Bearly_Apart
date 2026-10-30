@@ -1,6 +1,16 @@
 // "Is everything working?": a list of checks, run after each install/update and from the Check tab. Each check
 // answers ok / warn / fail / skip with a sentence a person can act on. The app passes in what each check needs
 // (ctx), so this file has no Electron in it and can be tested with fakes.
+const crypto = require('crypto');
+
+// A short name for the relay channel (server + topic) that's safe to show and paste: two computers can only
+// reach each other when theirs match. It's a hash, so it doesn't give the topic (the shared secret) away.
+function channelId(relay = {}) {
+  const server = String(relay.server || '').trim().replace(/\/+$/, '').toLowerCase();
+  const h = crypto.createHash('sha256').update(`${server}|${relay.topic || ''}`).digest('hex').slice(0, 8).toUpperCase();
+  return `${h.slice(0, 4)}-${h.slice(4)}`;
+}
+
 const CHECKS = [
   {
     id: 'app',
@@ -13,7 +23,7 @@ const CHECKS = [
     run: (c) => {
       if (!c.config.me.name) return fail('Setup isn’t finished: no name yet. Open the app and finish the setup.');
       if (!c.config.partner.id) return fail('Not connected to your person yet: send them an invite, or paste theirs (Settings → Connection).');
-      return ok(`${c.config.me.name} ⇄ ${c.config.partner.name || c.config.partner.id}`);
+      return ok(`${c.config.me.name} ⇄ ${c.config.partner.name || c.config.partner.id}, channel ${channelId(c.config.relay)} (the same on both of your computers and theirs)`);
     },
   },
   {
@@ -42,16 +52,25 @@ const CHECKS = [
     id: 'partner',
     label: 'Their app answers',
     partner: true,
-    run: async (c) => {
+    run: async (c, done) => {
       if (!c.config.partner.id) return skip('not paired yet');
       const them = await c.askPartner();
-      if (!them) return warn(`${c.config.partner.name || 'Their app'} didn’t answer within 20 seconds: it may be closed or asleep, or older than 0.7 (it can’t answer checks).`);
+      const who = c.config.partner.name || 'Their app';
+      if (!them) {
+        // This computer's own test message came back, so it's fine: if theirs is open too, the two are on different channels.
+        if (done.find((r) => r.id === 'roundtrip')?.status === 'ok') {
+          return warn(
+            `${who} didn’t answer within 20 seconds. This computer works (its test message came back), so if their app is open and online, you’re on different channels: compare the channel under “Set up and paired” on both computers, and if they differ, paste their invite in Settings → Connection.`,
+          );
+        }
+        return warn(`${who} didn’t answer within 20 seconds: it may be closed or asleep, or older than 0.7 (it can’t answer checks).`);
+      }
       const bits = [`version ${them.version || '?'}`, them.os, them.connected ? 'connected' : 'NOT connected'];
       if (them.imessage && them.imessage !== 'off') bits.push(`texts: ${TEXTS[them.imessage] || them.imessage}`);
       if (them.paused) bits.push(`bears waiting: ${them.paused}`);
       if (them.errors) bits.push(`${them.errors} error(s) in the last day`);
       const trouble = !them.connected || them.imessage === 'no-access' || them.imessage === 'missing';
-      return (trouble ? warn : ok)(`${c.config.partner.name || 'Their app'} answered: ${bits.filter(Boolean).join(', ')}`);
+      return (trouble ? warn : ok)(`${who} answered: ${bits.filter(Boolean).join(', ')}`);
     },
   },
   {
@@ -146,7 +165,7 @@ async function runDiagnostics(ctx, { partner = true, onProgress = () => {} } = {
     if (check.partner && !partner) continue;
     let r;
     try {
-      r = await check.run(ctx);
+      r = await check.run(ctx, results);
     } catch (err) {
       r = fail(err?.message || String(err));
     }
@@ -174,4 +193,4 @@ function formatReport(results, { when = new Date(), logTail = [] } = {}) {
   return lines.join('\n');
 }
 
-module.exports = { CHECKS, runDiagnostics, formatReport, summary };
+module.exports = { CHECKS, runDiagnostics, formatReport, summary, channelId };

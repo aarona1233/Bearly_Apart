@@ -3,7 +3,7 @@ const assert = require('node:assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { runDiagnostics, formatReport, summary } = require('../src/main/diagnostics');
+const { runDiagnostics, formatReport, summary, channelId } = require('../src/main/diagnostics');
 const { createLogger, packLog } = require('../src/main/logger');
 const { toTags, fromNtfy } = require('../src/main/relay');
 
@@ -54,6 +54,24 @@ test('her Mac without Full Disk Access, bears paused, partner silent: the right 
   assert.strictEqual(by.now.status, 'warn');
   assert.strictEqual(by.partner.status, 'warn');
   assert.match(by.partner.detail, /didn’t answer/);
+});
+
+test('the channel ID: same server and topic give the same short ID, any difference changes it, the topic never shows', async () => {
+  const a = channelId({ server: 'https://ntfy.sh', topic: 'ba-secret123' });
+  assert.match(a, /^[0-9A-F]{4}-[0-9A-F]{4}$/);
+  assert.strictEqual(channelId({ server: 'https://NTFY.sh/', topic: 'ba-secret123' }), a);
+  assert.notStrictEqual(channelId({ server: 'https://ntfy.sh', topic: 'ba-secret124' }), a);
+  const r = await runDiagnostics(ctx({ config: { ...ctx().config, relay: { server: 'https://ntfy.sh', topic: 'ba-secret123' } } }));
+  const setup = r.find((x) => x.id === 'setup').detail;
+  assert.ok(setup.includes(`channel ${a}`));
+  assert.ok(!setup.includes('secret'));
+});
+
+test('their app silent while this one works: the check says to compare channels and re-link', async () => {
+  const r = await runDiagnostics(ctx({ askPartner: async () => null }));
+  assert.match(r.find((x) => x.id === 'partner').detail, /different channels.*paste their invite in Settings → Connection/);
+  const r2 = await runDiagnostics(ctx({ askPartner: async () => null, roundTrip: async () => { throw new Error('never came back'); } }));
+  assert.match(r2.find((x) => x.id === 'partner').detail, /closed or asleep/);
 });
 
 test('a partner answer that shows trouble is a warning, and partner: false skips asking', async () => {

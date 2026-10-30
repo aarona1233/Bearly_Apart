@@ -279,6 +279,10 @@ every install or update; if something fails you get a notification and the tab o
 - **Get her log** (under the check) asks her app for its recent log through the relay, so you can see what happened on
   her Mac from your PC. Her app has to be open and on 0.9 or newer. It has what the app did, never what a text said.
 - From your own computer, the "Their app answers" line already tells you a lot about hers without touching her Mac.
+- **Can't reach each other, but each check passes on its own?** Look at the **channel** under "Set up and paired"
+  (like `AD69-7166`). It has to be the same on her Mac, your desktop and your laptop. If hers differs, copy your
+  invite (Settings → Connection) and paste it on her Mac; if your laptop differs, use the link code under
+  Settings → Your computers.
 
 ---
 
