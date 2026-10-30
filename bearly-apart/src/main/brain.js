@@ -75,6 +75,7 @@ class Brain {
     // Their Check tab asked for this app's log (the pieces of an answer are collected in main.js).
     if (ev.type === 'logreq') return this.onLogRequest?.(ev);
     if (ev.type === 'logpart') return;
+    if (ev.type === 'testplay') return this.onTestPlay?.(ev);
     if (ev.type === 'diag') return;
     if (ev.type === 'seen') return this.onSeen?.(ev.until);
     this.fromPartner(ev);
@@ -90,7 +91,7 @@ class Brain {
     if (ev.type === 'status') this.setState({ myStatus: ev.status === 'clear' ? null : { name: ev.status, at } });
     if (ev.type === 'heart') this.setState({ sentHeartAt: at });
     // Only things I sent show in Recent; checks and log requests between the apps don't.
-    if (!['presence', 'seen', 'hello', 'diag', 'ping', 'pong', 'logreq', 'logpart'].includes(ev.type)) this.onMyOtherComputer?.(ev, seen.name);
+    if (!['presence', 'seen', 'hello', 'diag', 'ping', 'pong', 'logreq', 'logpart', 'testplay'].includes(ev.type)) this.onMyOtherComputer?.(ev, seen.name);
   }
 
   // Their app says they're at the computer ("here") or not ("away": idle, locked, asleep, quit). They may use
@@ -143,6 +144,14 @@ class Brain {
       case 'poke':
       case 'miss-you':
         return this.queue(ev.type, ev, { kiss: 5, hug: 6, poke: 4, 'miss-you': 5 }[ev.type]);
+      // Halloween: they pressed "I want candy", so their bear comes trick-or-treating here (the candy game);
+      // a treat is them dropping a candy in my bear's bucket.
+      case 'candy':
+        // Not before Halloween has started here (so nothing of it shows up early).
+        if (this.halloweenOpen && !this.halloweenOpen()) return this.log('[brain] candy request before Halloween, ignored');
+        return this.queue('trick-or-treat', ev, 5, { requested: '1' });
+      case 'treat':
+        return this.queue('treat', ev, 4);
       case 'gift': {
         const g = GIFTS[ev.gift] || { emoji: '✨', says: 'sent you something' };
         // A gift this version doesn't know (newer app on the other side) still shows something.

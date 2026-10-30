@@ -9,7 +9,7 @@
 const { app, BrowserWindow, nativeImage } = require('electron');
 const fs = require('fs');
 const path = require('path');
-const zlib = require('zlib');
+const { apng, scanlines } = require('./apng');
 
 const MAX = 320;
 // --out=<dir> writes somewhere else (for trying things out without touching assets/).
@@ -56,7 +56,15 @@ const MAP = {
   'fe1cf8ad79748c4c26045817b17b5c76.gif': { pose: 'finger-gun', bear: 'cream' },
   // The first frames of the desk flip, before the flip: writing at a desk with books, slowed into a calm loop.
   '0b8567569e3c0b74bf7324876d4cc0a6.gif#studying': { pose: 'studying', bear: 'cream', frames: [0, 1, 2, 1], delay: 260 },
+  // ---- Halloween (see halloween.js) ----
+  // Witch Bubu holding out a jack-o'-lantern bucket on a moonlit sky: kept as a painted scene, it's the candy game.
+  'hallowen ask for candy.gif': { pose: 'trick-or-treat', bear: 'cream', keep: true, max: 300 },
+  'bubu hallowwen.gif': { pose: 'vampire', bear: 'cream' },
+  'dudu halloween.gif': { pose: 'ghost-costume', bear: 'brown' },
+  'halloween bubu pumkin.gif': { pose: 'pumpkin', bear: 'cream', max: 260 },
+  'halloween dudu pumkin.gif': { pose: 'pumpkin', bear: 'brown', max: 260 },
   // ---- both bears ----
+  'halloween.gif': 'pair-broom.png',
   'bubu-cute-attack.gif': 'pair-tackle-hug.png',
   'Bubu -Love-Kiss.gif': 'pair-love-kiss.png',
   'bubu-dudu-cute-kiss.gif': 'pair-cute-kiss.png',
@@ -213,76 +221,6 @@ const DECODE = `async (b64, max, opts) => {
   return { w, h, frames, keyed, original: [W, H] };
 }`;
 
-// ---- APNG writer ---------------------------------------------------------------
-const CRC = new Int32Array(256).map((_, n) => {
-  let c = n;
-  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-  return c;
-});
-function crc32(buf) {
-  let c = -1;
-  for (const b of buf) c = CRC[(c ^ b) & 0xff] ^ (c >>> 8);
-  return (c ^ -1) >>> 0;
-}
-function chunk(type, data) {
-  const len = Buffer.alloc(4);
-  len.writeUInt32BE(data.length);
-  const td = Buffer.concat([Buffer.from(type), data]);
-  const crc = Buffer.alloc(4);
-  crc.writeUInt32BE(crc32(td));
-  return Buffer.concat([len, td, crc]);
-}
-function apng(w, h, frames) {
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(w, 0);
-  ihdr.writeUInt32BE(h, 4);
-  ihdr[8] = 8;
-  ihdr[9] = 6;
-  const actl = Buffer.alloc(8);
-  actl.writeUInt32BE(frames.length, 0); // num_plays 0 = loop forever
-  const out = [Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('acTL', actl)];
-  let seq = 0;
-  frames.forEach((f, i) => {
-    const fctl = Buffer.alloc(26);
-    fctl.writeUInt32BE(seq++, 0);
-    fctl.writeUInt32BE(w, 4);
-    fctl.writeUInt32BE(h, 8);
-    fctl.writeUInt16BE(f.delay, 20);
-    fctl.writeUInt16BE(1000, 22);
-    fctl[24] = 1; // dispose to transparent
-    fctl[25] = 0;
-    out.push(chunk('fcTL', fctl));
-    const idat = zlib.deflateSync(f.raw, { level: 9 });
-    if (i === 0) out.push(chunk('IDAT', idat));
-    else {
-      const sn = Buffer.alloc(4);
-      sn.writeUInt32BE(seq++);
-      out.push(chunk('fdAT', Buffer.concat([sn, idat])));
-    }
-  });
-  out.push(chunk('IEND', Buffer.alloc(0)));
-  return Buffer.concat(out);
-}
-
-// Unfiltered PNG scanlines from a BGRA bitmap. (Row filters made these dithered GIF frames
-// compress worse, so plain rows it is.)
-function scanlines(bgra, w, h) {
-  const raw = Buffer.alloc((w * 4 + 1) * h);
-  for (let y = 0; y < h; y++) {
-    const row = y * (w * 4 + 1);
-    for (let x = 0; x < w; x++) {
-      const s = (y * w + x) * 4;
-      const t = row + 1 + x * 4;
-      raw[t] = bgra[s + 2];
-      raw[t + 1] = bgra[s + 1];
-      raw[t + 2] = bgra[s];
-      raw[t + 3] = bgra[s + 3];
-    }
-  }
-  return raw;
-}
-
-// Adds a Send button and its scene for a new gift GIF, unless they exist already (so edits are kept).
 function addGift(gift, asset) {
   const readJson = (f) => JSON.parse(fs.readFileSync(path.join(OUT, f), 'utf8'));
   const writeJson = (f, data) => fs.writeFileSync(path.join(OUT, f), JSON.stringify(data, null, 2) + '\n');

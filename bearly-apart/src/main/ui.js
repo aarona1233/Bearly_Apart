@@ -137,10 +137,14 @@ class UI {
     for (const [type, s] of Object.entries(SENDABLES)) {
       items.push({ label: `${s.emoji}  Send ${s.short.toLowerCase()}`, enabled: paired, click: () => this.actions.sendEvent(type, {}, { notify: true }) });
     }
+    // Halloween: ask for candy (their screen gets your bear trick-or-treating), and the Halloween gifts.
+    if (live.halloween) items.push({ label: '🍬  I want candy', enabled: paired, click: () => this.actions.sendEvent('candy', {}, { notify: true }) });
     items.push({
       label: '✨  Send more…',
       enabled: paired,
-      submenu: Object.entries(GIFTS).map(([gift, g]) => ({ label: `${g.emoji}  ${g.label}`, click: () => this.actions.sendEvent('gift', { gift }, { notify: true }) })),
+      submenu: Object.entries(GIFTS)
+        .filter(([, g]) => !g.season || (g.season === 'halloween' && live.halloween))
+        .map(([gift, g]) => ({ label: `${g.emoji}  ${g.label}`, click: () => this.actions.sendEvent('gift', { gift }, { notify: true }) })),
     });
     const mine = st.myStatus?.name;
     items.push({
@@ -159,6 +163,8 @@ class UI {
     });
     items.push({ label: '💌  Write a love note…', enabled: paired, click: () => this.openWindow('send') });
     items.push({ type: 'separator' });
+    // On by itself for Halloween (Oct 30 23:59 → Oct 31 15:59); switch it on or off here any time.
+    if (live.halloweenOpen) items.push({ label: '🎃  Halloween mode', type: 'checkbox', checked: !!live.halloween, click: () => this.actions.toggleHoliday('halloween') });
     items.push(
       live.snoozedUntil
         ? { label: `🔕 Snoozed until ${new Date(live.snoozedUntil).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} — resume`, click: () => this.actions.snooze(0) }
@@ -230,7 +236,7 @@ class UI {
     ipcMain.handle('app:send', (_, { type, status, gift }) => {
       if (type === 'status') return actions.sendEvent(type, { status: String(status) });
       if (type === 'gift') return GIFTS[gift] ? actions.sendEvent(type, { gift }) : { ok: false, error: 'unknown gift' };
-      return SENDABLES[type] ? actions.sendEvent(type) : { ok: false, error: 'unknown type' };
+      return SENDABLES[type] || type === 'candy' ? actions.sendEvent(type) : { ok: false, error: 'unknown type' };
     });
     ipcMain.handle('app:note', (_, { text, later }) => {
       const t = String(text || '').trim().slice(0, 2000);
@@ -273,6 +279,9 @@ class UI {
     });
     ipcMain.handle('app:check-report', () => actions.checkReport());
     ipcMain.handle('app:their-log', () => actions.fetchPartnerLog());
+    ipcMain.handle('app:tester-unlock', (_, code) => actions.unlockTester(code));
+    ipcMain.handle('app:tester-lock', () => actions.lockTester());
+    ipcMain.handle('app:tester-candy', (_, where) => actions.testCandy(where === 'there' ? 'there' : 'here'));
     // From the overlay: someone clicked a bear.
     ipcMain.on('poke-back', () => actions.sendEvent('poke'));
   }

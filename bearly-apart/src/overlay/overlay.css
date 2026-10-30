@@ -166,6 +166,64 @@ body {
   opacity: 0.55;
 }
 
+/* ---------- Halloween candy game ---------- */
+.candy {
+  position: absolute;
+  object-fit: contain;
+  pointer-events: auto;
+  cursor: grab;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.25));
+}
+.candy.idle {
+  animation: candy-float 1.8s ease-in-out infinite;
+}
+.candy.held {
+  cursor: grabbing;
+  filter: drop-shadow(0 16px 18px rgba(0, 0, 0, 0.3));
+}
+@keyframes candy-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -12px;
+  }
+}
+.candy-hint {
+  position: absolute;
+  transform: translateX(-50%);
+  background: #2b1d40;
+  color: #ffd9a8;
+  border: 3px solid #ff9a3c;
+  border-radius: 14px;
+  padding: 5px 12px;
+  font-size: 15px;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(255, 140, 40, 0.3);
+  animation: pop 300ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+.bucket-ring {
+  position: absolute;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 3px dashed rgba(255, 170, 60, 0.85);
+  box-shadow: 0 0 18px rgba(255, 150, 40, 0.55);
+  transition:
+    scale 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+.bucket-ring.hot {
+  border-style: solid;
+  border-color: #ffd36e;
+  scale: 1.15;
+  box-shadow:
+    0 0 30px rgba(255, 200, 80, 0.95),
+    inset 0 0 18px rgba(255, 200, 80, 0.6);
+}
+
 .out {
   animation: fade-out 400ms ease-in forwards !important;
 }

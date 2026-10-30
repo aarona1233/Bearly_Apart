@@ -59,6 +59,9 @@ const SCENES = {
   'welcome-back-long': ['Welcome back (hours)', 'Same, after 2+ hours away: their bear turns grey without you'],
   'welcome-back-day': ['Welcome back (all day)', 'Same, after 8+ hours away: their lonely bear'],
   'away-summary': ['While you were away', 'One line listing everything that came in while you were away'],
+  'trick-or-treat': ['Trick or treat 🎃', 'Halloween: every 10–20 minutes, or when they press 🍬 I want candy. Drag a candy into the bucket'],
+  treat: ['Candy for you 🍬', 'Halloween: they dropped a candy in your bear’s bucket'],
+  'halloween-ghosts': ['Ghost bears 👻', 'When Halloween mode starts'],
   'partner-back': ['They’re back', 'They come back to the computer after 20+ minutes away'],
   'missing-peek': ['Missing you: peek', 'No texts for 3 hours'],
   'missing-sword': ['Missing you: sword', 'No texts for 6 hours'],
@@ -66,10 +69,13 @@ const SCENES = {
   status: ['Status', 'A status without its own animation'],
 };
 
+// Halloween's scenes: not shown in the Animations tab until Halloween has started (holiday.js).
+const HALLOWEEN_SCENES = new Set(['trick-or-treat', 'treat', 'halloween-ghosts']);
+
 function sceneInfo(name) {
-  if (SCENES[name]) return { name, title: SCENES[name][0], when: SCENES[name][1] };
+  if (SCENES[name]) return { name, title: SCENES[name][0], when: SCENES[name][1], ...(HALLOWEEN_SCENES.has(name) ? { season: 'halloween' } : {}) };
   const gift = name.startsWith('send-') && GIFTS[name.slice(5)];
-  if (gift) return { name, title: `${gift.emoji} ${gift.label}`, when: `The ${gift.emoji} ${gift.label} button` };
+  if (gift) return { name, title: `${gift.emoji} ${gift.label}`, when: `The ${gift.emoji} ${gift.label} button`, ...(gift.season ? { season: gift.season } : {}) };
   const st = name.startsWith('status-') && STATUSES[name.slice(7)];
   if (st) return { name, title: `Status: ${st.short}`, when: `They set ${st.emoji} ${st.short}` };
   return { name, title: name, when: 'Your own scene' };
@@ -83,11 +89,13 @@ function describe(ev, name) {
   }
   if (ev.type === 'note' || ev.type === 'jar') return ev.text;
   if (ev.type === 'message') return `💬 ${name} texted you`;
+  if (ev.type === 'candy') return `🎃 ${name} wants candy`;
+  if (ev.type === 'treat') return `🍬 ${name} gave you candy`;
   if (ev.type === 'tapback') return `💞 ${name} reacted to your message`;
   if (ev.type === 'hello') return `👋 ${name} paired with you`;
   if (ev.type === 'presence') return ev.presence === 'away' ? `💤 ${name} stepped away` : `👋 ${name} is here`;
   if (ev.type === 'seen') return `👀 ${name} saw it`;
-  if (['diag', 'ping', 'pong', 'logreq', 'logpart'].includes(ev.type)) return `🩺 ${name}'s app is running a check`;
+  if (['diag', 'ping', 'pong', 'logreq', 'logpart', 'testplay'].includes(ev.type)) return `🩺 ${name}'s app is running a check`;
   if (ev.type === 'gift') {
     const g = GIFTS[ev.gift];
     return g ? `${g.emoji} ${name} ${g.says}` : `✨ ${name} sent you something`;

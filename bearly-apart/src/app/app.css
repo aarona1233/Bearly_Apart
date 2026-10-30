@@ -544,3 +544,75 @@ button.link {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* ---------- Halloween mode (body.halloween, while it's on): spooky, but still cute ---------- */
+body.halloween {
+  --bg: #1d1430;
+  --card: #2a1d42;
+  --ink: #fbeaff;
+  --muted: #c4a9dc;
+  --pink: #ff8a2b;
+  --pink-strong: #ff6f00;
+  --pink-soft: #43305e;
+  --line: #4b3769;
+  --ok: #8be08b;
+  --bad: #ff8a8a;
+  --warn-bg: #4a3410;
+  --warn-ink: #ffe0a8;
+  color-scheme: dark;
+  background: linear-gradient(#1d1430, #2a1840) fixed;
+}
+body.halloween button {
+  color: #2b1530;
+}
+body.halloween button.ghost,
+body.halloween .send-btn,
+body.halloween .tabs button {
+  color: var(--ink);
+}
+body.halloween .tabs button.on {
+  border-bottom-color: var(--pink);
+}
+body.halloween .card {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+.card.spooky {
+  border-color: var(--pink);
+  background: linear-gradient(160deg, #3d2456, #2a1d42);
+  box-shadow: 0 0 22px rgba(255, 138, 43, 0.3);
+}
+/* A crescent moon with bats in the header, and a cobweb in the corner. */
+body.halloween::before {
+  content: '';
+  position: fixed;
+  top: 4px;
+  left: 50%;
+  width: 170px;
+  height: 66px;
+  translate: -30% 0;
+  pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 170 66'%3E%3Ccircle cx='140' cy='28' r='20' fill='%23ffe3a1'/%3E%3Ccircle cx='131' cy='21' r='18' fill='%231d1430'/%3E%3Cg fill='%23b79be0'%3E%3Cpath transform='translate(14 22)' d='M0 6Q6 0 10 5Q12 2 14 5Q18 0 24 6Q18 6 16 10Q12 8 8 10Q6 6 0 6Z'/%3E%3Cpath transform='translate(58 6) scale(.8)' d='M0 6Q6 0 10 5Q12 2 14 5Q18 0 24 6Q18 6 16 10Q12 8 8 10Q6 6 0 6Z'/%3E%3Cpath transform='translate(86 40) scale(.65)' d='M0 6Q6 0 10 5Q12 2 14 5Q18 0 24 6Q18 6 16 10Q12 8 8 10Q6 6 0 6Z'/%3E%3C/g%3E%3C/svg%3E")
+    no-repeat center / contain;
+  animation: bats 3.2s ease-in-out infinite;
+}
+body.halloween::after {
+  content: '';
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  width: 120px;
+  height: 120px;
+  pointer-events: none;
+  opacity: 0.22;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120' fill='none' stroke='%23fff' stroke-width='1.4'%3E%3Cpath d='M120 120L0 120M120 120L10 60M120 120L40 20M120 120L80 0M120 120L120 0'/%3E%3Cpath d='M95 120Q100 108 98 102Q104 98 108 92Q112 96 120 95'/%3E%3Cpath d='M68 120Q76 100 72 90Q84 84 88 70Q100 74 106 66Q112 70 120 68'/%3E%3Cpath d='M40 120Q52 94 46 78Q62 70 64 50Q82 54 92 40Q104 46 120 40'/%3E%3C/svg%3E")
+    no-repeat right bottom / contain;
+}
+@keyframes bats {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}

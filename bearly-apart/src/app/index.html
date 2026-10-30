@@ -133,6 +133,12 @@
 
       <!-- ============================== SEND ============================== -->
       <section data-page="send">
+        <div class="card spooky" id="halloween-card" hidden>
+          <h2>🎃 Happy Halloween!</h2>
+          <p class="hint" id="halloween-hint"></p>
+          <div class="send-grid" id="halloween-grid"></div>
+        </div>
+
         <div class="card">
           <h2>Send a little something</h2>
           <p class="hint" id="send-hint"></p>
@@ -200,6 +206,24 @@
           </div>
           <p class="hint" id="their-log-status"></p>
           <pre class="logbox" id="their-log" hidden></pre>
+        </div>
+        <div class="card">
+          <h2>🧪 Tester</h2>
+          <div id="tester-locked">
+            <p class="hint">For trying out features before they’re released. Needs a tester code.</p>
+            <div class="row">
+              <input id="tester-code" type="password" placeholder="Tester code" autocomplete="off" />
+              <button class="ghost" id="tester-unlock">Unlock</button>
+            </div>
+          </div>
+          <div id="tester-tools" hidden>
+            <p class="hint">Plays the Halloween candy game with every step written to the log: where the candy and the bucket are, whether the window takes the mouse, where clicks land, where it was let go. Afterwards, <b>Show log file</b> (here) or <b>Get their log</b> (there) has it, and you can send it over.</p>
+            <div class="actions">
+              <button id="tester-here">🍬 Play the candy game here</button>
+              <button class="ghost" id="tester-there">🎃 Play it on their screen</button>
+              <button class="ghost" id="tester-lock">🔒 Lock</button>
+            </div>
+          </div>
         </div>
       </section>
 

@@ -1,0 +1,19 @@
+{
+  "bucket": {
+    "x": 0.66,
+    "y": 0.857,
+    "w": 0.23,
+    "h": 0.143
+  },
+  "candies": [
+    "candy-1.png",
+    "candy-2.png",
+    "candy-3.png",
+    "candy-4.png",
+    "candy-5.png",
+    "candy-6.png",
+    "candy-7.png",
+    "candy-8.png",
+    "candy-9.png"
+  ]
+}

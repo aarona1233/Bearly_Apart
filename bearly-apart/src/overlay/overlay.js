@@ -232,9 +232,36 @@ class Actor {
         return rain(s);
       case 'card':
         return card(s);
+      case 'haunt':
+        return this.haunt(s);
+      case 'candy-game':
+        return candyGame(this, s);
       default:
         console.warn('unknown step', s);
     }
+  }
+
+  // Floats to s.to on a wavy path, tilting and flickering like a ghost. s.boo: something it says on the way.
+  async haunt(s) {
+    const tx = rel(s.to, baseX, this.size);
+    const amp = (s.amp ?? 50) * SCALE;
+    const waves = s.waves ?? 2;
+    const ms = s.ms || 7000;
+    this.setFacing(tx < this.x ? 'left' : 'right');
+    const path = [];
+    const flicker = [];
+    for (let i = 0, n = 60; i <= n; i++) {
+      const t = i / n;
+      const y = this.y + Math.sin(t * waves * Math.PI * 2) * amp;
+      path.push({ transform: this.transform(this.x + (tx - this.x) * t, y) });
+      // Tilt and flicker on the picture only, so a speech bubble stays upright and readable.
+      flicker.push({ transform: `rotate(${(Math.sin(t * waves * Math.PI * 4) * 7).toFixed(1)}deg)`, opacity: 0.6 + 0.35 * Math.abs(Math.sin(i * 1.7)) });
+    }
+    if (s.boo) pending.push(sleep(ms * 0.35).then(() => this.say({ text: s.boo, ms: 1600 })));
+    this.bob.animate(flicker, { duration: ms, easing: 'linear', fill: 'forwards' });
+    await this.el.animate(path, { duration: ms, easing: 'linear', fill: 'forwards' }).finished;
+    this.x = tx;
+    this.place();
   }
 
   async runSteps() {
@@ -355,6 +382,256 @@ function card({ text, ms = 9000 }) {
   );
 }
 
+// ---- Halloween: the candy game ------------------------------------------------------------------
+// The bear holds out its jack-o'-lantern bucket and a candy floats beside it. Drag the candy close enough to the
+// bucket and let go: it drops in and disappears under the rim, and the bear jumps for joy. Miss, and the candy
+// falls away and the bear cries under its pumpkin hat, then holds the bucket out again with a different candy.
+// Step: { do: 'candy-game', bucket: { x, y, w, h } (fractions of the picture), candies: [...], happy, sad,
+//         idleMs (give up after no try for this long), maxMs }. bucket and candies come from halloween.json.
+let lastCandy = -1;
+let grabbing = false;
+// A test game (tester section) logs every step to the app's log.
+const dbg = (...parts) => VARS.debug && window.ba.debug(parts.map((p) => (typeof p === 'object' ? JSON.stringify(p) : p)).join(' '));
+const box = (r) => r && { x: Math.round(r.x ?? r.left), y: Math.round(r.y ?? r.top), w: Math.round(r.w ?? r.width), h: Math.round(r.h ?? r.height) };
+const clickable = () => window.ba.setClickable(grabbing || hoverCount > 0);
+
+async function candyGame(actor, s) {
+  const ask = actor.def.asset;
+  const started = Date.now();
+  let misses = 0;
+  for (;;) {
+    const result = await oneCandy(actor, s, misses);
+    dbg('round result:', result, 'misses so far:', misses);
+    if (result === 'in') {
+      window.ba.candy({ given: true, misses });
+      return celebrate(actor, s);
+    }
+    if (result === 'gave-up' || Date.now() - started > (s.maxMs || 150_000)) {
+      window.ba.candy({ given: false, misses });
+      actor.say({ text: 'maybe later… 🎃', ms: 2200 });
+      return sleep(2000);
+    }
+    misses++;
+    await sulk(actor, s);
+    swapArt(actor, ask, true);
+    actor.say({ text: 'one more try? 🥺', ms: 2200 });
+  }
+}
+
+function swapArt(actor, src, framed) {
+  const m = media(src);
+  actor.media.replaceWith(m);
+  actor.media = m;
+  actor.el.classList.toggle('framed', framed);
+}
+
+// The bucket on screen, from its place in the picture (inside the white frame).
+function bucketRect(actor, b) {
+  const r = actor.media.getBoundingClientRect();
+  const edge = parseFloat(getComputedStyle(actor.media).borderTopWidth) || 0;
+  const x = r.left + edge;
+  const y = r.top + edge;
+  const w = r.width - 2 * edge;
+  const h = r.height - 2 * edge;
+  return { x: x + b.x * w, y: y + b.y * h, w: b.w * w, h: b.h * h };
+}
+
+async function oneCandy(actor, s, misses) {
+  await actor.media.decode?.().catch(() => {});
+  // A different candy from last time.
+  const list = s.candies || [];
+  let pick = Math.floor(Math.random() * list.length);
+  if (list.length > 1 && pick === lastCandy) pick = (pick + 1 + Math.floor(Math.random() * (list.length - 1))) % list.length;
+  lastCandy = pick;
+
+  const size = (s.candySize || 96) * SCALE;
+  const card = actor.media.getBoundingClientRect();
+  // Beside the bear, on the side with more room, about level with its middle.
+  const leftSide = card.left > W - card.right;
+  let x = Math.max(size, Math.min(W - size, leftSide ? card.left - size * 1.7 : card.right + size * 1.7));
+  let y = Math.max(size, card.top + card.height * 0.45);
+
+  const candy = media(list[pick]);
+  candy.className = 'candy idle';
+  candy.style.width = candy.style.height = `${size}px`;
+  dbg('candy', list[pick], 'at', box({ x: x - size / 2, y: y - size / 2, w: size, h: size }), 'picture', box(card), 'bucket', box(bucketRect(actor, s.bucket)), 'screen', { W, H, scale: SCALE });
+  const put = (k = 1, tilt = 0) => {
+    candy.style.left = `${x - size / 2}px`;
+    candy.style.top = `${y - size / 2}px`;
+    candy.style.transform = `rotate(${tilt}deg) scale(${k})`;
+  };
+  put();
+  stage.append(candy);
+  candy.animate([{ opacity: 0, scale: 0.3 }, { opacity: 1, scale: 1 }], { duration: 320, easing: 'cubic-bezier(.3,1.5,.5,1)' });
+
+  let hint = null;
+  if (!misses) {
+    hint = document.createElement('div');
+    hint.className = 'candy-hint';
+    hint.textContent = 'drag me into the 🎃';
+    hint.style.left = `${x}px`;
+    hint.style.top = `${y + size * 0.62}px`;
+    stage.append(hint);
+  }
+  // Glows round the bucket while a candy is held; brighter once letting go would drop it in.
+  const ring = document.createElement('div');
+  ring.className = 'bucket-ring';
+  ring.hidden = true;
+  stage.append(ring);
+
+  const inRange = () => {
+    const b = bucketRect(actor, s.bucket);
+    const reach = Math.max(b.w * 0.95, 75 * SCALE);
+    return Math.hypot(x - (b.x + b.w / 2), (y - b.y) * 1.2) < reach;
+  };
+
+  // The app watches the cursor over this spot and makes the window grabbable there (hover events alone aren't
+  // reliable on Windows). Padded for the candy's float.
+  window.ba.hotspots([{ x: x - size / 2 - 16, y: y - size / 2 - 28, w: size + 32, h: size + 44 }]);
+
+  return new Promise((resolve) => {
+    let hovered = false;
+    let grab = null;
+    const idle = setTimeout(() => finish('gave-up'), s.idleMs || 45_000);
+    candy.addEventListener('mouseenter', (e) => {
+      dbg('pointer over the candy at', e.clientX, e.clientY);
+      hovered = true;
+      hoverCount++;
+      clickable();
+    });
+    candy.addEventListener('mouseleave', (e) => {
+      dbg('pointer left the candy at', e.clientX, e.clientY, grabbing ? '(holding it)' : '');
+      hovered = false;
+      hoverCount = Math.max(0, hoverCount - 1);
+      clickable();
+    });
+    const offCandy = (e) => e.target !== candy && dbg('click landed off the candy at', e.clientX, e.clientY, 'on', e.target.className || e.target.tagName);
+    if (VARS.debug) window.addEventListener('mousedown', offCandy);
+    candy.addEventListener('mousedown', (e) => {
+      dbg('grabbed the candy at', e.clientX, e.clientY);
+      e.preventDefault();
+      clearTimeout(idle);
+      grabbing = true;
+      clickable();
+      window.ba.hotspots([]); // held: the window keeps the mouse until it's let go
+      grab = { dx: e.clientX - x, dy: e.clientY - y, lastX: e.clientX };
+      candy.classList.replace('idle', 'held');
+      hint?.remove();
+      const b = bucketRect(actor, s.bucket);
+      const d = Math.max(b.w * 1.5, 110 * SCALE);
+      Object.assign(ring.style, { left: `${b.x + b.w / 2 - d / 2}px`, top: `${b.y - d / 2}px`, width: `${d}px`, height: `${d}px` });
+      ring.hidden = false;
+      window.addEventListener('mousemove', move);
+      window.addEventListener('mouseup', drop, { once: true });
+    });
+
+    function move(e) {
+      x = e.clientX - grab.dx;
+      y = e.clientY - grab.dy;
+      const tilt = Math.max(-25, Math.min(25, (e.clientX - grab.lastX) * 1.5)); // swings a little as it's dragged
+      grab.lastX = e.clientX;
+      put(1.08, tilt);
+      ring.classList.toggle('hot', inRange());
+    }
+
+    async function drop() {
+      window.removeEventListener('mousemove', move);
+      grabbing = false;
+      ring.remove();
+      candy.classList.remove('held');
+      const hit = inRange();
+      const b = bucketRect(actor, s.bucket);
+      dbg('let go at', Math.round(x), Math.round(y), 'bucket rim', Math.round(b.x + b.w / 2), Math.round(b.y), 'distance', Math.round(Math.hypot(x - (b.x + b.w / 2), (y - b.y) * 1.2)), 'reach', Math.round(Math.max(b.w * 0.95, 75 * SCALE)), hit ? '→ in the bucket' : '→ missed');
+      await (hit ? fallIn() : fallAway());
+      finish(hit ? 'in' : 'miss');
+    }
+
+    // Into the bucket: over the rim, shrinking a little, then down behind the rim (cut off at the rim line).
+    function fallIn() {
+      const b = bucketRect(actor, s.bucket);
+      const rimX = b.x + b.w / 2;
+      const rimY = b.y + b.h * 0.12;
+      const k = 0.55;
+      const [x0, y0] = [x, y];
+      const aboveY = rimY - (size * k) / 2;
+      return new Promise((done) => {
+        const t0 = performance.now();
+        const frame = (now) => {
+          const t = Math.min(1, (now - t0) / 650);
+          let kk;
+          if (t < 0.55) {
+            const u = t / 0.55;
+            const e = u < 0.5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2;
+            x = x0 + (rimX - x0) * e;
+            y = y0 + (aboveY - y0) * e - Math.sin(u * Math.PI) * 30 * SCALE; // a little arc
+            kk = 1 + (k - 1) * e;
+          } else {
+            const u = (t - 0.55) / 0.45;
+            x = rimX;
+            y = aboveY + u * u * size * k * 1.2;
+            kk = k;
+          }
+          put(kk);
+          const below = y + (size * kk) / 2 - rimY;
+          candy.style.clipPath = below > 0 ? `inset(0 0 ${Math.min(size, below / kk)}px 0)` : '';
+          if (t < 1) requestAnimationFrame(frame);
+          else done();
+        };
+        requestAnimationFrame(frame);
+      }).then(() => {
+        stampAt('sparkle.svg', rimX, rimY - 12 * SCALE, 70 * SCALE, 700);
+        return actor.bob.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(3%)' }, { transform: 'translateY(0)' }], { duration: 260 }).finished;
+      });
+    }
+
+    // Missed: it drops off the bottom of the screen, tumbling.
+    function fallAway() {
+      const dx = (Math.random() * 2 - 1) * 90 * SCALE;
+      return candy.animate(
+        [
+          { left: `${x - size / 2}px`, top: `${y - size / 2}px`, transform: 'rotate(0deg)' },
+          { left: `${x - size / 2 + dx}px`, top: `${H + size}px`, transform: `rotate(${dx > 0 ? 240 : -240}deg)` },
+        ],
+        { duration: 850, easing: 'cubic-bezier(.5,0,1,.6)', fill: 'forwards' },
+      ).finished;
+    }
+
+    function finish(result) {
+      if (result === 'gave-up') dbg('nobody grabbed the candy in time (', (s.idleMs || 45_000) / 1000, 's)');
+      window.removeEventListener('mousedown', offCandy);
+      clearTimeout(idle);
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', drop);
+      if (hovered) hoverCount = Math.max(0, hoverCount - 1);
+      grabbing = false;
+      clickable();
+      window.ba.hotspots([]);
+      candy.remove();
+      hint?.remove();
+      ring.remove();
+      resolve(result);
+    }
+  });
+}
+
+// No candy: the bear cries under its pumpkin hat for a moment.
+async function sulk(actor, s) {
+  swapArt(actor, s.sad || 'cry-hat-{pc}.png', false);
+  actor.say({ text: 'no candy?… 😭', ms: 2200 });
+  await actor.step({ do: 'shake', ms: 900 });
+  await sleep(1500);
+}
+
+// Candy! It jumps for joy in its pumpkin hat while candies rain down.
+async function celebrate(actor, s) {
+  swapArt(actor, s.happy || 'happy-hat-{pc}.png', false);
+  actor.say({ text: 'yay, candy! thank you 🍬💕', ms: 2600 });
+  const mix = [...(s.candies || [])].sort(() => Math.random() - 0.5).slice(0, 4);
+  for (const src of mix) rain({ src, count: 3, ms: 3200, size: 64 });
+  await actor.step({ do: 'jump', times: 3, height: 0.22, ms: 420 });
+  await sleep(900);
+}
+
 function caption(main, sub, ms) {
   const m = fill(main);
   const s = fill(sub);
@@ -386,6 +663,7 @@ async function playScene(scene, vars, ctx) {
   WIN = ctx.win || { x: W * 0.15, y: H * 0.3, width: W * 0.7, height: H * 0.5 };
   pending = [];
   hoverCount = 0;
+  grabbing = false;
   stage.replaceChildren();
   const capText = vars.caption || scene.caption;
   caption(capText, scene.sub, scene.captionMs || 5000);

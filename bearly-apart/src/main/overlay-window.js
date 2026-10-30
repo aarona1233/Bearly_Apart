@@ -5,6 +5,7 @@ const { BrowserWindow, ipcMain, screen } = require('electron');
 
 const SRC = path.join(__dirname, '..');
 const IS_MAC = process.platform === 'darwin';
+const IS_WIN = process.platform === 'win32';
 
 class OverlayWindow {
   // getScene(name) -> scene definition or undefined; getScale() -> the bear size setting
@@ -32,17 +33,68 @@ class OverlayWindow {
     });
     this.win.setAlwaysOnTop(true, 'screen-saver');
     this.win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
+    this.clickable = false;
+    this.pageClickable = false;
+    this.overHotspot = false;
+    this.hotspots = [];
     this.win.setIgnoreMouseEvents(true, { forward: true });
     this.win.loadFile(path.join(SRC, 'overlay', 'index.html'));
-    ipcMain.on('overlay-clickable', (_, on) => this.win.setIgnoreMouseEvents(!on, { forward: true }));
+    ipcMain.on('overlay-clickable', (_, on) => {
+      this.pageClickable = !!on;
+      this.applyClickable();
+    });
+    // The candy game finished: given or not, for the scene that's playing.
+    ipcMain.on('candy-result', (_, r) => this.onCandy?.(r, this.current));
+    // Places the page wants grabbable (the candy), in window coordinates: watched with the real cursor position below.
+    ipcMain.on('overlay-hotspots', (_, rects) => this.setHotspots(rects));
+    // A test candy game (tester section) reports every step; it goes in the log with the window's own view.
+    ipcMain.on('overlay-debug', (_, msg) => this.log(`[candy-test] ${String(msg).slice(0, 400)}`));
+  }
+
+  // The window takes the mouse when the page asks (something hovered or held) or the cursor is on a hotspot;
+  // otherwise clicks go through to whatever is underneath.
+  setClickable(on) {
+    this.pageClickable = on;
+    this.overHotspot = false;
+    this.applyClickable(true);
+  }
+  applyClickable(force = false) {
+    const on = this.pageClickable || this.overHotspot;
+    if (!force && on === this.clickable) return;
+    this.clickable = on;
+    if (this.current?.vars?.debug) this.log(`[candy-test] window ${on ? 'takes the mouse' : 'lets clicks through'} (page asks: ${this.pageClickable}, cursor on candy: ${this.overHotspot})`);
+    this.win.setIgnoreMouseEvents(!on, { forward: true });
+  }
+
+  // Hover events can't be counted on (see render), so for things that must be grabbable the cursor itself is watched:
+  // every 50 ms while there are hotspots, is it over one?
+  setHotspots(rects) {
+    this.hotspots = Array.isArray(rects) ? rects : [];
+    clearInterval(this.hotTimer);
+    if (!this.hotspots.length) {
+      this.overHotspot = false;
+      return this.applyClickable();
+    }
+    const check = () => {
+      if (this.win.isDestroyed() || !this.win.isVisible()) return;
+      const p = screen.getCursorScreenPoint();
+      const b = this.win.getBounds();
+      const x = p.x - b.x;
+      const y = p.y - b.y;
+      this.overHotspot = this.hotspots.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+      this.applyClickable();
+    };
+    check();
+    this.hotTimer = setInterval(check, 50);
   }
 
   hide() {
     this.win.hide();
   }
 
-  // Plays one scene; resolves when the page says it's done (or after 90s, whatever happens).
+  // Plays one scene; resolves when the page says it's done (or after 90s, or the scene's maxMs, whatever happens).
   render(req, front) {
+    this.current = req;
     return new Promise((resolve) => {
       const scene = this.getScene(req.scene);
       if (!scene) {
@@ -62,15 +114,21 @@ class OverlayWindow {
         clearTimeout(timeout);
         clearInterval(capture);
         ipcMain.removeListener('scene-done', done);
-        this.win.setIgnoreMouseEvents(true, { forward: true });
-        this.win.hide();
+        this.setHotspots([]);
+        this.setClickable(false);
+        // On Windows a click-through window that's been hidden and shown again stops getting clicks (the candy
+        // couldn't be grabbed after any earlier scene), so there it stays shown, empty and see-through.
+        if (!IS_WIN) this.win.hide();
         resolve();
       };
-      const timeout = setTimeout(done, 90_000);
+      const timeout = setTimeout(done, scene.maxMs || 90_000);
       ipcMain.once('scene-done', done);
       this.win.webContents.send('play', { scene, vars: req.vars, ctx: { width: b.width, height: b.height, win, scale } });
       this.win.showInactive();
       this.win.setAlwaysOnTop(true, 'screen-saver');
+      // On Windows, hiding the window stops the mouse-move forwarding that tells the page what's under the pointer
+      // (so after the first scene nothing could be hovered, clicked or dragged). Turn it on again for every scene.
+      this.setClickable(false);
       const capture = this.startCapture(req.scene);
     });
   }

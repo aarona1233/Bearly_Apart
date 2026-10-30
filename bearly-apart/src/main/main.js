@@ -20,6 +20,7 @@ const { runDiagnostics, formatReport, summary } = require('./diagnostics');
 const { MAC_TARGET, INSTALL_SH, UPDATE_SH, compareVersions, plistVersion, needsInstall } = require('./mac-install');
 const { Updater } = require('./updater');
 const { STATUSES, SENDABLES, GIFTS, describe } = require('./catalog');
+const { isOn, inWindow, started, toggled, nextAskIn } = require('./holiday');
 
 const BUNDLED_ASSETS = path.join(__dirname, '..', '..', 'assets');
 const IS_MAC = process.platform === 'darwin';
@@ -126,6 +127,10 @@ function loadScenes() {
   scenes = { ...bundled, ...mine };
   delete scenes._comment;
   delete scenes._aliases;
+  // The candy game needs to know where the bucket is and which candies there are (made by tools/make-halloween.js).
+  const game = read(path.join(BUNDLED_ASSETS, 'halloween.json'));
+  for (const scene of Object.values(scenes))
+    for (const actor of scene.actors || []) for (const s of actor.steps || []) if (s.do === 'candy-game') Object.assign(s, { bucket: game.bucket, candies: game.candies }, s);
 }
 
 // ---------- actions (used by the window, the tray menu and the overlay) ----
@@ -136,6 +141,8 @@ function outText(type, extra) {
   if (type === 'jar') return `You saved a note for ${partnerName()}'s morning 🫙`;
   if (type === 'hello') return 'You said hi 👋';
   if (type === 'gift') return `You sent ${GIFTS[extra.gift]?.emoji || '✨'} ${GIFTS[extra.gift]?.label || extra.gift}`;
+  if (type === 'candy') return 'You asked for candy 🍬';
+  if (type === 'treat') return `You gave ${partnerName()} candy 🍬`;
   const s = SENDABLES[type];
   return s ? `You sent a ${s.short.toLowerCase()} ${s.emoji}` : `You sent ${type}`;
 }
@@ -283,6 +290,9 @@ function liveState() {
     justUpdated,
     update: updater?.state || null,
     check: lastCheck,
+    halloween,
+    halloweenOpen: halloweenOpen(),
+    tester: !!st().testerUnlocked,
     activity: activity.items,
   };
 }
@@ -677,6 +687,100 @@ async function autoCheck() {
   if (broken.some((x) => x.id !== 'texts')) ui.openWindow('check');
 }
 
+// ---------- holidays (holiday.js) ------------------------------------------------
+
+let halloween = false;
+let nextCandyAt = 0;
+
+// Every 30 seconds: is it Halloween (by the dates, or switched on/off in the menu), and is a bear due to come
+// trick-or-treating?
+function holidayTick() {
+  const on = isOn('halloween', cfg().holidays?.halloween);
+  if (on !== halloween) {
+    halloween = on;
+    log(`[holiday] Halloween mode ${on ? 'on' : 'off'}`);
+    ui?.refresh();
+    if (on) {
+      nextCandyAt = Date.now() + nextAskIn();
+      // Ghost bears fly across when the mode comes on: every time it's switched on by hand, and once a year when the
+      // dates bring it (so trying it out early doesn't use up the real one).
+      const year = new Date().getFullYear();
+      const byDates = inWindow('halloween');
+      if (cfg().setupDone && (!byDates || st().ghostsShownYear !== year)) {
+        if (byDates) stores.state.set({ ghostsShownYear: year });
+        player.play({ scene: 'halloween-ghosts', priority: 3, label: '👻 Happy Halloween', vars: brain.vars() });
+      }
+    }
+  }
+  // Their bear comes by for candy now and then: only while someone's at the computer and nothing else is showing,
+  // otherwise it tries again in a couple of minutes (no backlog of candy bears).
+  if (!halloween || !cfg().partner.id || Date.now() < nextCandyAt) return;
+  const free = presence === 'here' && !(st().snoozedUntil > Date.now()) && !player.blockedReason && !player.playing && !player.queue.length;
+  if (!free) {
+    nextCandyAt = Date.now() + 2 * 60_000;
+    return;
+  }
+  nextCandyAt = Date.now() + nextAskIn();
+  player.play({ scene: 'trick-or-treat', priority: 2, label: `🎃 ${partnerName()} came trick-or-treating`, vars: brain.vars({ requested: '' }) });
+}
+
+// Whether anything of Halloween shows yet: once it has started this year (Oct 30 23:59), while it's switched on,
+// or on a computer unlocked for testing.
+function halloweenOpen() {
+  return halloween || started('halloween') || !!st().testerUnlocked;
+}
+
+// ---------- tester section (Check tab) ----------------------------------------------
+// A code only Aaron knows unlocks it on a computer. Only its SHA-256 is here (this source is on GitHub).
+const TESTER_CODE_SHA256 = '2bebe0807d5cf7499cc44188f44b23ff8bc3e146818f8041f241a2bcbe2f7175';
+
+function unlockTester(code) {
+  const ok = crypto.createHash('sha256').update(String(code || '').trim().toLowerCase()).digest('hex') === TESTER_CODE_SHA256;
+  log(`[tester] code ${ok ? 'accepted: tester section unlocked' : 'wrong'}`);
+  if (ok) {
+    stores.state.set({ testerUnlocked: true });
+    ui?.refresh();
+  }
+  return { ok };
+}
+
+// Locks it again on this computer (Halloween then hides again until it starts, if it hasn't).
+function lockTester() {
+  stores.state.set({ testerUnlocked: false });
+  log('[tester] locked');
+  ui?.refresh();
+  return { ok: true };
+}
+
+// A test candy game, every step written to the log: here, or on their screen (then "Get their log" brings
+// their log back). where: 'here' | 'there'.
+async function testCandy(where) {
+  if (!st().testerUnlocked) return { ok: false, error: 'locked' };
+  if (where === 'there') {
+    log(`[tester] asking ${partnerName()}’s app to play a test candy game`);
+    try {
+      await brain.send('testplay', { status: 'candy' });
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  }
+  playTestCandy('started from the tester section');
+  return { ok: true };
+}
+
+function playTestCandy(why) {
+  const d = require('electron').screen.getDisplayNearestPoint(require('electron').screen.getCursorScreenPoint());
+  log(`[candy-test] ${why}: ${OS_NAME}, version ${app.getVersion()}, display ${JSON.stringify(d.bounds)} scale ${d.scaleFactor}, presence ${presence}, paused: ${player.blockedReason || 'no'}`);
+  player.play({ scene: 'trick-or-treat', priority: 9, label: '🧪 test candy game', vars: brain.vars({ requested: '', debug: '1' }) });
+}
+
+// The tray menu's 🎃 Halloween mode switch.
+function toggleHoliday(name) {
+  stores.config.set({ holidays: { [name]: toggled(name, cfg().holidays?.[name]) } });
+  holidayTick();
+}
+
 // ---------- startup --------------------------------------------------------
 
 app.whenReady().then(() => {
@@ -700,6 +804,15 @@ app.whenReady().then(() => {
 
   overlay = new OverlayWindow({ getScene: (name) => scenes[name], getScale: () => cfg().scale, log });
   // If the see-through window's page dies, log it and bring it back rather than leaving bears invisible.
+  // The candy game ended. If they asked for the candy (🍬 I want candy), tell them it arrived.
+  overlay.onCandy = (r, req) => {
+    if (req?.vars?.debug) return log(`[candy-test] finished: ${r.given ? 'candy given' : 'not given'} after ${r.misses} miss(es)`);
+    const asked = !!req?.vars?.requested;
+    log(`[candy] ${r.given ? 'given' : 'not given'} after ${r.misses} miss(es)${asked ? ', they asked' : ''}`);
+    if (!r.given) return;
+    if (asked) sendEvent('treat');
+    else activity.add({ dir: 'out', text: `🍬 You gave ${partnerName()}’s bear a candy` });
+  };
   overlay.win.webContents.on('render-process-gone', (_, d) => {
     log(`[crash] animation window: ${d.reason}`);
     if (!overlay.win.isDestroyed()) overlay.win.reload();
@@ -742,6 +855,9 @@ app.whenReady().then(() => {
   brain.onPing = async (ev) => sendQuiet('pong', { nonce: ev.nonce, text: JSON.stringify(await healthSnapshot()) });
   // Their Check tab asked for this app's recent log ("Get their log").
   brain.onLogRequest = (ev) => sendLogTo(ev.nonce);
+  // Their tester section asked for a test candy game here (logged step by step for them to read back).
+  brain.onTestPlay = () => playTestCandy(`${partnerName()} started a test from their app`);
+  brain.halloweenOpen = halloweenOpen;
   brain.onMyOtherComputer = (ev, name) =>
     activity.add({ dir: 'out', text: `${outText(ev.type, ev)} (on ${name})`, state: 'sent', relayAt: ev.at });
   brain.onHello = (p) => {
@@ -756,7 +872,7 @@ app.whenReady().then(() => {
   relay.on('event', (ev) => {
     if (ev.from !== cfg().me.id) {
       log(`[relay] ← ${ev.type}${ev.status ? `:${ev.status}` : ''} from ${ev.from}`);
-      const bookkeeping = ['presence', 'seen', 'diag', 'ping', 'pong', 'logreq', 'logpart'].includes(ev.type);
+      const bookkeeping = ['presence', 'seen', 'diag', 'ping', 'pong', 'logreq', 'logpart', 'testplay'].includes(ev.type);
       if (!bookkeeping && (ev.from === cfg().partner.id || ev.type === 'hello')) activity.add({ dir: 'in', text: incomingText(ev) });
     }
     brain.onRelayEvent(ev);
@@ -799,7 +915,7 @@ app.whenReady().then(() => {
     pairingCode: () => encodePairing(cfg()),
     linkCode: () => encodeLink(cfg()),
     deviceName: DEVICE_NAME,
-    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, checkTextAccess, relaunch, checkForUpdates, setUpdateKey, runChecks, checkReport, fetchPartnerLog, logFile: () => log.file() },
+    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, checkTextAccess, relaunch, checkForUpdates, setUpdateKey, runChecks, checkReport, fetchPartnerLog, toggleHoliday, unlockTester, lockTester, testCandy, logFile: () => log.file() },
   });
   activity.on('change', () => ui.refresh());
   ui.start();
@@ -832,6 +948,8 @@ app.whenReady().then(() => {
   });
 
   setInterval(() => brain.tick({ idleSec: powerMonitor.getSystemIdleTime() }), 30_000);
+  setInterval(holidayTick, 30_000);
+  setTimeout(holidayTick, 5_000);
 
   justUpdated = cfg().setupDone && st().lastVersion !== app.getVersion();
   const selfUpdated = justUpdated && !!st().updatedFrom;

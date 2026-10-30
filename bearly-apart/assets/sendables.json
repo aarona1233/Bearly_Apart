@@ -1,5 +1,5 @@
 {
-  "_comment": "Extra Send-tab buttons. Each plays the scene \"send-<name>\" in scenes.json. says: finishes \"<their name> …\" in the caption. Order here is the order of the buttons.",
+  "_comment": "Extra Send-tab buttons. Each plays the scene \"send-<name>\" in scenes.json. says: finishes \"<their name> …\" in the caption. Order here is the order of the buttons. season: only shown while that holiday mode is on (it still plays any time).",
   "love-you": {
     "emoji": "💞",
     "label": "Love you",
@@ -159,5 +159,29 @@
     "emoji": "🥀",
     "label": "Lonely",
     "says": "feels lonely without you"
+  },
+  "vampire": {
+    "emoji": "🧛",
+    "label": "Vampire",
+    "says": "vants to nibble you",
+    "season": "halloween"
+  },
+  "boo": {
+    "emoji": "👻",
+    "label": "Boo!",
+    "says": "says boo!",
+    "season": "halloween"
+  },
+  "pumpkin": {
+    "emoji": "🎃",
+    "label": "Pumpkin",
+    "says": "is your little pumpkin",
+    "season": "halloween"
+  },
+  "broom": {
+    "emoji": "🧹",
+    "label": "Broom ride",
+    "says": "wants to fly away with you",
+    "season": "halloween"
   }
 }

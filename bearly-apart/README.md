@@ -77,6 +77,8 @@ Want a push on your phone when she sends something? Install the **ntfy** app and
 - **Updates:** the Mac checks every hour, then downloads, verifies (signed with your release key), installs and
   reopens by itself. Settings → **Updates** has *Check for updates now*. Publishing a version: `npm run publish:mac`
   (see START-HERE.md → Updating later).
+- **🎃 Halloween mode** (Oct 30 23:59 → Oct 31 15:59, or the tray switch): ghost bears, a spooky window, Halloween
+  Send buttons and the candy game (drag a candy into the trick-or-treating bear's bucket). See START-HERE.md.
 - **🩺 Check tab:** tests everything (connection, a real round trip, animations, statuses, texts, updates) and can
   ask the other person's app how it's doing. Runs by itself after each install/update; **Copy report** for help, and **Get their log** pulls the other
   app's recent log over the relay (pieces under 3.5 KB, since ntfy.sh turns bigger messages into attachments).

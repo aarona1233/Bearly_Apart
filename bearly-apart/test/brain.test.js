@@ -81,6 +81,37 @@ test('only hug, miss you and love you match as text triggers', () => {
   for (const t of ['kisses 😘', 'mwah', 'lol', '🥺', '🫂', 'I love your shoes', 'thug life', 'glove you lost']) assert.deepStrictEqual(m(t), [], t);
 });
 
+test('Halloween: "I want candy" brings their bear trick-or-treating here; a treat plays the thank-you', () => {
+  const { brain, played } = setup();
+  brain.onRelayEvent({ type: 'candy', from: 'him' });
+  brain.onRelayEvent({ type: 'treat', from: 'him' });
+  assert.deepStrictEqual(names(played), ['trick-or-treat', 'treat']);
+  assert.strictEqual(played[0].vars.requested, '1', 'asked for, so giving it tells them');
+  assert.strictEqual(played[0].vars.pc, 'brown', 'their bear (Dudu) holds the bucket on her screen');
+  // The scene has the game, both bears' art exists, and the game's data is there.
+  const step = scenes['trick-or-treat'].actors[0].steps.find((s) => s.do === 'candy-game');
+  assert.ok(step);
+  const game = require('../assets/halloween.json');
+  assert.ok(game.candies.length >= 5 && game.bucket.w > 0);
+  const fs = require('fs');
+  for (const f of ['trick-or-treat-brown.png', 'trick-or-treat-cream.png', 'cry-hat-brown.png', 'cry-hat-cream.png', 'happy-hat-brown.png', 'happy-hat-cream.png', 'ghost-bear.svg', ...game.candies]) assert.ok(fs.existsSync(`assets/${f}`), f);
+});
+
+test('before Halloween has started, a candy request is ignored; a test game from them still reaches the hook', () => {
+  const { brain, played } = setup();
+  brain.halloweenOpen = () => false;
+  const tests = [];
+  brain.onTestPlay = (ev) => tests.push(ev.from);
+  brain.onRelayEvent({ type: 'candy', from: 'him' });
+  brain.onRelayEvent({ type: 'testplay', status: 'candy', from: 'him' });
+  brain.onRelayEvent({ type: 'testplay', status: 'candy', from: 'mallory' });
+  assert.deepStrictEqual(played, []);
+  assert.deepStrictEqual(tests, ['him']);
+  brain.halloweenOpen = () => true;
+  brain.onRelayEvent({ type: 'candy', from: 'him' });
+  assert.deepStrictEqual(names(played), ['trick-or-treat']);
+});
+
 test('gifts play their send- scene with the caption bits, and unknown ones still show something', () => {
   const { brain, played } = setup();
   brain.onRelayEvent({ type: 'gift', gift: 'cuddle', from: 'him' });

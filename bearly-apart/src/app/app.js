@@ -78,6 +78,15 @@ function renderUpdate() {
 
 function renderLive() {
   renderUpdate();
+  // Halloween mode dresses the window up (app.css, body.halloween).
+  document.body.classList.toggle('halloween', !!live.halloween);
+  $('halloween-card').hidden = !live.halloween;
+  document.querySelector('.avatar').textContent = live.halloween ? '🎃' : '🐻';
+  // Nothing of Halloween in the Animations tab before it starts (Oct 30 23:59), unless this computer is a tester.
+  for (const t of document.querySelectorAll('.tile[data-season="halloween"]')) t.hidden = !live.halloweenOpen;
+  $('tester-locked').hidden = !!live.tester;
+  $('tester-tools').hidden = !live.tester;
+  $('tester-there').textContent = `🎃 Play it on ${partner()}’s screen`;
   const c = data.config;
   const s = data.statuses;
   $('partner-name').textContent = live.paired ? partner() : 'Not paired yet';
@@ -166,7 +175,14 @@ function sendButton(emoji, label, send) {
 function buildSend() {
   $('send-hint').textContent = `Plays on ${partner()}’s screen right away. If they’re away or busy it waits, then shows up when they’re back.`;
   $('send-grid').replaceChildren(...Object.entries(data.sendables).map(([type, s]) => sendButton(s.emoji, s.short, () => window.ba.send(type))));
-  $('more-grid').replaceChildren(...Object.entries(data.gifts).map(([gift, g]) => sendButton(g.emoji, g.label, () => window.ba.send('gift', { gift }))));
+  const gifts = Object.entries(data.gifts);
+  $('more-grid').replaceChildren(...gifts.filter(([, g]) => !g.season).map(([gift, g]) => sendButton(g.emoji, g.label, () => window.ba.send('gift', { gift }))));
+  // Halloween (shown while the mode is on): ask for candy, plus the Halloween gifts.
+  $('halloween-hint').textContent = `🍬 I want candy sends your bear trick-or-treating on ${partner()}’s screen: they drag a candy into its bucket, and you hear when it lands.`;
+  $('halloween-grid').replaceChildren(
+    sendButton('🍬', 'I want candy', () => window.ba.send('candy')),
+    ...gifts.filter(([, g]) => g.season === 'halloween').map(([gift, g]) => sendButton(g.emoji, g.label, () => window.ba.send('gift', { gift }))),
+  );
 
   $('status-hint').textContent = `Let ${partner()} know what you’re up to. Their bear acts it out on their screen once, and it stays next to your name in their 💗 menu until you change or clear it.`;
   $('status-chips').replaceChildren(
@@ -208,7 +224,9 @@ function buildGallery() {
     ...data.scenes.map((sc) => {
       const play = el('button', { className: 'ghost small', textContent: '▶ Play' });
       play.addEventListener('click', () => window.ba.preview(sc.name));
-      return el('div', { className: 'tile', title: sc.name }, sc.thumb ? el('img', { src: sc.thumb, alt: '' }) : '', el('b', { textContent: sc.title }), el('small', { textContent: sc.when }), play);
+      const tile = el('div', { className: 'tile', title: sc.name }, sc.thumb ? el('img', { src: sc.thumb, alt: '' }) : '', el('b', { textContent: sc.title }), el('small', { textContent: sc.when }), play);
+      if (sc.season) tile.dataset.season = sc.season;
+      return tile;
     }),
   );
 }
@@ -353,6 +371,26 @@ $('their-log-get').addEventListener('click', async () => {
     $('their-log').scrollTop = $('their-log').scrollHeight; // newest at the bottom
   }
 });
+// Tester section: unlock with the code, then test candy games here or on their screen.
+$('tester-unlock').addEventListener('click', async () => {
+  const r = await window.ba.testerUnlock($('tester-code').value);
+  $('tester-code').value = '';
+  toast(r.ok ? 'Tester tools unlocked 🧪' : 'That’s not the code');
+});
+$('tester-lock').addEventListener('click', async () => {
+  await window.ba.testerLock();
+  toast('Tester tools locked 🔒');
+});
+for (const [id, where] of [
+  ['tester-here', 'here'],
+  ['tester-there', 'there'],
+]) {
+  $(id).addEventListener('click', async () => {
+    const r = await window.ba.testerCandy(where);
+    if (!r.ok) return toast(`Couldn’t start it: ${r.error}`);
+    toast(where === 'here' ? 'Test candy game coming up on this screen' : `Sent. When it’s done there, press Get ${partner()}’s log above`);
+  });
+}
 $('their-log-copy').addEventListener('click', () => {
   navigator.clipboard.writeText($('their-log').textContent);
   toast('Log copied.');

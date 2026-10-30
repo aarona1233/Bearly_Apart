@@ -4,11 +4,12 @@
 // That format is simple enough to send from an iPhone Shortcut.
 const { EventEmitter } = require('events');
 
-const TYPES = new Set(['message', 'tapback', 'kiss', 'heart', 'hug', 'poke', 'miss-you', 'gift', 'status', 'note', 'jar', 'hello', 'presence', 'seen', 'diag', 'ping', 'pong', 'logreq', 'logpart', 'test']);
+const TYPES = new Set(['message', 'tapback', 'kiss', 'heart', 'hug', 'poke', 'miss-you', 'gift', 'status', 'note', 'jar', 'hello', 'presence', 'seen', 'diag', 'ping', 'pong', 'logreq', 'logpart', 'candy', 'treat', 'testplay', 'test']);
 // Bookkeeping between the two apps, not something a person sent: silent if a phone is subscribed to the topic.
 // diag: a check message to ourselves; ping/pong: asking their app how it's doing (see diagnostics.js);
 // logreq/logpart: asking their app for its recent log, which comes back in a few pieces.
-const QUIET = new Set(['presence', 'seen', 'diag', 'ping', 'pong', 'logreq', 'logpart']);
+// testplay: the tester section asking their app to play a test candy game (with every step logged).
+const QUIET = new Set(['presence', 'seen', 'diag', 'ping', 'pong', 'logreq', 'logpart', 'testplay']);
 
 function toTags(ev) {
   const tags = ['ba', `e.${ev.type}`, `f.${ev.from}`];

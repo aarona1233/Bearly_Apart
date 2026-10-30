@@ -240,6 +240,32 @@ password. Settings → **Updates** shows the version and has **Check for updates
 
 ---
 
+## Halloween 🎃
+
+Halloween mode turns on by itself from **Oct 30 at 11:59 PM until Oct 31 at 3:59 PM** (each computer's own clock),
+every year. Right-click the tray / menu-bar bear → **🎃 Halloween mode** to switch it on or off any time; that lasts
+for the rest of the year, then it's back to the dates.
+
+While it's on:
+- **Ghost bears** fly across the screen once, when it first comes on.
+- The window turns spooky (dusk purple, pumpkin orange, bats and a moon), and the Send tab gets a 🎃 card with
+  **🍬 I want candy** and four Halloween animations (vampire, boo, pumpkin, broom ride).
+- **The candy game:** every 10–20 minutes (only while you're at the computer) the other person's bear comes
+  trick-or-treating: Bubu on Aaron's screen, Dudu on Yimei's. Drag the candy into the jack-o'-lantern bucket and let go
+  when the ring around it glows: it drops in and the bear jumps for joy. Miss, and the bear cries under its pumpkin hat,
+  then holds the bucket out again with a different candy. **🍬 I want candy** sends your bear to their screen right
+  away, and you get a 🍬 thank-you when they drop the candy in.
+
+Before it starts (Oct 30 at 11:59 PM), none of it shows: no menu switch, no Halloween animations in the Animations
+tab, and a "🍬 I want candy" from the other computer is ignored. To try it early without her seeing it, use the
+**🧪 Tester** card at the bottom of the Check tab: enter the tester code (Aaron has it), then **Play the candy game
+here**, or **Play it on her screen** and then **Get her log**. A test game writes every step to the log (where
+the candy and bucket are, whether the window takes the mouse, where clicks land), so a log shows what went wrong.
+**🔒 Lock** hides the tester tools again (the unlock is remembered on that computer until then, even after a restart).
+
+Making the art again (after changing the GIFs): `npx electron tools/import-gifs.js` then `npx electron tools/make-halloween.js`
+(cuts the candy sheet, cleans the hat, puts the hat on the crying bears frame by frame, measures the bucket).
+
 ## If something isn't working: the Check tab
 
 Every copy has a **🩺 Check** tab (also in the 💗 menu: *Check that everything works…*). It tests the connection, a

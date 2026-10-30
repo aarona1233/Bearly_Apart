@@ -38,6 +38,8 @@ const DEFAULT_CONFIG = {
   relay: { server: 'https://ntfy.sh', topic: '', token: '' },
   imessage: { enabled: true, pollSec: 3 },
   // Escalating "you haven't heard from them" scenes.
+  // Holiday modes (holiday.js): { halloween: { mode: 'on' | 'off', year } } when switched by hand from the menu.
+  holidays: {},
   missing: [
     { hours: 3, scene: 'missing-peek' },
     { hours: 6, scene: 'missing-sword' },
@@ -88,6 +90,8 @@ const DEFAULT_STATE = {
   helloSent: false,
   lastVersion: '', // the app version that last ran here, to notice updates
   lastCheckedVersion: '', // the version the automatic check (Check tab) last ran for
+  ghostsShownYear: 0, // the Halloween ghost bears fly once a year, when the mode first comes on
+  testerUnlocked: false, // the Check tab's tester section, unlocked with Aaron's code on this computer
 };
 
 function isObj(v) {

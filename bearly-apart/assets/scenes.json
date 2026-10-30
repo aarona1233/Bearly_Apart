@@ -2804,5 +2804,308 @@
         ]
       }
     ]
+  },
+  "trick-or-treat": {
+    "caption": "🎃 {partner} is trick-or-treating!",
+    "sub": "drag a candy into the bucket",
+    "captionMs": 7000,
+    "maxMs": 200000,
+    "actors": [
+      {
+        "asset": "trick-or-treat-{pc}.png",
+        "size": 250,
+        "frame": true,
+        "at": [
+          "right-40",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 700,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "trick or treat! 🍬",
+            "ms": 2400
+          },
+          {
+            "do": "candy-game"
+          },
+          {
+            "do": "wait",
+            "ms": 400
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "treat": {
+    "caption": "🍬 {partner} gave you candy!",
+    "rain": {
+      "src": "candy-3.png",
+      "count": 10,
+      "ms": 3500,
+      "size": 64
+    },
+    "actors": [
+      {
+        "asset": "happy-hat-{mc}.png",
+        "size": 220,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "jump",
+            "times": 3,
+            "height": 0.2
+          },
+          {
+            "do": "wait",
+            "ms": 1800
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "halloween-ghosts": {
+    "caption": "👻 Happy Halloween! 🎃",
+    "captionMs": 6000,
+    "actors": [
+      {
+        "asset": "ghost-bear.svg",
+        "size": 150,
+        "at": [
+          "left-off",
+          "50%"
+        ],
+        "steps": [
+          {
+            "do": "haunt",
+            "to": "right-off",
+            "ms": 7500,
+            "amp": 55,
+            "waves": 2,
+            "boo": "boo! 👻"
+          }
+        ]
+      },
+      {
+        "asset": "ghost-bear.svg",
+        "size": 105,
+        "at": [
+          "right-off",
+          "36%"
+        ],
+        "steps": [
+          {
+            "do": "wait",
+            "ms": 1100
+          },
+          {
+            "do": "haunt",
+            "to": "left-off",
+            "ms": 8500,
+            "amp": 40,
+            "waves": 3
+          }
+        ]
+      },
+      {
+        "asset": "ghost-bear.svg",
+        "size": 125,
+        "at": [
+          "left-off",
+          "74%"
+        ],
+        "steps": [
+          {
+            "do": "wait",
+            "ms": 2300
+          },
+          {
+            "do": "haunt",
+            "to": "right-off",
+            "ms": 8000,
+            "amp": 65,
+            "waves": 2.5,
+            "boo": "boooo 🎃"
+          }
+        ]
+      },
+      {
+        "asset": "ghost-bear.svg",
+        "size": 90,
+        "at": [
+          "right-off",
+          "52%"
+        ],
+        "steps": [
+          {
+            "do": "wait",
+            "ms": 3600
+          },
+          {
+            "do": "haunt",
+            "to": "left-off",
+            "ms": 7000,
+            "amp": 35,
+            "waves": 3.5
+          }
+        ]
+      }
+    ]
+  },
+  "send-vampire": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "vampire-{pc}.png",
+        "size": 200,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3400
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "send-boo": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "ghost-costume-{pc}.png",
+        "size": 210,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3400
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "send-pumpkin": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "pumpkin-{pc}.png",
+        "size": 220,
+        "pokeable": true,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "wait",
+            "ms": 3400
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "send-broom": {
+    "caption": "{emoji} {partner} {says}",
+    "actors": [
+      {
+        "asset": "pair-broom.png",
+        "size": 220,
+        "pokeable": true,
+        "at": [
+          "left-off",
+          "45%"
+        ],
+        "steps": [
+          {
+            "do": "haunt",
+            "to": "right-off",
+            "ms": 6500,
+            "amp": 45,
+            "waves": 1.5
+          }
+        ]
+      }
+    ]
   }
 }

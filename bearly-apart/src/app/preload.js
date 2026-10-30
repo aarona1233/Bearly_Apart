@@ -21,4 +21,7 @@ contextBridge.exposeInMainWorld('ba', {
   check: (opts) => ipcRenderer.invoke('app:check', opts),
   checkReport: () => ipcRenderer.invoke('app:check-report'),
   theirLog: () => ipcRenderer.invoke('app:their-log'),
+  testerUnlock: (code) => ipcRenderer.invoke('app:tester-unlock', code),
+  testerLock: () => ipcRenderer.invoke('app:tester-lock'),
+  testerCandy: (where) => ipcRenderer.invoke('app:tester-candy', where),
 });
