@@ -56,6 +56,9 @@ const MAP = {
   'fe1cf8ad79748c4c26045817b17b5c76.gif': { pose: 'finger-gun', bear: 'cream' },
   // The first frames of the desk flip, before the flip: writing at a desk with books, slowed into a calm loop.
   '0b8567569e3c0b74bf7324876d4cc0a6.gif#studying': { pose: 'studying', bear: 'cream', frames: [0, 1, 2, 1], delay: 260 },
+  // Bubu on her cushion scrolling her phone: cut from a TikTok video (frames 55-140), captions, signature and the
+  // watermark over her cheek removed, outline under the watermark redrawn. The "scrolling" status.
+  'bubu-scrolling.gif': { pose: 'scrolling', bear: 'cream' },
   // ---- Halloween (see halloween.js) ----
   // Witch Bubu holding out a jack-o'-lantern bucket on a moonlit sky: kept as a painted scene, it's the candy game.
   'hallowen ask for candy.gif': { pose: 'trick-or-treat', bear: 'cream', keep: true, max: 300 },
@@ -273,7 +276,11 @@ app.whenReady().then(async () => {
     console.log(`✓ ${src.slice(0, 30).padEnd(30)} → ${name.padEnd(24)} ${r.original.join('x')} → ${r.w}x${r.h}, ${frames.length} frames${how ? `, ${how}` : ''}, ${(out.length / 1024).toFixed(0)} KB`);
   };
   const fileOf = (src) => src.split('#')[0]; // "file.gif#name": a second pose cut from the same GIF
-  const missing = (src) => !fs.existsSync(path.join(dir, fileOf(src))) && console.log(`- skip ${src} (not found)`);
+  const missing = (src) => {
+    if (fs.existsSync(path.join(dir, fileOf(src)))) return false;
+    console.log(`- skip ${src} (not found)`);
+    return true;
+  };
   const poses = {}; // pose → { brown: [src, options], cream: [src, options] }
   for (const [src, entry] of Object.entries(MAP)) {
     if (missing(src)) continue;

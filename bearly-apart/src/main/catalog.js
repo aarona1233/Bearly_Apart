@@ -7,6 +7,7 @@ const STATUSES = {
   work: { emoji: '💼', short: 'At work', label: 'is at work' },
   class: { emoji: '📚', short: 'In class', label: 'is in class' },
   studying: { emoji: '📖', short: 'Studying', label: 'is studying' },
+  scrolling: { emoji: '📱', short: 'Scrolling', label: 'is scrolling on their phone' },
   gym: { emoji: '🏋️', short: 'At the gym', label: 'is at the gym' },
   driving: { emoji: '🚗', short: 'Driving', label: 'is driving' },
   eating: { emoji: '🍜', short: 'Eating', label: 'is eating' },

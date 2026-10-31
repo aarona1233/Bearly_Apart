@@ -2771,6 +2771,44 @@
       }
     ]
   },
+  "status-scrolling": {
+    "actors": [
+      {
+        "asset": "scrolling-{pc}.png",
+        "size": 220,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "just scrolling 📱 text me!",
+            "ms": 3000
+          },
+          {
+            "do": "wait",
+            "ms": 3400
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
   "send-study-mode": {
     "caption": "{emoji} {partner} {says}",
     "actors": [
