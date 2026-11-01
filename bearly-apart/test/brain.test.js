@@ -232,6 +232,19 @@ test('her outgoing iMessage is forwarded without the text', () => {
   assert.ok(!published[0].text.includes('secret'));
 });
 
+test('candy counts after Halloween: theirs and my other computer’s reach the hook, nothing plays or shows in Recent', () => {
+  const { brain, played } = setup();
+  const got = [];
+  const recent = [];
+  brain.onCandyScore = (ev, mine) => got.push([ev.text, mine]);
+  brain.onMyOtherComputer = (ev) => recent.push(ev.type);
+  brain.onRelayEvent({ type: 'candyscore', from: 'him', device: 'his-mac', text: '9' });
+  brain.onRelayEvent({ type: 'candyscore', from: 'her', device: 'her-laptop', text: '4' });
+  assert.deepStrictEqual(got, [['9', false], ['4', true]]);
+  assert.deepStrictEqual(played, []);
+  assert.deepStrictEqual(recent, []);
+});
+
 test('own echoes and strangers are ignored', () => {
   const { brain, played } = setup();
   brain.onRelayEvent({ type: 'kiss', from: 'her' });

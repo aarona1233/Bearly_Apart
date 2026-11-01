@@ -76,6 +76,8 @@ class Brain {
     if (ev.type === 'logreq') return this.onLogRequest?.(ev);
     if (ev.type === 'logpart') return;
     if (ev.type === 'testplay') return this.onTestPlay?.(ev);
+    // After Halloween: how many candies their app counted on that computer (for the recap).
+    if (ev.type === 'candyscore') return this.onCandyScore?.(ev, false);
     if (ev.type === 'diag') return;
     if (ev.type === 'seen') return this.onSeen?.(ev.until);
     this.fromPartner(ev);
@@ -90,8 +92,9 @@ class Brain {
     this.setState({ myDevices: { [ev.device]: { ...prev, ...seen } } });
     if (ev.type === 'status') this.setState({ myStatus: ev.status === 'clear' ? null : { name: ev.status, at } });
     if (ev.type === 'heart') this.setState({ sentHeartAt: at });
+    if (ev.type === 'candyscore') this.onCandyScore?.(ev, true);
     // Only things I sent show in Recent; checks and log requests between the apps don't.
-    if (!['presence', 'seen', 'hello', 'diag', 'ping', 'pong', 'logreq', 'logpart', 'testplay'].includes(ev.type)) this.onMyOtherComputer?.(ev, seen.name);
+    if (!['presence', 'seen', 'hello', 'diag', 'ping', 'pong', 'logreq', 'logpart', 'testplay', 'candyscore'].includes(ev.type)) this.onMyOtherComputer?.(ev, seen.name);
   }
 
   // Their app says they're at the computer ("here") or not ("away": idle, locked, asleep, quit). They may use
@@ -220,7 +223,7 @@ class Brain {
     }
     if (type === 'hello') Object.assign(ev, { character: c.me.character, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, handles: c.me.handles || [] });
     // Notes carry their text; a pong carries this app's health (JSON) for the other side's check, a logpart some log lines.
-    const text = ['note', 'jar', 'pong', 'logpart'].includes(type) ? extra.text : describe(ev, c.me.name || 'Your love');
+    const text = ['note', 'jar', 'pong', 'logpart', 'candyscore'].includes(type) ? extra.text : describe(ev, c.me.name || 'Your love');
     const sent = await this.publish(ev, text);
     // Only remember a status once it actually went out.
     if (type === 'status') this.setState({ myStatus: extra.status === 'clear' ? null : { name: extra.status, at: this.now() } });

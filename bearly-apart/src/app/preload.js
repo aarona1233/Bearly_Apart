@@ -23,5 +23,6 @@ contextBridge.exposeInMainWorld('ba', {
   theirLog: () => ipcRenderer.invoke('app:their-log'),
   testerUnlock: (code) => ipcRenderer.invoke('app:tester-unlock', code),
   testerLock: () => ipcRenderer.invoke('app:tester-lock'),
+  candyDismiss: () => ipcRenderer.invoke('app:candy-dismiss'),
   testerCandy: (where) => ipcRenderer.invoke('app:tester-candy', where),
 });

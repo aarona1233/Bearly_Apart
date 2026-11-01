@@ -243,8 +243,12 @@ password. Settings → **Updates** shows the version and has **Check for updates
 ## Halloween 🎃
 
 Halloween mode turns on by itself from **Oct 30 at 11:59 PM until Oct 31 at 3:59 PM** (each computer's own clock),
-every year. Right-click the tray / menu-bar bear → **🎃 Halloween mode** to switch it on or off any time; that lasts
-for the rest of the year, then it's back to the dates.
+every year. Right-click the tray / menu-bar bear → **🎃 Halloween mode** to switch it on early or off. Once
+Oct 31 at 3:59 PM has passed it's off and hidden until next year, whatever the switch said (back to normal use).
+
+**After Halloween (two weeks):** each app counts the candies given on its computer (from its log) and tells the other
+app. Once both numbers are in, you each get a 🍬 note, and the Send tab shows a card like *"Aaron gave Yimei 22
+candies · Yimei gave Aaron 9 candies"* (all computers added up) until you close it.
 
 While it's on:
 - **Ghost bears** fly across the screen once, when it first comes on.

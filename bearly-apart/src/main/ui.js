@@ -281,6 +281,7 @@ class UI {
     ipcMain.handle('app:their-log', () => actions.fetchPartnerLog());
     ipcMain.handle('app:tester-unlock', (_, code) => actions.unlockTester(code));
     ipcMain.handle('app:tester-lock', () => actions.lockTester());
+    ipcMain.handle('app:candy-dismiss', () => actions.dismissCandyRecap());
     ipcMain.handle('app:tester-candy', (_, where) => actions.testCandy(where === 'there' ? 'there' : 'here'));
     // From the overlay: someone clicked a bear.
     ipcMain.on('poke-back', () => actions.sendEvent('poke'));

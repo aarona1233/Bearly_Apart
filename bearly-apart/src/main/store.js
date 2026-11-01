@@ -92,6 +92,8 @@ const DEFAULT_STATE = {
   lastCheckedVersion: '', // the version the automatic check (Check tab) last ran for
   ghostsShownYear: 0, // the Halloween ghost bears fly once a year, when the mode first comes on
   testerUnlocked: false, // the Check tab's tester section, unlocked with Aaron's code on this computer
+  // After Halloween: candies given per computer, mine and theirs ({ year, mine: { device: n }, theirs, shown, dismissed })
+  candyRecap: null,
 };
 
 function isObj(v) {

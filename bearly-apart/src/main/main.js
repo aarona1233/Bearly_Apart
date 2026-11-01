@@ -20,7 +20,7 @@ const { runDiagnostics, formatReport, summary } = require('./diagnostics');
 const { MAC_TARGET, INSTALL_SH, UPDATE_SH, compareVersions, plistVersion, needsInstall } = require('./mac-install');
 const { Updater } = require('./updater');
 const { STATUSES, SENDABLES, GIFTS, describe } = require('./catalog');
-const { isOn, inWindow, started, toggled, nextAskIn } = require('./holiday');
+const { isOn, inWindow, started, ended, toggled, nextAskIn, recapTime, countCandyGiven, candyRecapText } = require('./holiday');
 
 const BUNDLED_ASSETS = path.join(__dirname, '..', '..', 'assets');
 const IS_MAC = process.platform === 'darwin';
@@ -292,6 +292,10 @@ function liveState() {
     check: lastCheck,
     halloween,
     halloweenOpen: halloweenOpen(),
+    candyRecap: (() => {
+      const c = candyRecap();
+      return c && !c.dismissed ? c.text : null;
+    })(),
     tester: !!st().testerUnlocked,
     activity: activity.items,
   };
@@ -712,6 +716,11 @@ function holidayTick() {
       }
     }
   }
+  // After Halloween: share this computer's candy count once per run (the relay has to be up to hear the answer).
+  if (!candySent && relay?.connected && recapTime('halloween')) {
+    candySent = true;
+    shareCandyCount();
+  }
   // Their bear comes by for candy now and then: only while someone's at the computer and nothing else is showing,
   // otherwise it tries again in a couple of minutes (no backlog of candy bears).
   if (!halloween || !cfg().partner.id || Date.now() < nextCandyAt) return;
@@ -724,10 +733,70 @@ function holidayTick() {
   player.play({ scene: 'trick-or-treat', priority: 2, label: `🎃 ${partnerName()} came trick-or-treating`, vars: brain.vars({ requested: '' }) });
 }
 
-// Whether anything of Halloween shows yet: once it has started this year (Oct 30 23:59), while it's switched on,
-// or on a computer unlocked for testing.
+// Whether anything of Halloween shows: while it's on, or from when it starts this year (Oct 30 23:59, earlier on a
+// computer unlocked for testing) until it ends (Oct 31 15:59). After that it's all hidden again until next year.
 function halloweenOpen() {
-  return halloween || started('halloween') || !!st().testerUnlocked;
+  return halloween || (!ended('halloween') && (started('halloween') || !!st().testerUnlocked));
+}
+
+// ---------- Halloween candy recap ----------------------------------------------
+// For two weeks after Halloween: each app counts the candies given on its computer (the log's "[candy] given"
+// lines) and tells the other app. With their number in, a note (and a card on the Send tab) says who gave whom
+// how many, all computers added up. Each app sends its count when it starts and answers the other's.
+
+let candySent = false;
+
+function candyRecapState() {
+  const year = new Date().getFullYear();
+  const r = st().candyRecap;
+  return r?.year === year ? r : { year, mine: {}, theirs: {}, shown: false, dismissed: false };
+}
+
+function shareCandyCount(reply = false) {
+  if (!recapTime('halloween') || !cfg().partner.id) return;
+  const n = countCandyGiven(log.tail(1_000_000), new Date().getFullYear());
+  const r = candyRecapState();
+  stores.state.set({ candyRecap: { ...r, mine: { ...r.mine, [st().deviceId]: n } } });
+  log(`[candy] this computer gave ${n} this Halloween; telling ${partnerName()}’s app`);
+  sendQuiet('candyscore', { text: String(n), ...(reply ? { status: 'reply' } : {}) });
+  showCandyRecap();
+}
+
+function onCandyScore(ev, mine) {
+  if (!recapTime('halloween')) return;
+  const n = Math.max(0, parseInt(ev.text, 10) || 0);
+  const r = candyRecapState();
+  const side = mine ? 'mine' : 'theirs';
+  stores.state.set({ candyRecap: { ...r, [side]: { ...r[side], [ev.device || 'main']: n } } });
+  log(`[candy] ${mine ? 'my other computer' : partnerName()} gave ${n} this Halloween`);
+  // Their app just started and told us: tell it ours back (an answer isn't answered again).
+  if (!mine && ev.status !== 'reply') shareCandyCount(true);
+  else showCandyRecap();
+}
+
+// The totals, once their number is in (null before that, after two weeks, or when the card was closed).
+function candyRecap() {
+  const r = candyRecapState();
+  if (!recapTime('halloween') || !Object.keys(r.theirs).length) return null;
+  const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
+  return { text: candyRecapText(cfg().me.name || 'You', partnerName(), sum(r.mine), sum(r.theirs)), shown: r.shown, dismissed: r.dismissed };
+}
+
+// The little note, once a year: a notification and a line in Recent. The Send tab's card stays until closed.
+function showCandyRecap() {
+  const c = candyRecap();
+  ui?.refresh();
+  if (!c || c.shown) return;
+  stores.state.set({ candyRecap: { ...candyRecapState(), shown: true } });
+  log(`[candy] recap: ${c.text}`);
+  activity.add({ dir: 'in', text: `🍬 ${c.text}` });
+  if (Notification.isSupported()) new Notification({ title: '🍬 Halloween candy', body: c.text }).show();
+}
+
+function dismissCandyRecap() {
+  stores.state.set({ candyRecap: { ...candyRecapState(), dismissed: true } });
+  ui?.refresh();
+  return { ok: true };
 }
 
 // ---------- tester section (Check tab) ----------------------------------------------
@@ -858,6 +927,7 @@ app.whenReady().then(() => {
   // Their tester section asked for a test candy game here (logged step by step for them to read back).
   brain.onTestPlay = () => playTestCandy(`${partnerName()} started a test from their app`);
   brain.halloweenOpen = halloweenOpen;
+  brain.onCandyScore = onCandyScore;
   brain.onMyOtherComputer = (ev, name) =>
     activity.add({ dir: 'out', text: `${outText(ev.type, ev)} (on ${name})`, state: 'sent', relayAt: ev.at });
   brain.onHello = (p) => {
@@ -872,7 +942,7 @@ app.whenReady().then(() => {
   relay.on('event', (ev) => {
     if (ev.from !== cfg().me.id) {
       log(`[relay] ← ${ev.type}${ev.status ? `:${ev.status}` : ''} from ${ev.from}`);
-      const bookkeeping = ['presence', 'seen', 'diag', 'ping', 'pong', 'logreq', 'logpart', 'testplay'].includes(ev.type);
+      const bookkeeping = ['presence', 'seen', 'diag', 'ping', 'pong', 'logreq', 'logpart', 'testplay', 'candyscore'].includes(ev.type);
       if (!bookkeeping && (ev.from === cfg().partner.id || ev.type === 'hello')) activity.add({ dir: 'in', text: incomingText(ev) });
     }
     brain.onRelayEvent(ev);
@@ -915,7 +985,7 @@ app.whenReady().then(() => {
     pairingCode: () => encodePairing(cfg()),
     linkCode: () => encodeLink(cfg()),
     deviceName: DEVICE_NAME,
-    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, checkTextAccess, relaunch, checkForUpdates, setUpdateKey, runChecks, checkReport, fetchPartnerLog, toggleHoliday, unlockTester, lockTester, testCandy, logFile: () => log.file() },
+    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, checkTextAccess, relaunch, checkForUpdates, setUpdateKey, runChecks, checkReport, fetchPartnerLog, toggleHoliday, unlockTester, lockTester, testCandy, dismissCandyRecap, logFile: () => log.file() },
   });
   activity.on('change', () => ui.refresh());
   ui.start();

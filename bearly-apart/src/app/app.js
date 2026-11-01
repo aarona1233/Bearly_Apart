@@ -81,6 +81,9 @@ function renderLive() {
   // Halloween mode dresses the window up (app.css, body.halloween).
   document.body.classList.toggle('halloween', !!live.halloween);
   $('halloween-card').hidden = !live.halloween;
+  // After Halloween: who gave whom how many candies (until it's closed).
+  $('candy-card').hidden = !live.candyRecap;
+  $('candy-text').textContent = live.candyRecap || '';
   document.querySelector('.avatar').textContent = live.halloween ? '🎃' : '🐻';
   // Nothing of Halloween in the Animations tab before it starts (Oct 30 23:59), unless this computer is a tester.
   for (const t of document.querySelectorAll('.tile[data-season="halloween"]')) t.hidden = !live.halloweenOpen;
@@ -377,6 +380,7 @@ $('tester-unlock').addEventListener('click', async () => {
   $('tester-code').value = '';
   toast(r.ok ? 'Tester tools unlocked 🧪' : 'That’s not the code');
 });
+$('candy-dismiss').addEventListener('click', () => window.ba.candyDismiss());
 $('tester-lock').addEventListener('click', async () => {
   await window.ba.testerLock();
   toast('Tester tools locked 🔒');
