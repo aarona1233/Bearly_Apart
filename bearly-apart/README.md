@@ -143,3 +143,11 @@ npm run release          # dist/: Bearly Apart Setup.exe, Bearly Apart for Mac.z
 ```
 Test hooks: `BA_DEMO=kiss,hug` plays scenes at startup, `BA_OPEN=setup|send|animations|settings` opens the window on that tab, `BA_CAPTURE=dir` saves overlay frames as PNGs, and
 `BA_CHATDB=path` points the iMessage watcher at a fake database (`node tools/fake-chatdb.js`).
+
+## The draft game
+
+The Draft tab is the old Draft Night game. `src/main/draft.js` holds the rules (a move turns one small JSON state into the next), `src/main/draft-session.js` keeps computers in step over the relay, `src/main/draft-judge.js` has the AI judge and the friend's judge file, and `src/app/draft.js` draws it. A state travels as one quiet `draft` relay message. It only counts once it comes back from the relay, so every computer agrees on which move won a race. `tools/import-draft.js` re-imports the topic packs and art from the old project into `assets/draft`.
+
+## The photo booth
+
+The Booth tab opens at `UNLOCK_AT` and closes after `BOOTH_LAST_DAY` (`src/main/booth.js`), or any day once the tester section is unlocked. The Draft tab unlocks at the same moment and stays. `src/main/booth.js` has the rules and the encryption (fresh X25519 keys per visit, AES-256-GCM), `src/main/booth-session.js` keeps a visit in step over the relay as quiet `booth` messages (applied when they come back, like the draft game), and the photos go up as one sealed ntfy attachment per half (`Relay.upload`). In the window, `src/app/booth-strip.js` draws the strip (designs, filters, bears, words) and `src/app/booth.js` runs the camera, the shared countdown and the screens. Both apps draw the strip from the same photos and settings with seeded randomness, so it comes out the same on both. `tools/make-booth.js` cuts the bear stickers in `assets/booth/` out of the animations.

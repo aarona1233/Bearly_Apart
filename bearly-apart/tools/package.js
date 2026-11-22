@@ -189,7 +189,8 @@ async function mac() {
     appCategoryType: 'public.app-category.lifestyle',
     darwinDarkModeSupport: true,
     // Menu-bar app: no Dock icon, no app switcher entry.
-    extendInfo: { LSUIElement: true, NSHumanReadableCopyright: 'Made with love' },
+    // Without the camera line macOS refuses the photo booth's camera outright.
+    extendInfo: { LSUIElement: true, NSHumanReadableCopyright: 'Made with love', NSCameraUsageDescription: 'Bearly Apart uses the camera for the photo booth.' },
     osxSign: false,
   });
   const app = path.join(appDir, `${NAME}.app`);

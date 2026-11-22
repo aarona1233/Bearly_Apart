@@ -4,9 +4,15 @@ const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
-const { app, dialog, shell, powerMonitor, powerSaveBlocker, protocol, net, globalShortcut, Notification } = require('electron');
+const { app, dialog, shell, powerMonitor, powerSaveBlocker, protocol, net, globalShortcut, Notification, session, systemPreferences } = require('electron');
 const os = require('os');
-const { openStores, slug, newTopic, encodePairing, encodeLink, decodePairing } = require('./store');
+const { openStores, JsonFile, slug, newTopic, encodePairing, encodeLink, decodePairing } = require('./store');
+const { inRange } = require('./guard');
+const { Catalog, parseFriendScores } = require('./draft');
+const { DraftSession } = require('./draft-session');
+const { askOllama, judgeFileHtml } = require('./draft-judge');
+const { BoothSession } = require('./booth-session');
+const { localDate } = require('./booth');
 const { Relay } = require('./relay');
 const { IMessageWatcher } = require('./imessage');
 const { Guard } = require('./guard');
@@ -83,7 +89,7 @@ log.setFile(path.join(app.getPath('userData'), 'bearly-apart.log'));
 // An unexpected error in the background part goes into the log instead of a crash dialog: the app keeps going.
 process.on('uncaughtException', (err) => log('[crash] uncaught error:', err));
 process.on('unhandledRejection', (err) => log('[crash] unhandled promise:', err));
-let stores, relay, imessage, guard, player, brain, overlay, ui, updater;
+let stores, relay, imessage, guard, player, brain, overlay, ui, updater, draftGame, booth;
 const activity = new Activity();
 let scenes = {};
 let justUpdated = false; // a newer version than last time, on an already set-up install
@@ -102,6 +108,17 @@ function userAssetsDir() {
 }
 
 function resolveAsset(name) {
+  // The draft game's pictures and sounds keep to a folder of their own.
+  const boothFile = name.match(/^booth\/([\w.-]+)$/)?.[1];
+  if (boothFile) {
+    const p = path.join(BUNDLED_ASSETS, 'booth', boothFile);
+    return fs.existsSync(p) ? p : null;
+  }
+  const draftFile = name.match(/^draft\/((?:art\/)?[\w.-]+)$/)?.[1];
+  if (draftFile) {
+    const p = path.join(BUNDLED_ASSETS, 'draft', draftFile);
+    return fs.existsSync(p) ? p : null;
+  }
   const base = path.basename(name);
   const safe = path.basename(aliases[base.replace(/\.[a-z0-9]+$/i, '')] || aliases[base] || base);
   for (const dir of [userAssetsDir(), BUNDLED_ASSETS]) {
@@ -297,6 +314,10 @@ function liveState() {
       return c && !c.dismissed ? c.text : null;
     })(),
     tester: !!st().testerUnlocked,
+    draftTurn: !!draftGame?.isMyMove(),
+    // Hidden until the booth unlocks too, unless a game is already going (a tester can start one early).
+    draftOpen: !!booth?.draftUnlocked() || !!draftGame?.state,
+    booth: booth ? { tab: booth.canShoot() || booth.view().sessions.some((s) => s.status === 'done'), open: booth.isOpen(), needsMe: booth.needsMe() } : null,
     activity: activity.items,
   };
 }
@@ -850,6 +871,174 @@ function toggleHoliday(name) {
   holidayTick();
 }
 
+// ---------- the photo booth --------------------------------------------------------
+
+function startBooth() {
+  booth = new BoothSession({
+    config: cfg,
+    dir: path.join(app.getPath('userData'), 'booth'),
+    publish: (status, text) => brain.send('booth', { status, text }),
+    upload: (data, name) => relay.upload(data, name),
+    download: downloadAttachment,
+    notify: notifyBooth,
+    onChange: () => {
+      ui?.sendBooth();
+      ui?.refresh();
+    },
+    // Their half just came in: their bear comes over holding the strip (unless you're looking at it already).
+    onStrip: () => {
+      if (ui?.win && !ui.win.isDestroyed() && ui.win.isFocused()) return;
+      player.play({ scene: 'booth-strip', priority: 5, label: '📸 photo strip', vars: brain.vars() });
+    },
+    device: st().deviceId,
+    tester: () => !!st().testerUnlocked,
+    log,
+  });
+}
+
+// Only files on the relay's own server: the link comes in a message, so it isn't trusted further than that.
+async function downloadAttachment(url) {
+  const relayOrigin = new URL(cfg().relay.server).origin;
+  if (new URL(url).origin !== relayOrigin) throw new Error('that link isn’t on our relay');
+  const res = await net.fetch(url, { signal: AbortSignal.timeout(90_000) });
+  if (!res.ok) throw new Error(res.status === 404 ? 'the relay doesn’t have it any more' : `relay answered HTTP ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (buf.length > 20_000_000) throw new Error('too big');
+  return buf;
+}
+
+let boothNotification = null;
+function notifyBooth(body) {
+  ui?.sendBoothNote(body);
+  if (ui?.win && !ui.win.isDestroyed() && ui.win.isFocused()) return;
+  if (!Notification.isSupported()) return;
+  boothNotification = new Notification({ title: '📸 Bearly Booth', body, silent: inRange(cfg().quietHours) || st().snoozedUntil > Date.now() });
+  boothNotification.on('click', () => ui.openWindow('booth'));
+  boothNotification.show();
+}
+
+// The booth's day: once, when you're at the computer and it isn't quiet hours, their bear brings a ticket.
+function boothTick() {
+  if (!booth?.isOpen() || !cfg().setupDone || !cfg().partner.id) return;
+  const today = localDate(Date.now());
+  if (st().boothTicketDay === today || inRange(cfg().quietHours) || powerMonitor.getSystemIdleTime() > 120 || guard?.locked) return;
+  stores.state.set({ boothTicketDay: today });
+  player.play({ scene: 'booth-open', priority: 4, label: '📸 the photo booth is open', vars: brain.vars() });
+  ui?.refresh();
+}
+
+async function boothCamera() {
+  if (!IS_MAC) return { ok: true };
+  const status = systemPreferences.getMediaAccessStatus('camera');
+  if (status === 'granted') return { ok: true };
+  if (status === 'not-determined' && (await systemPreferences.askForMediaAccess('camera'))) return { ok: true };
+  return { ok: false, error: 'The camera is switched off for Bearly Apart. Open System Settings → Privacy & Security → Camera and switch it on.', settings: true };
+}
+
+// A finished strip (or its back, or the 4x6 print sheet) as a PNG in Pictures/Bearly Apart.
+function boothSave({ png, name }) {
+  const m = String(png || '').match(/^data:image\/png;base64,([A-Za-z0-9+/=]+)$/);
+  if (!m) return { ok: false, error: 'nothing to save' };
+  const dir = path.join(app.getPath('pictures'), 'Bearly Apart');
+  fs.mkdirSync(dir, { recursive: true });
+  const base = String(name || '').replace(/[^\w ,.&'-]+/g, '').trim().slice(0, 80) || 'Photo strip';
+  let file = path.join(dir, `${base}.png`);
+  for (let n = 2; fs.existsSync(file); n++) file = path.join(dir, `${base} (${n}).png`);
+  fs.writeFileSync(file, Buffer.from(m[1], 'base64'));
+  log(`[booth] saved ${path.basename(file)}`);
+  return { ok: true, file };
+}
+
+function boothAction(a) {
+  if (a?.type === 'start') return booth.start({ mode: a.mode });
+  if (a?.type === 'save') return boothSave(a);
+  if (a?.type === 'show' && a.file) return shell.showItemInFolder(String(a.file));
+  if (a?.type === 'camera') return boothCamera();
+  if (a?.type === 'camera-settings') return shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Camera');
+  return booth.act(a);
+}
+
+// The bear stickers as data URLs: a canvas that drew ba:// pictures couldn't be saved.
+function boothAssets() {
+  const dir = path.join(BUNDLED_ASSETS, 'booth');
+  return Object.fromEntries(fs.readdirSync(dir).filter((f) => f.endsWith('.png')).map((f) => [f.slice(0, -4), `data:image/png;base64,${fs.readFileSync(path.join(dir, f)).toString('base64')}`]));
+}
+
+// ---------- the draft game ------------------------------------------------------
+
+function startDraftGame() {
+  const file = new JsonFile(path.join(app.getPath('userData'), 'draft.json'), {});
+  const catalog = new Catalog(JSON.parse(fs.readFileSync(path.join(BUNDLED_ASSETS, 'draft', 'topics.json'), 'utf8')));
+  draftGame = new DraftSession({
+    catalog,
+    config: cfg,
+    publish: (status, text) => brain.send('draft', { status, text }),
+    load: () => file.data,
+    save: (data) => {
+      file.data = data;
+      file.save();
+    },
+    notify: notifyDraft,
+    onChange: () => {
+      ui?.sendDraft();
+      ui?.refresh();
+    },
+    askAi: (s) => askOllama(s, catalog, draftGame.names(), { log }),
+    device: st().deviceId,
+    log,
+  });
+}
+
+// Kept in a variable: a notification that gets garbage-collected can no longer tell us it was clicked.
+let draftNotification = null;
+function notifyDraft(body) {
+  ui?.sendDraftNote(body);
+  if (ui?.win && !ui.win.isDestroyed() && ui.win.isFocused()) return; // they're looking at it
+  if (draftGame.settings.notify === false || !Notification.isSupported()) return;
+  // During quiet hours or a snooze it still shows up, just without a sound.
+  draftNotification = new Notification({ title: '🎲 Bearly Draft', body, silent: inRange(cfg().quietHours) || st().snoozedUntil > Date.now() });
+  draftNotification.on('click', () => ui.openWindow('draft'));
+  draftNotification.show();
+}
+
+// The moves the window can ask for. Anything else it sends is refused.
+const DRAFT_MOVES = new Set(['accept', 'skip', 'topic', 'context', 'bid', 'pass', 'to-turns', 'judging', 'score', 'judge-each', 'abandon']);
+
+function draftAction(a) {
+  if (a?.type === 'start') return draftGame.start({ settings: a.settings });
+  if (a?.type === 'rematch') return draftGame.start({ rematch: true, replace: true });
+  if (a?.type === 'clear') return draftGame.clear();
+  if (a?.type === 'settings') return draftGame.saveSettings(a.settings);
+  if (a?.type === 'friend-reply') {
+    const s = draftGame.state;
+    const sheets = s && parseFriendScores(a.text, s.players, draftGame.names());
+    if (!sheets) return { ok: false, error: 'That needs eight numbers from 1 to 5: four for each build.' };
+    return draftGame.act({ type: 'friend', sheets });
+  }
+  if (a?.type === 'judge-file') return saveDraftJudgeFile();
+  if (!DRAFT_MOVES.has(a?.type)) return { ok: false, error: 'unknown move' };
+  return draftGame.act(a);
+}
+
+async function saveDraftJudgeFile() {
+  const s = draftGame.state;
+  if (!s?.topic || !s.players) return { ok: false, error: 'There’s no build to judge yet.' };
+  const title = draftGame.catalog.topic(s.topic).title.replace(/[^\w ]+/g, '');
+  const { canceled, filePath } = await dialog.showSaveDialog(ui.win, {
+    title: 'Save the judge file',
+    defaultPath: path.join(app.getPath('downloads'), `Judge this draft - ${title}.html`),
+    filters: [{ name: 'Web page', extensions: ['html'] }],
+  });
+  if (canceled || !filePath) return { ok: false };
+  const artData = (id) => {
+    const p = path.join(BUNDLED_ASSETS, 'draft', 'art', `${id}.webp`);
+    return fs.existsSync(p) ? `data:image/webp;base64,${fs.readFileSync(p).toString('base64')}` : '';
+  };
+  fs.writeFileSync(filePath, judgeFileHtml(s, draftGame.catalog, draftGame.names(), artData));
+  shell.showItemInFolder(filePath);
+  return { ok: true };
+}
+
 // ---------- startup --------------------------------------------------------
 
 app.whenReady().then(() => {
@@ -863,6 +1052,13 @@ app.whenReady().then(() => {
   stores = openStores(app.getPath('userData'));
   loadScenes();
   fs.watch(app.getPath('userData'), (_, f) => f === 'scenes.json' && loadScenes());
+
+  // The camera is only for the app window's photo booth, and only the picture (never the microphone). Everything
+  // else keeps Electron's usual answer.
+  session.defaultSession.setPermissionRequestHandler((wc, permission, cb, details) => {
+    if (permission !== 'media') return cb(true);
+    cb(!!ui?.win && !ui.win.isDestroyed() && wc.id === ui.win.webContents.id && (details.mediaTypes || []).every((t) => t === 'video'));
+  });
 
   protocol.handle('ba', (req) => {
     const name = decodeURIComponent(new URL(req.url).pathname.replace(/^\/+/, ''));
@@ -939,7 +1135,19 @@ app.whenReady().then(() => {
     log(`[pair] paired with ${p.name} (${p.id})`);
     ui?.refresh();
   };
+  startDraftGame();
+  startBooth();
   relay.on('event', (ev) => {
+    if (ev.type === 'booth') {
+      if (ev.from !== cfg().me.id && ev.from !== cfg().partner.id) return;
+      return booth.onEvent(ev);
+    }
+    // The draft game keeps its own books. Its echo matters too: a move only counts once it's back from the relay.
+    if (ev.type === 'draft') {
+      if (ev.from !== cfg().me.id && ev.from !== cfg().partner.id) return;
+      if (ev.from === cfg().partner.id && ev.status === 'state') brain.heard(ev);
+      return draftGame.onEvent(ev);
+    }
     if (ev.from !== cfg().me.id) {
       log(`[relay] ← ${ev.type}${ev.status ? `:${ev.status}` : ''} from ${ev.from}`);
       const bookkeeping = ['presence', 'seen', 'diag', 'ping', 'pong', 'logreq', 'logpart', 'testplay', 'candyscore'].includes(ev.type);
@@ -955,6 +1163,8 @@ app.whenReady().then(() => {
       sendEvent('hello');
     }
     if (up) announcePresence(); // whatever changed while offline
+    if (up) draftGame.onConnected(); // moves the relay no longer has
+    if (up) booth.onConnected(); // photos the relay no longer has
   });
 
   // BA_CHATDB points the watcher at a fake chat.db so the iMessage path can be tested off a Mac.
@@ -985,7 +1195,7 @@ app.whenReady().then(() => {
     pairingCode: () => encodePairing(cfg()),
     linkCode: () => encodeLink(cfg()),
     deviceName: DEVICE_NAME,
-    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, checkTextAccess, relaunch, checkForUpdates, setUpdateKey, runChecks, checkReport, fetchPartnerLog, toggleHoliday, unlockTester, lockTester, testCandy, dismissCandyRecap, logFile: () => log.file() },
+    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, checkTextAccess, relaunch, checkForUpdates, setUpdateKey, runChecks, checkReport, fetchPartnerLog, toggleHoliday, unlockTester, lockTester, testCandy, dismissCandyRecap, draftAction, draftView: () => draftGame.view(), boothAction, boothView: () => booth.view(), boothPhotos: (sid) => booth.photos(sid), boothAssets, logFile: () => log.file() },
   });
   activity.on('change', () => ui.refresh());
   ui.start();
@@ -1019,6 +1229,7 @@ app.whenReady().then(() => {
 
   setInterval(() => brain.tick({ idleSec: powerMonitor.getSystemIdleTime() }), 30_000);
   setInterval(holidayTick, 30_000);
+  setInterval(boothTick, 30_000);
   setTimeout(holidayTick, 5_000);
 
   justUpdated = cfg().setupDone && st().lastVersion !== app.getVersion();

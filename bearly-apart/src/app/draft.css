@@ -1,0 +1,774 @@
+/* The Draft tab: the old game's card table, redone as a Bubu and Dudu picnic. */
+:root {
+  --honey: #e8a93a;
+  --paper: #fbf3e4;
+  --paper-ink: #5b3a46;
+  --blanket-a: #ffe9ef;
+  --blanket-b: #fff8f2;
+  --dudu: #b98a66;
+  --bubu: #f4e7d6;
+  --tier-premium: #e8a93a;
+  --tier-mid: #b5a2c8;
+  --tier-mediocre: #f0975a;
+  --tier-joke: #c77dff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --blanket-a: #3a2830;
+    --blanket-b: #30222a;
+  }
+}
+
+.tab-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 5px;
+  border-radius: 50%;
+  background: var(--pink-strong);
+  vertical-align: 2px;
+}
+
+.toast {
+  border-radius: 16px;
+  text-align: center;
+  width: max-content;
+  z-index: 5;
+}
+
+/* Five tabs have to fit the narrowest window. */
+.tabs {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+@media (max-width: 480px) {
+  .tabs {
+    gap: 2px;
+    padding: 0 8px;
+  }
+  .tabs button {
+    padding: 8px 6px;
+    font-size: 13px;
+  }
+}
+
+#draft-root h2 {
+  margin-bottom: 4px;
+}
+.d-head {
+  text-align: center;
+  margin: 2px 0 12px;
+}
+.d-head h2 {
+  font-size: 20px;
+}
+.d-head p {
+  margin: 0;
+}
+.d-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+.d-center-text {
+  text-align: center;
+}
+.d-center .actions {
+  justify-content: center;
+}
+.d-bear {
+  display: block;
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+.d-bear.large {
+  width: 112px;
+  height: 112px;
+}
+
+/* ---------- start screen ---------- */
+.d-hero {
+  text-align: center;
+  background: repeating-conic-gradient(var(--blanket-a) 0 25%, var(--blanket-b) 0 50%) 0 0 / 36px 36px;
+}
+.d-hero h2 {
+  font-size: 24px;
+  margin: 2px 0;
+}
+.d-hero p {
+  margin: 0;
+}
+.d-hero-bears {
+  height: 130px;
+  max-width: 100%;
+  object-fit: contain;
+}
+.d-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+.d-choices.one {
+  grid-template-columns: 1fr;
+}
+.d-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  background: var(--bg);
+  color: var(--ink);
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+.d-choice small {
+  color: var(--muted);
+  font-weight: 500;
+}
+.d-choice.on {
+  border-color: var(--pink-strong);
+  background: var(--pink-soft);
+}
+.d-choice:hover {
+  border-color: var(--pink);
+}
+.d-choice.ghosty {
+  border-style: dashed;
+}
+.d-live-opts {
+  margin-top: 12px;
+}
+.d-timer {
+  display: block;
+  font-weight: 600;
+}
+.d-timer input {
+  width: 100%;
+  accent-color: var(--pink-strong);
+}
+.d-num {
+  float: right;
+  font-weight: 800;
+  color: var(--pink-strong);
+}
+.d-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  margin: 6px 0 0;
+}
+.d-check input {
+  width: auto;
+  margin: 0;
+}
+.d-startbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+  justify-content: center;
+  margin: 4px 0 14px;
+}
+.d-prefs {
+  display: flex;
+  gap: 14px;
+}
+button.d-go {
+  background: var(--pink-strong);
+  color: #fff;
+  border-radius: 14px;
+  padding: 12px 18px;
+  font-size: 15px;
+  box-shadow: 0 3px 0 rgba(120, 40, 70, 0.35);
+}
+button.d-go:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 rgba(120, 40, 70, 0.35);
+}
+.d-startbar button.d-go {
+  flex: 1 1 100%;
+}
+
+/* ---------- topic ---------- */
+.d-topic {
+  padding: 28px 16px;
+  background: repeating-conic-gradient(var(--blanket-a) 0 25%, var(--blanket-b) 0 50%) 0 0 / 36px 36px;
+}
+.d-topic-title {
+  font-size: 26px;
+}
+.d-slot {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pink-strong);
+}
+
+/* ---------- the table ---------- */
+.d-topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.d-topbar i {
+  color: var(--muted);
+}
+.d-count {
+  white-space: nowrap;
+  color: var(--muted);
+  font-weight: 700;
+}
+.d-table {
+  position: relative;
+  overflow: hidden;
+  border: 2px solid var(--line);
+  border-radius: 22px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: repeating-conic-gradient(var(--blanket-a) 0 25%, var(--blanket-b) 0 50%) 0 0 / 44px 44px;
+}
+.d-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+  background: var(--paper);
+  color: var(--paper-ink);
+  border-radius: 16px;
+  padding: 10px 12px 12px;
+  box-shadow: 0 2px 0 rgba(91, 58, 70, 0.15);
+  animation: d-deal 0.35s cubic-bezier(0.2, 1.3, 0.5, 1);
+}
+.d-item .d-slot {
+  color: #c55a7c;
+  margin-top: 4px;
+}
+.d-item-name {
+  font-size: 17px;
+  line-height: 1.2;
+}
+.d-flavor {
+  color: #8a6a76;
+  font-style: italic;
+}
+@keyframes d-deal {
+  from {
+    opacity: 0;
+    transform: translateY(14px) rotate(-3deg) scale(0.92);
+  }
+}
+.d-modifier {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1.5px solid #c77dff;
+  color: #9a4fd6;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* The art is on plain white, so multiplying it onto paper makes it read as a sticker on the card. */
+.d-art {
+  flex: none;
+  overflow: hidden;
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  border: 2px solid var(--tier-mid);
+  background: var(--paper);
+}
+.d-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  mix-blend-mode: multiply;
+}
+.d-art.big {
+  width: 104px;
+  height: 104px;
+  border-radius: 16px;
+}
+.d-art.d-chip {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+}
+.d-art.d-chip img {
+  animation: d-pop 0.35s cubic-bezier(0.2, 1.6, 0.5, 1);
+}
+@keyframes d-pop {
+  from {
+    transform: scale(0.2);
+  }
+}
+.tier-premium {
+  border-color: var(--tier-premium);
+}
+.tier-mid {
+  border-color: var(--tier-mid);
+}
+.tier-mediocre {
+  border-color: var(--tier-mediocre);
+}
+.tier-joke {
+  border-color: var(--tier-joke);
+}
+.d-art-none {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--paper-ink);
+}
+
+.d-bidline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 8px 0;
+  text-align: center;
+}
+.d-bid {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.d-leader {
+  color: var(--muted);
+  font-weight: 600;
+}
+.d-clock {
+  --left: 1;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: conic-gradient(var(--pink-strong) calc(var(--left) * 360deg), var(--line) 0);
+}
+.d-clock::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: var(--card);
+}
+.d-secs {
+  position: relative;
+  font-size: 20px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.d-clock.urgent .d-secs {
+  color: var(--bad);
+}
+.d-seats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.d-seat {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 8px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  padding: 6px 8px;
+  min-width: 0;
+}
+.d-seat .d-bear {
+  width: 52px;
+  height: 52px;
+}
+.d-seat-who {
+  min-width: 0;
+}
+.d-seat-who b,
+.d-seat-who .d-budget {
+  display: block;
+  line-height: 1.25;
+}
+.d-seat.leading {
+  border-color: var(--honey);
+}
+.d-budget {
+  font-size: 13px;
+  font-weight: 700;
+}
+.d-tags {
+  min-height: 17px;
+  display: flex;
+  gap: 4px;
+}
+.d-tag {
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.d-tag.lead {
+  background: var(--honey);
+  color: #4a3000;
+}
+.d-tag.passed {
+  background: var(--line);
+  color: var(--muted);
+}
+.d-tag.turn {
+  background: var(--pink-strong);
+  color: #fff;
+}
+.d-pile {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  justify-content: center;
+  gap: 3px;
+}
+
+/* "You got it!" stamped across the table for a moment after an item closes. */
+.d-stamp {
+  position: absolute;
+  z-index: 2;
+  top: 44px;
+  left: 50%;
+  padding: 6px 18px;
+  border: 3px solid var(--pink-strong);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--pink-strong);
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: d-stamp 2.2s forwards;
+}
+.d-stamp b {
+  display: block;
+  font-size: 18px;
+}
+@keyframes d-stamp {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) rotate(-8deg) scale(1.6);
+  }
+  10%,
+  75% {
+    opacity: 1;
+    transform: translateX(-50%) rotate(-6deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) rotate(-6deg) scale(1);
+  }
+}
+
+/* ---------- controls ---------- */
+.d-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.d-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+button.d-step {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  font-size: 22px;
+  background: var(--pink-soft);
+  color: var(--ink);
+}
+.d-money {
+  display: flex;
+  align-items: center;
+  font-size: 26px;
+  font-weight: 800;
+}
+input.d-amount {
+  width: 100px;
+  margin: 0 0 0 2px;
+  padding: 4px 6px;
+  font-size: 26px;
+  font-weight: 800;
+  text-align: center;
+  border-radius: 10px;
+}
+button.d-pass {
+  background: none;
+  color: var(--bad);
+  border: 2px solid color-mix(in srgb, var(--bad) 40%, transparent);
+  border-radius: 14px;
+  padding: 9px;
+}
+.d-quick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.d-custom-row {
+  display: flex;
+  gap: 8px;
+}
+input.d-custom {
+  flex: 1;
+  margin: 0;
+}
+.d-wait {
+  text-align: center;
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 2px dashed var(--line);
+  border-radius: 16px;
+}
+.d-wait b,
+.d-wait small {
+  display: block;
+}
+.d-wait small {
+  color: var(--muted);
+}
+.d-feed {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+.d-feed ol {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.d-feed li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+  border-top: 1px solid var(--line);
+}
+.d-feed small {
+  color: var(--muted);
+  white-space: nowrap;
+}
+.d-links {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+button.d-end {
+  display: block;
+  margin: 0 auto;
+}
+
+/* ---------- builds ---------- */
+.d-build-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.d-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+}
+.d-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+  background: var(--paper);
+  color: var(--paper-ink);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 3px 8px rgba(91, 58, 70, 0.18);
+  font-size: 12px;
+  line-height: 1.2;
+}
+.d-tile .d-art {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+.d-tile:nth-child(odd) {
+  transform: rotate(-1.5deg);
+}
+.d-tile:nth-child(even) {
+  transform: rotate(1.2deg);
+}
+.d-tile small {
+  color: #c55a7c;
+  font-weight: 800;
+}
+
+/* Black-and-white is only a display effect here: the art itself is in color. */
+.d-strips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 16px;
+}
+.d-strip {
+  width: 104px;
+  padding: 7px 7px 6px;
+  background: #f4f0e6;
+  border-radius: 3px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.3);
+  transform: rotate(-2deg);
+}
+.d-strip:nth-child(even) {
+  transform: rotate(2deg);
+}
+.d-art.frame {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  margin-bottom: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.7);
+  border-radius: 0;
+  background: #fff;
+}
+.d-art.frame img {
+  filter: grayscale(1) contrast(1.1);
+}
+.d-strip small {
+  display: block;
+  text-align: center;
+  font: 700 7px/1.3 ui-monospace, monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+/* ---------- judging ---------- */
+.d-score {
+  display: block;
+  font-weight: 600;
+  margin: 12px 0;
+}
+.d-score input {
+  width: 100%;
+  margin: 4px 0 0;
+  accent-color: var(--pink-strong);
+}
+.card > button.d-go {
+  width: 100%;
+}
+
+/* ---------- results ---------- */
+.d-wheel {
+  position: relative;
+  width: 260px;
+  height: 260px;
+  margin: 24px auto;
+}
+.d-needle {
+  position: absolute;
+  z-index: 2;
+  top: -12px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  margin-left: -12px;
+  border: 12px solid transparent;
+  border-top: 26px solid var(--pink-strong);
+  border-bottom: 0;
+}
+.d-wheel-dial {
+  position: absolute;
+  inset: 0;
+  border: 6px solid var(--honey);
+  border-radius: 50%;
+  animation: d-spin 2.4s cubic-bezier(0.15, 0.6, 0.2, 1) forwards;
+}
+.d-wheel-dial.bear-brown {
+  background: conic-gradient(var(--dudu) 0 180deg, var(--bubu) 0);
+}
+.d-wheel-dial.bear-cream {
+  background: conic-gradient(var(--bubu) 0 180deg, var(--dudu) 0);
+}
+.d-wheel-dial .d-bear {
+  position: absolute;
+  top: calc(50% - 40px);
+  width: 80px;
+  height: 80px;
+}
+.d-wheel-dial .on-right {
+  right: 20px;
+}
+.d-wheel-dial .on-left {
+  left: 20px;
+}
+@keyframes d-spin {
+  to {
+    transform: rotate(var(--stop));
+  }
+}
+.d-result.winner {
+  border: 2px solid var(--honey);
+}
+.d-total {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.d-cat {
+  display: grid;
+  grid-template-columns: 110px 1fr 28px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  padding: 2px 0;
+}
+.d-cat b {
+  text-align: right;
+}
+.d-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line);
+}
+.d-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--pink-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .d-item,
+  .d-art.d-chip img {
+    animation: none;
+  }
+}

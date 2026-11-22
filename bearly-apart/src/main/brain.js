@@ -223,7 +223,7 @@ class Brain {
     }
     if (type === 'hello') Object.assign(ev, { character: c.me.character, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, handles: c.me.handles || [] });
     // Notes carry their text; a pong carries this app's health (JSON) for the other side's check, a logpart some log lines.
-    const text = ['note', 'jar', 'pong', 'logpart', 'candyscore'].includes(type) ? extra.text : describe(ev, c.me.name || 'Your love');
+    const text = ['note', 'jar', 'pong', 'logpart', 'candyscore', 'draft', 'booth'].includes(type) ? extra.text : describe(ev, c.me.name || 'Your love');
     const sent = await this.publish(ev, text);
     // Only remember a status once it actually went out.
     if (type === 'status') this.setState({ myStatus: extra.status === 'clear' ? null : { name: extra.status, at: this.now() } });

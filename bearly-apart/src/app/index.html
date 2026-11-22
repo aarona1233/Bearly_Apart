@@ -2,9 +2,11 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src ba: data:" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src ba: data:; media-src ba:" />
     <title>Bearly Apart</title>
     <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="draft.css" />
+    <link rel="stylesheet" href="booth.css" />
   </head>
   <body>
     <header class="top">
@@ -20,6 +22,8 @@
 
     <nav class="tabs">
       <button data-tab="send">💌 Send</button>
+      <button data-tab="booth" id="booth-tab" hidden>📸 Booth<span class="tab-dot" id="booth-dot" hidden></span></button>
+      <button data-tab="draft" id="draft-tab" hidden>🎲 Draft<span class="tab-dot" id="draft-dot" hidden></span></button>
       <button data-tab="animations">🎬 Animations</button>
       <button data-tab="settings">⚙️ Settings</button>
       <button data-tab="check">🩺 Check</button>
@@ -181,6 +185,9 @@
       </section>
 
       <!-- ============================ ANIMATIONS =========================== -->
+      <section data-page="draft"><div id="draft-root"></div></section>
+      <section data-page="booth"><div id="booth-root"></div></section>
+
       <section data-page="animations">
         <div class="card">
           <p class="hint">Press ▶ to play one on <b>this</b> screen. It's only a preview: nothing is sent.</p>
@@ -377,5 +384,8 @@
     <div class="toast" id="toast"></div>
     <script src="app.js"></script>
     <script src="setup.js"></script>
+    <script src="draft.js"></script>
+    <script src="booth-strip.js"></script>
+    <script src="booth.js"></script>
   </body>
 </html>

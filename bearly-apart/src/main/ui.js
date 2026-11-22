@@ -79,6 +79,23 @@ class UI {
     if (this.win && !this.win.isDestroyed()) this.win.webContents.send('live', this.liveState());
   }
 
+  // The draft game has its own channel: the window redraws it only when the game changes.
+  sendDraft() {
+    if (this.win && !this.win.isDestroyed()) this.win.webContents.send('draft', this.actions.draftView());
+  }
+
+  sendBooth() {
+    if (this.win && !this.win.isDestroyed()) this.win.webContents.send('booth', this.actions.boothView());
+  }
+
+  sendBoothNote(text) {
+    if (this.win && !this.win.isDestroyed()) this.win.webContents.send('booth-note', text);
+  }
+
+  sendDraftNote(text) {
+    if (this.win && !this.win.isDestroyed()) this.win.webContents.send('draft-note', text);
+  }
+
   // ---------- window -------------------------------------------------------
 
   openWindow(tab) {
@@ -133,6 +150,8 @@ class UI {
       else if (live.imessage === 'ok' && !cfg.partner.imessageHandles.length) items.push({ label: '⚠️ iMessage: add their number in Settings', click: () => this.openWindow('settings') });
       else if (live.imessage === 'ok') items.push({ label: '✓ Watching iMessage', enabled: false });
     }
+    if (live.draftTurn && live.draftOpen) items.push({ label: '🎲  Your move in Draft…', click: () => this.openWindow('draft') });
+    if (live.booth?.open) items.push({ label: live.booth.needsMe ? '📸  The photo booth is waiting for you…' : '📸  Photo booth…', click: () => this.openWindow('booth') });
     items.push({ type: 'separator' });
     for (const [type, s] of Object.entries(SENDABLES)) {
       items.push({ label: `${s.emoji}  Send ${s.short.toLowerCase()}`, enabled: paired, click: () => this.actions.sendEvent(type, {}, { notify: true }) });
@@ -282,6 +301,12 @@ class UI {
     ipcMain.handle('app:tester-unlock', (_, code) => actions.unlockTester(code));
     ipcMain.handle('app:tester-lock', () => actions.lockTester());
     ipcMain.handle('app:candy-dismiss', () => actions.dismissCandyRecap());
+    ipcMain.handle('app:draft', (_, action) => actions.draftAction(action));
+    ipcMain.handle('app:draft-get', () => actions.draftView());
+    ipcMain.handle('app:booth', (_, action) => actions.boothAction(action));
+    ipcMain.handle('app:booth-get', () => actions.boothView());
+    ipcMain.handle('app:booth-photos', (_, sid) => actions.boothPhotos(String(sid)));
+    ipcMain.handle('app:booth-assets', () => actions.boothAssets());
     ipcMain.handle('app:tester-candy', (_, where) => actions.testCandy(where === 'there' ? 'there' : 'here'));
     // From the overlay: someone clicked a bear.
     ipcMain.on('poke-back', () => actions.sendEvent('poke'));

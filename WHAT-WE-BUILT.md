@@ -191,3 +191,11 @@ If anything misbehaves, note what you see. Most of it is quick to fix.
 - Node.js 24 LTS → `~/.local/opt/node`, with `node`/`npm`/`npx` in `~/.local/bin`
 - rcodesign 0.29.0 (signs the Mac app from Linux) → `~/.local/bin`
 - App launcher → `~/.local/share/applications/bearly-apart.desktop`, plus autostart in `~/.config/autostart/`
+
+## Bearly Draft (0.11.0)
+
+A new Draft tab brings in the old Draft Night auction game with Bubu and Dudu visuals: all 74 topic packs and 2,170 pictures, shrunk from 53 MB to 12 MB. It plays live with a countdown or one move at a time like a game over iMessage, with a notification for each bid, pass and win. Judging is each other, the AI judge (local Ollama), or a friend with a judge file who texts the scores back. The old game's music and shader background were left out.
+
+## Bearly Booth (Nov 25, 2026)
+
+A one-day photo booth tab, after a long-distance photo booth reel. Both cameras fire at the same moment (or each of you takes your half when you like), and every shot puts the two of you side by side in one frame. Six strip designs, seven filters, tiny Bubu and Dudu in the corners, both local times, stickers, a then & now frame, a note on the back and a printable 4x6 sheet. The photos travel sealed with a key made fresh for each visit, so the relay never sees them. A test mode lets one person take both halves to try it all.

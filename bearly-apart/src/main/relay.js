@@ -4,12 +4,12 @@
 // That format is simple enough to send from an iPhone Shortcut.
 const { EventEmitter } = require('events');
 
-const TYPES = new Set(['message', 'tapback', 'kiss', 'heart', 'hug', 'poke', 'miss-you', 'gift', 'status', 'note', 'jar', 'hello', 'presence', 'seen', 'diag', 'ping', 'pong', 'logreq', 'logpart', 'candy', 'treat', 'testplay', 'candyscore', 'test']);
+const TYPES = new Set(['booth', 'draft', 'message', 'tapback', 'kiss', 'heart', 'hug', 'poke', 'miss-you', 'gift', 'status', 'note', 'jar', 'hello', 'presence', 'seen', 'diag', 'ping', 'pong', 'logreq', 'logpart', 'candy', 'treat', 'testplay', 'candyscore', 'test']);
 // Bookkeeping between the two apps, not something a person sent: silent if a phone is subscribed to the topic.
 // diag: a check message to ourselves; ping/pong: asking their app how it's doing (see diagnostics.js);
 // logreq/logpart: asking their app for its recent log, which comes back in a few pieces.
 // testplay: the tester section asking their app to play a test candy game (with every step logged).
-const QUIET = new Set(['presence', 'seen', 'diag', 'ping', 'pong', 'logreq', 'logpart', 'testplay', 'candyscore']);
+const QUIET = new Set(['booth', 'draft', 'presence', 'seen', 'diag', 'ping', 'pong', 'logreq', 'logpart', 'testplay', 'candyscore']);
 
 function toTags(ev) {
   const tags = ['ba', `e.${ev.type}`, `f.${ev.from}`];
@@ -179,6 +179,21 @@ class Relay extends EventEmitter {
     }
     const ev = fromNtfy(msg);
     if (ev) this.emit('event', ev);
+  }
+
+  // A file as an ntfy attachment, for the photo booth. It has no 'ba' tag, so no app plays anything for it.
+  // Returns where it can be fetched (ntfy.sh keeps attachments for a few hours).
+  async upload(data, filename) {
+    const res = await this.publishFetch(this.base(), {
+      method: 'PUT',
+      headers: { ...this.headers(), Filename: filename, Priority: '1' },
+      body: data,
+      signal: AbortSignal.timeout(90_000),
+    });
+    if (!res.ok) throw new Error(res.status === 413 ? 'the photos are too big for the relay' : res.status === 429 ? 'the relay says too many uploads today' : `relay answered HTTP ${res.status}`);
+    const msg = await res.json();
+    if (!msg.attachment?.url) throw new Error('the relay didn’t keep the file');
+    return { url: msg.attachment.url, expires: msg.attachment.expires };
   }
 
   // Each attempt gets a hard time limit: a request on a dead connection used to hang for minutes,

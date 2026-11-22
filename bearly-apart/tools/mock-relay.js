@@ -1,10 +1,12 @@
 // A tiny ntfy-compatible server for testing offline: npm run mock-relay  (listens on :8787)
-// Supports POST /<topic> and GET /<topic>/json?since=<id|unix-seconds>, which is all the app uses.
+// Supports POST /<topic>, PUT /<topic> (a file attachment, served from /file/<id>) and
+// GET /<topic>/json?since=<id|unix-seconds>, which is all the app uses.
 const http = require('http');
 const crypto = require('crypto');
 
 const PORT = Number(process.env.PORT || 8787);
 const topics = new Map(); // topic -> { messages: [], subs: Set<res> }
+const files = new Map(); // attachment id -> Buffer
 
 function topic(name) {
   if (!topics.has(name)) topics.set(name, { messages: [], subs: new Set() });
@@ -15,6 +17,36 @@ function createServer() {
   return http.createServer((req, res) => {
     const url = new URL(req.url, 'http://x');
     const parts = url.pathname.split('/').filter(Boolean);
+    if (req.method === 'PUT' && parts.length === 1) {
+      const chunks = [];
+      req.on('data', (c) => chunks.push(c));
+      req.on('end', () => {
+        const data = Buffer.concat(chunks);
+        const id = crypto.randomBytes(6).toString('hex');
+        files.set(id, data);
+        const host = req.headers.host || `127.0.0.1:${PORT}`;
+        const msg = {
+          id,
+          time: Math.floor(Date.now() / 1000),
+          event: 'message',
+          topic: parts[0],
+          message: 'You received a file',
+          attachment: { name: req.headers.filename || 'file', size: data.length, expires: Math.floor(Date.now() / 1000) + 3 * 3600, url: `http://${host}/file/${id}` },
+        };
+        topic(parts[0]).messages.push(msg);
+        for (const s of topic(parts[0]).subs) s.write(JSON.stringify(msg) + '\n');
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(msg));
+        console.log(`[mock-relay] ${parts[0]} ← file ${data.length} bytes`);
+      });
+      return;
+    }
+    if (req.method === 'GET' && parts.length === 2 && parts[0] === 'file') {
+      const data = files.get(parts[1]);
+      res.writeHead(data ? 200 : 404, { 'Content-Type': 'application/octet-stream' });
+      res.end(data || '');
+      return;
+    }
     if (req.method === 'POST' && parts.length === 1) {
       let body = '';
       req.on('data', (c) => (body += c));

@@ -90,8 +90,9 @@ body {
   background: none;
   color: var(--muted);
   border-radius: 10px 10px 0 0;
-  padding: 9px 14px;
+  padding: 9px 10px;
   border-bottom: 3px solid transparent;
+  white-space: nowrap;
 }
 .tabs button.on {
   color: var(--ink);

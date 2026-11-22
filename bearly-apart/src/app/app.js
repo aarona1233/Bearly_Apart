@@ -40,6 +40,10 @@ function showTab(name) {
   for (const b of document.querySelectorAll('.tabs button')) b.classList.toggle('on', b.dataset.tab === name);
   for (const s of document.querySelectorAll('[data-page]')) s.classList.toggle('on', s.dataset.page === name);
   if (name === 'send' && location.hash === '#send') $('note').focus();
+  if (name === 'draft') renderDraft(true);
+  // booth.js loads after this file, and the window can open straight onto the Booth tab before it has run.
+  if (name === 'booth') typeof renderBooth === 'function' && renderBooth(true);
+  else if (typeof boothLeft === 'function') boothLeft();
 }
 for (const b of document.querySelectorAll('.tabs button')) b.addEventListener('click', () => showTab(b.dataset.tab));
 window.ba.onShowTab((tab) => {
@@ -139,6 +143,10 @@ function renderLive() {
     `“Save for their morning” keeps it a secret until the first time ${partner()} is at the computer the next day.` +
     (live.noteJar ? ` ${partner()} saved ${live.noteJar} note${live.noteJar > 1 ? 's' : ''} for your morning 🫙` : '');
 
+  $('draft-tab').hidden = !live.draftOpen;
+  $('draft-dot').hidden = !live.draftTurn;
+  $('booth-tab').hidden = !live.booth?.tab;
+  $('booth-dot').hidden = !live.booth?.needsMe;
   renderDevices();
   renderCheck();
   const list = $('activity');

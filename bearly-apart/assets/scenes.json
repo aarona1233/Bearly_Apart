@@ -3145,5 +3145,95 @@
         ]
       }
     ]
+  },
+  "booth-open": {
+    "caption": "📸 The photo booth is open today",
+    "rain": {
+      "src": "sparkle.svg",
+      "count": 10,
+      "ms": 3500
+    },
+    "actors": [
+      {
+        "asset": "happy-{pc}.png",
+        "frame": true,
+        "size": 240,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom-30",
+            "ms": 700,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "The photo booth is open today! Come take pictures with me 📸",
+            "ms": 3600
+          },
+          {
+            "do": "wait",
+            "ms": 4200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 700,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "booth-strip": {
+    "caption": "📸 Your photo strip is ready",
+    "rain": {
+      "src": "heart.svg",
+      "count": 10,
+      "ms": 3500
+    },
+    "actors": [
+      {
+        "asset": "letter-{pc}.png",
+        "frame": true,
+        "size": 240,
+        "at": [
+          "center",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom-30",
+            "ms": 700,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "Our photo strip came out! Open Bearly Apart → Booth 📸",
+            "ms": 3600
+          },
+          {
+            "do": "wait",
+            "ms": 4200
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 700,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
   }
 }
