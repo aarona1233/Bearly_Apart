@@ -14,19 +14,20 @@ const BOOTH_DAY = Date.parse('2026-11-25T18:00:00Z');
 
 // ---------- rules ----------
 
-test('the booth unlocks at 9 pm on the 24th on the earlier clock, and closes once both are past the 25th', () => {
+test('the booth unlocks at the start of the 24th on the earlier clock, and closes once both are past the 25th', () => {
   const ny = 'America/New_York';
   const la = 'America/Los_Angeles';
-  assert.strictEqual(B.isBoothDay(Date.parse('2026-11-25T01:59:00Z'), [ny, la]), false); // 8:59 pm in New York
-  assert.strictEqual(B.isBoothDay(Date.parse('2026-11-25T02:00:00Z'), [ny, la]), true); // 9:00 pm in New York, 6:00 pm in LA
-  assert.strictEqual(B.unlocked(Date.parse('2026-11-25T02:00:00Z'), [la, ny]), true, 'the same moment for both apps');
-  assert.strictEqual(B.unlocked(Date.parse('2026-11-25T02:00:00Z'), [la]), false);
+  assert.strictEqual(B.isBoothDay(Date.parse('2026-11-24T04:59:00Z'), [ny, la]), false); // 11:59 pm on the 23rd in New York
+  assert.strictEqual(B.isBoothDay(Date.parse('2026-11-24T05:00:00Z'), [ny, la]), true); // midnight in New York, 9:00 pm on the 23rd in LA
+  assert.strictEqual(B.unlocked(Date.parse('2026-11-24T05:00:00Z'), [la, ny]), true, 'the same moment for both apps');
+  assert.strictEqual(B.unlocked(Date.parse('2026-11-24T05:00:00Z'), [la]), false);
+  assert.strictEqual(B.unlocked(Date.parse('2026-11-24T21:40:00Z'), [ny, la]), true, 'already open on the afternoon of the 24th');
   assert.strictEqual(B.unlocked(Date.parse('2027-03-01T12:00:00Z'), [ny, la]), true, 'the Draft tab stays unlocked');
-  assert.strictEqual(B.localStamp(Date.parse('2026-11-25T02:00:00Z'), ny), '2026-11-24 21:00');
+  assert.strictEqual(B.localStamp(Date.parse('2026-11-24T05:00:00Z'), ny), '2026-11-24 00:00');
   assert.strictEqual(B.isBoothDay(Date.parse('2026-11-25T05:30:00Z'), [ny, la]), true); // 00:30 in New York, still the 24th in LA
   assert.strictEqual(B.isBoothDay(Date.parse('2026-11-26T07:00:00Z'), [ny, la]), true); // 23:00 on the 25th in LA
   assert.strictEqual(B.isBoothDay(Date.parse('2026-11-26T08:30:00Z'), [ny, la]), false);
-  assert.strictEqual(B.isBoothDay(Date.parse('2026-11-24T12:00:00Z'), [ny, la]), false);
+  assert.strictEqual(B.isBoothDay(Date.parse('2026-11-24T12:00:00Z'), [ny, la]), true); // morning of the 24th
   assert.strictEqual(B.boothOver(Date.parse('2026-11-26T07:00:00Z'), [ny, la]), false);
   assert.strictEqual(B.boothOver(Date.parse('2026-11-26T09:00:00Z'), [ny, la]), true);
   assert.strictEqual(B.cityOf(la), 'Los Angeles');
