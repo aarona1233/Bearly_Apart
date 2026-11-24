@@ -4,7 +4,7 @@ const crypto = require('crypto');
 
 // When the booth (and the Draft tab) unlock: this local time on whichever of your two clocks gets there first, so
 // both apps unlock at the same moment. The booth then stays open until both of you are past its last day.
-const UNLOCK_AT = '2026-11-24 23:59';
+const UNLOCK_AT = '2026-11-24 21:00';
 const BOOTH_LAST_DAY = '2026-11-25';
 const SHOTS = 4;
 // From the "go" message: time for it to reach the other app and for you both to get ready, then one shot every

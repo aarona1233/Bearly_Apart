@@ -48,7 +48,7 @@ Quit it, then delete `~/.config/Bearly Apart`, `~/.local/share/applications/bear
 
 ## 🎲 The Draft tab (Bearly Draft)
 
-The old Draft Night game, with Bubu and Dudu. You each get $20, twelve items go up for bids, and whoever builds the best one wins. Both computers need 0.11 or newer. The tab unlocks with the booth, at 11:59 pm on November 24, and stays.
+The old Draft Night game, with Bubu and Dudu. You each get $20, twelve items go up for bids, and whoever builds the best one wins. Both computers need 0.11 or newer. The tab unlocks with the booth, at 9:00 pm on November 24, and stays.
 
 - **Take turns:** like a game over iMessage. Make your bid and send it, and they answer whenever they’re free. You get a notification when they bid, pass or win an item, and the Draft tab gets a dot when it’s your move. A game can sit for days: if the relay has forgotten a move, the apps ask each other for it when they come back online.
 - **Play live:** both here at once, with a countdown on every item. If two items in a row get no bids, or you press *Switch to taking turns*, it becomes a take-turns game instead of running out the clock.
@@ -56,7 +56,7 @@ The old Draft Night game, with Bubu and Dudu. You each get $20, twelve items go 
 
 ## 📸 The Booth tab (Bearly Booth)
 
-A photo booth for the two of you. It unlocks at **11:59 pm on Tuesday, November 24, 2026** on whichever of your clocks gets there first (so both apps unlock at the same moment) and stays open until both of you are past November 25. Your strips stay in the tab after that. Both computers need this version.
+A photo booth for the two of you. It unlocks at **9:00 pm on Tuesday, November 24, 2026** on whichever of your clocks gets there first (so both apps unlock at the same moment) and stays open until both of you are past November 25. Your strips stay in the tab after that. Both computers need this version.
 
 - **Together:** one of you invites, you pick the look together, both press *I’m ready*, and the countdown runs on both computers at the same moment. Each of the four shots is you on one side and them on the other, meeting in the middle.
 - **Take my half now:** take your four whenever you like; they take theirs later and the strip develops once both halves are in.
