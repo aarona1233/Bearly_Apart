@@ -384,11 +384,50 @@ const CalendarArt = (() => {
     if (reward) icon(ctx, reward, d.x, d.y, Math.min(d.w, d.h) * 0.9);
   }
 
+  // A short string of glowing bulbs (the tree lights' door), centred on (x, y), about size px wide.
+  function lightString(ctx, x, y, size) {
+    const w = size * 0.92;
+    const y0 = y - size * 0.2;
+    const sag = size * 0.42;
+    const at = (u) => [x - w / 2 + w * u, y0 + 2 * u * (1 - u) * sag];
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#2C5A42';
+    ctx.lineWidth = Math.max(3, size / 26);
+    ctx.beginPath();
+    ctx.moveTo(x - w / 2, y0);
+    ctx.quadraticCurveTo(x, y0 + sag, x + w / 2, y0);
+    ctx.stroke();
+    const cols = ['#FF6B6B', '#F2C14E', '#7FC8F8', '#8FE3A1', '#F6B5C1'];
+    const r = size * 0.085;
+    for (let i = 0; i < 5; i++) {
+      const [bx, by] = at((i + 0.5) / 5);
+      const g = ctx.createRadialGradient(bx, by + r * 1.3, 1, bx, by + r * 1.3, r * 3.2);
+      g.addColorStop(0, `${cols[i]}cc`);
+      g.addColorStop(1, `${cols[i]}00`);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(bx, by + r * 1.3, r * 3.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#2C5A42';
+      ctx.fillRect(bx - r * 0.55, by - r * 0.3, r * 1.1, r * 0.8);
+      ctx.beginPath();
+      ctx.ellipse(bx, by + r * 1.3, r * 0.85, r * 1.1, 0, 0, Math.PI * 2);
+      ctx.fillStyle = cols[i];
+      ctx.fill();
+      ctx.lineWidth = Math.max(2, size / 50);
+      ctx.strokeStyle = OL;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   // The little picture of a reward, centred on (x, y), about size px.
   function icon(ctx, r, x, y, size) {
     if (r.kind === 'ornament' && r.item) return TreeArt.drawOrnament(ctx, r.item, r.c || 0, x, y - size * 0.5, size * 1.05);
     if (r.kind === 'star') return TreeArt.drawOrnament(ctx, 'star', 0, x, y - size * 0.5, size);
     if (r.kind === 'snow') return TreeArt.drawOrnament(ctx, 'snowflake', 0, x, y - size * 0.46, size * 0.95);
+    if (r.kind === 'lights') return lightString(ctx, x, y, size);
     // a note: a cream envelope with a heart seal
     const w = size * 0.8;
     const h = size * 0.56;
@@ -439,8 +478,10 @@ const CalendarArt = (() => {
   // Each door has an event. Some leave something behind for the rest of December (a bite out of the house, a bigger
   // snowman, lights on the roof, deeper snow, presents), so the house changes as the month goes on.
   // Day by day (Nov 27..Dec 23 in order, then the star on Christmas Eve and a mistletoe kiss on Christmas Day). Snowman
-  // days build it in 4 steps; 4 nibble days, 4 bites. Nov 27, our day, starts with a love letter.
-  const CYCLE = ['letter', 'chimney', 'boba', 'dance', 'snowman', 'chimney', 'nibble', 'lights', 'santa', 'snowball', 'snowman', 'nibble', 'dance', 'gingerbread', 'snowstorm', 'mistletoe', 'shooting-star', 'snowman', 'nibble', 'plop', 'boba', 'goodnight', 'snowball', 'nibble', 'snowman', 'letter', 'snowstorm'];
+  // days build it in 4 steps; 4 nibble days, 4 bites. Nov 27, our day, starts with a love letter; Nov 28 is the lights
+  // (the tree's lights are behind that door). Santa isn't on a day of his own: his sleigh comes after any door with
+  // more than one thing behind it (the window plays it as a follow-up, fx.follow).
+  const CYCLE = ['letter', 'lights', 'boba', 'dance', 'snowman', 'chimney', 'nibble', 'plop', 'shooting-star', 'snowball', 'snowman', 'nibble', 'dance', 'gingerbread', 'snowstorm', 'mistletoe', 'shooting-star', 'snowman', 'nibble', 'plop', 'boba', 'goodnight', 'snowball', 'nibble', 'snowman', 'letter', 'snowstorm'];
   const SPECIAL = { [24 + DEC]: 'star', [LAST]: 'mistletoe' };
   const eventFor = (day) => SPECIAL[day] || CYCLE[(day - 1) % CYCLE.length];
   const EVENT_MS = { snowman: 4200, chimney: 4500, nibble: 5600, lights: 4200, 'shooting-star': 3600, dance: 5200, snowstorm: 5200, boba: 4800, star: 6500, santa: 5000, snowball: 6200, gingerbread: 5200, mistletoe: 5400, goodnight: 6000, plop: 4600, letter: 5000 };
@@ -464,7 +505,7 @@ const CalendarArt = (() => {
       snowman: snowman[Math.max(0, Math.min(3, prog.snowman - 1))],
       chimney: 'Dudu says hi from the chimney 👋',
       nibble: 'Bubu took a bite out of the house! 🍪',
-      lights: 'The roof lights are on ✨',
+      lights: 'The lights are up ✨ on the house and on your tree',
       'shooting-star': 'A shooting star, make a wish 🌠',
       dance: 'Dance party in front of the house 💃',
       snowstorm: 'A snowstorm! Snow is piling up on the roof ❄️',
@@ -1496,8 +1537,8 @@ const CalendarArt = (() => {
     for (const door of spec.doors || []) {
       const d = DOORS[door.d];
       if (!d) continue;
-      // The door being opened: shakes, then swings open.
-      if (fx?.d === door.d && e < SHAKE + SWING) {
+      // The door being opened: shakes, then swings open (not again when Santa comes by after).
+      if (fx?.d === door.d && !fx.follow && e < SHAKE + SWING) {
         if (e < SHAKE) {
           closedDoor(ctx, d, Math.sin(e / 28) * 0.12 * (e / SHAKE));
           continue;
@@ -1548,17 +1589,26 @@ const CalendarArt = (() => {
     // Christmas Eve leaves the star on the roof and presents by the front door.
     if (prog.star || (fx?.type === 'star' && ev >= 1500)) presents(ctx, fx?.type === 'star' ? Math.max(0, (ev - 1500) / 700) : null);
     if (opts.drawBears) bearsOver(ctx);
-    if (fx) {
+    if (fx && !fx.follow) {
       const d = DOORS[fx.d];
       burst(ctx, d, e - SHAKE);
       const door = (spec.doors || []).find((x) => x.d === fx.d);
       rewardPop(ctx, d, door?.reward, e - SHAKE);
+    } else if (fx?.follow) {
+      // Santa's extras pop out of the door one after another once his sleigh has gone over.
+      const d = DOORS[fx.d];
+      const more = (spec.doors || []).find((x) => x.d === fx.d)?.reward?.more || [];
+      more.forEach((m, k) => {
+        const at = 1700 + k * (2900 / more.length);
+        burst(ctx, d, ev - at);
+        rewardPop(ctx, d, { kind: 'ornament', item: m.item, c: m.c }, ev - at);
+      });
     }
     if (evOn && fx.type === 'star') bigStarGlow(ctx, ev);
     if (evOn && fx.type === 'star') confetti(ctx, ev, EVENT_MS.star);
     if (evOn && fx.type === 'snowstorm') heavySnow(ctx, ev, EVENT_MS.snowstorm);
     // A flurry right after any door opens.
-    if (fx && e > SHAKE && e < SHAKE + 2600) heavySnow(ctx, e - SHAKE, 2600);
+    if (fx && !fx.follow && e > SHAKE && e < SHAKE + 2600) heavySnow(ctx, e - SHAKE, 2600);
     snow(ctx, t, true);
     ctx.restore();
   }

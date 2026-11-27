@@ -40,6 +40,11 @@ const TreeArt = (() => {
   const TIP = [400, 157];
   const ORN = 100; // an ornament's 512 box drawn this big on the tree
   const JOIN = 130;
+  // The spots round the skirt for the little animals (slots 36..43): where their feet go (x, y), drawn back to front.
+  // Two each side of the name ribbon, and four behind it (back: drawn before the ribbon, so they peek over it).
+  const SKIRT_SPOTS = [[64, 1046], [150, 1096], [252, 1018, 1], [340, 1012, 1], [460, 1012, 1], [548, 1018, 1], [650, 1096], [736, 1046]]; // prettier-ignore
+  const ANIMAL = 118; // an animal's 512 box drawn this big
+  const spotOf = (slot) => (slot >= SLOTS.length ? SKIRT_SPOTS[slot - SLOTS.length] : null);
 
   // ---------- styles (names as in src/main/tree.js) ----------
   const PALETTE = {
@@ -90,6 +95,7 @@ const TreeArt = (() => {
     snowman: ['p'],
     reindeer: ['p', 'a'],
     cocoa: ['p'],
+    // (the picture ornaments keep their own colours: only finish and size)
   };
   const PATTERNED = new Set(['bauble-zigzag', 'bauble-stripe', 'bauble-dots']);
   const SIZE_K = { s: 0.82, m: 1, l: 1.2 };
@@ -107,15 +113,31 @@ const TreeArt = (() => {
   const PS = (role, fallbackShade) => (OV?.[role] ? darken(PALETTE[OV[role]]) : fallbackShade);
 
   let base = null;
+  let snowyBase = null; // tree-snowy.png: the same tree with snow on it (tools/make-snowy-tree.py)
   let baseReady = null;
   function load(src = 'ba://asset/tree%2Ftree-bare.png') {
     if (baseReady) return baseReady;
-    base = new Image();
-    baseReady = new Promise((res) => {
-      base.onload = () => res(true);
-      base.onerror = () => res(false);
+    const img = (s) => {
+      const i = new Image();
+      const ready = new Promise((res) => {
+        i.onload = () => res(true);
+        i.onerror = () => res(false);
+      });
+      i.src = s;
+      return [i, ready];
+    };
+    let ready;
+    [base, ready] = img(src);
+    const [snowy, snowyReady] = img(src.replace('tree-bare', 'tree-snowy'));
+    snowyBase = snowy;
+    // the picture ornaments, next to the tree in tree/items (an encoded slash for ba://, a plain one for files)
+    const sep = src.includes('%2F') ? '%2F' : '/';
+    const pics = PIC_KINDS.map((kind) => {
+      const [i, r] = img(src.replace('tree-bare.png', `items${sep}${kind}.png`));
+      PICS[kind] = i;
+      return r;
     });
-    base.src = src;
+    baseReady = Promise.all([ready, snowyReady, ...pics]).then(([ok]) => ok);
     return baseReady;
   }
 
@@ -1098,6 +1120,34 @@ const TreeArt = (() => {
     loop(ctx, 206, C.gold, 22);
   }
 
+  // ---------- picture ornaments and little animals (0.12.1) ----------
+  // Cut from the Sort art into assets/tree/items/<kind>.png (tools/import-tree-items.py). Ornaments hang from a
+  // ribbon loop; the little animals (SKIRT_KINDS) stand with their feet at y = FEET and sit round the tree skirt.
+  const FEET = 496;
+  const SKIRT_KINDS = ['reindeer-tree', 'rudolph', 'penguin', 'polar-bear', 'goose', 'reindeer-kiss', 'penguin-hug', 'teddy-gift', 'teddy-antlers', 'teddy-tree', 'teddy-sleepy'];
+  const PIC_KINDS = ['snow-buddy', 'gold-bell', 'santa-star', 'bow-cane', 'ginger-santa', 'mini-tree', 'sweets', 'gift-stripe', 'gift-dots', 'holly', 'bauble-tree', 'bauble-goldflake', 'bauble-wave', 'bauble-mint', 'sock-flake', 'sock-tree', 'sock-dots', 'santa', 'wreath', 'poinsettia', 'santa-hat', 'cocoa-mug', 'ginger-house', 'candle', 'santa-sack', 'jingle-bells', ...SKIRT_KINDS];
+  const isSkirt = (kind) => SKIRT_KINDS.includes(kind);
+  const PICS = {};
+  const picReady = (kind) => !!PICS[kind]?.complete && PICS[kind].naturalWidth > 0;
+
+  function picture(ctx, kind) {
+    const img = PICS[kind];
+    if (!picReady(kind)) return;
+    if (isSkirt(kind)) {
+      // standing on the floor: as big as fits in 470 x 440, feet at FEET
+      const k = Math.min(470 / img.naturalWidth, 440 / img.naturalHeight);
+      const [w, h] = [img.naturalWidth * k, img.naturalHeight * k];
+      ctx.drawImage(img, 256 - w / 2, FEET - h, w, h);
+      return;
+    }
+    // hanging: as big as fits in 400 x 390 under a ribbon loop from the hook
+    const k = Math.min(400 / img.naturalWidth, 390 / img.naturalHeight);
+    const [w, h] = [img.naturalWidth * k, img.naturalHeight * k];
+    const top = 100;
+    loop(ctx, top + 22, C.red, 22);
+    ctx.drawImage(img, 256 - w / 2, top, w, h);
+  }
+
   const DRAW = {
     'bauble-zigzag': (ctx, c) => bauble(ctx, 'bauble-zigzag', c),
     'bauble-stripe': (ctx, c) => bauble(ctx, 'bauble-stripe', c),
@@ -1126,6 +1176,7 @@ const TreeArt = (() => {
     reindeer,
     cocoa,
   };
+  for (const kind of PIC_KINDS) DRAW[kind] = (ctx) => picture(ctx, kind);
 
   // Draw one ornament with its hook at (x, y), its 512 box scaled to size px. sway: radians it swings by.
   // Each ornament (kind, colourway, style, pixel size) is drawn once into a little canvas and reused: a full tree
@@ -1166,7 +1217,8 @@ const TreeArt = (() => {
       }
       g.globalCompositeOperation = 'source-over';
     }
-    bitmaps.set(key, cv);
+    // A picture still loading is drawn again next time instead of being kept blank.
+    if (!PICS[kind] || picReady(kind)) bitmaps.set(key, cv);
     return cv;
   }
 
@@ -1418,7 +1470,6 @@ const TreeArt = (() => {
   // The tree's colour: the bare tree picture recoloured (the trunk and bucket stay as they are), made once per colour.
   const TREE_FILTERS = {
     frosted: 'saturate(0.25) brightness(1.35)',
-    snowy: 'saturate(0.7) brightness(1.08)',
     pink: 'hue-rotate(185deg) saturate(0.85) brightness(1.25)',
     gold: 'hue-rotate(-100deg) saturate(1.3) brightness(1.15)',
     midnight: 'hue-rotate(55deg) saturate(0.9) brightness(0.8)',
@@ -1426,6 +1477,8 @@ const TreeArt = (() => {
   const tinted = {};
   function treeBase(color) {
     if (!base?.complete || !base.naturalWidth) return null;
+    // Snowy is its own picture: snow along each tier, drawn from the tree's own shading.
+    if (color === 'snowy') return snowyBase?.complete && snowyBase.naturalWidth ? snowyBase : base;
     if (!TREE_FILTERS[color]) return base;
     if (tinted[color]) return tinted[color];
     const cv = document.createElement('canvas');
@@ -1443,18 +1496,6 @@ const TreeArt = (() => {
     g.clearRect(0, 932, W, H - 932);
     g.drawImage(base, 0, 0, W, H);
     g.restore();
-    if (color === 'snowy') {
-      // snow resting on the branch tips
-      const r = rng(31);
-      for (const [x, y] of SLOTS) {
-        for (const dx of [-38, 6, 44]) {
-          const p = new Path2D();
-          p.ellipse(x + dx + (r() - 0.5) * 14, y - 26 + (r() - 0.5) * 10, 20 + r() * 8, 7 + r() * 3, (r() - 0.5) * 0.4, 0, Math.PI * 2);
-          g.fillStyle = '#ffffff';
-          g.fill(p);
-        }
-      }
-    }
     tinted[color] = cv;
     return cv;
   }
@@ -1498,12 +1539,28 @@ const TreeArt = (() => {
     skirt(ctx, look.skirt);
     const pic = treeBase(look.color);
     if (pic) ctx.drawImage(pic, 0, 0, W, H);
+    // The garland goes up by date; the lights once their advent door is open (older specs only had a stage name).
     const stage = spec.stage || 'bare';
-    if (stage === 'garland' || stage === 'lights') garland(ctx, look.garland);
-    if (stage === 'lights') lights(ctx, !!spec.lights, t, look.lights);
+    const garlandOn = spec.garland ?? (stage === 'garland' || stage === 'lights');
+    const lightsUp = spec.lightsUp ?? stage === 'lights';
+    if (garlandOn) garland(ctx, look.garland);
+    if (lightsUp) lights(ctx, !!spec.lights, t, look.lights);
     topStar(ctx, !!spec.star, !!spec.starGhost, t, look.topper);
-    if (spec.name) plaque(ctx, spec.name);
     const orns = (spec.orns || []).filter((o) => !opts.hide?.has(o.slot));
+    // The little animals round the skirt, back ones first, each with a soft shadow under its feet. The ones behind the
+    // name ribbon go before it.
+    const animals = orns.filter((o) => spotOf(o.slot)).sort((a, b) => spotOf(a.slot)[1] - spotOf(b.slot)[1]);
+    const animal = (o) => {
+      const [x, fy] = spotOf(o.slot);
+      const s = ANIMAL * (SIZE_K[o.style?.size] || 1);
+      ctx.fillStyle = 'rgba(75,51,38,0.22)';
+      ctx.beginPath();
+      ctx.ellipse(x, fy - 2, s * 0.36, s * 0.07, 0, 0, Math.PI * 2);
+      ctx.fill();
+      drawOrnament(ctx, o.kind, o.c, x, fy - ((FEET - 40) / 512) * s, ANIMAL, 0, o.style);
+    };
+    animals.filter((o) => spotOf(o.slot)[2]).forEach(animal);
+    if (spec.name) plaque(ctx, spec.name);
     const join = joinedHearts(orns);
     for (const o of orns) {
       if (join && (o === join.L || o === join.R)) continue;
@@ -1512,6 +1569,7 @@ const TreeArt = (() => {
       const sway = Math.sin(t / 1300 + o.slot) * 0.04;
       drawOrnament(ctx, o.kind, o.c, x, y, ORN, sway, o.style);
     }
+    animals.filter((o) => !spotOf(o.slot)[2]).forEach(animal);
     if (join) {
       // two halves, touching, hung from the middle of their two spots, with a little burst of hearts
       drawOrnament(ctx, 'heart-left', join.L.c, join.x - 0.5, join.y, ORN * 1.15, 0, join.L.style);
@@ -1521,7 +1579,24 @@ const TreeArt = (() => {
         ctx.fill(heartPath(join.x + dx, join.y + dy, s));
       }
     }
-    if (opts.guides) {
+    if (opts.guides && opts.skirt) {
+      // dragging a little animal: the free spots round the skirt
+      const taken = new Set((spec.orns || []).map((o) => o.slot));
+      SKIRT_SPOTS.forEach(([x, fy], k) => {
+        const i = SLOTS.length + k;
+        if (taken.has(i) && !opts.hide?.has(i)) return;
+        const hot = opts.hot === i;
+        ctx.beginPath();
+        ctx.ellipse(x, fy - 4, hot ? 44 : 34, hot ? 12 : 9, 0, 0, Math.PI * 2);
+        ctx.fillStyle = hot ? 'rgba(255,244,224,0.95)' : 'rgba(255,244,224,0.5)';
+        ctx.fill();
+        if (hot) {
+          ctx.strokeStyle = C.gold;
+          ctx.lineWidth = 4;
+          ctx.stroke();
+        }
+      });
+    } else if (opts.guides) {
       const taken = new Set((spec.orns || []).map((o) => o.slot));
       SLOTS.forEach(([x, y], i) => {
         if (taken.has(i) && !opts.hide?.has(i)) return;
@@ -1540,11 +1615,21 @@ const TreeArt = (() => {
     ctx.restore();
   }
 
-  // The free spot nearest (x, y) in tree coordinates, within reach (px), or -1.
-  function nearestSlot(spec, x, y, reach = 70, allow = -1) {
+  // The free spot nearest (x, y) in tree coordinates, within reach (px), or -1. A little animal (kind) only goes on
+  // the skirt spots, anything else only on the branch hooks.
+  function nearestSlot(spec, x, y, reach = 70, allow = -1, kind = '') {
     const taken = new Set((spec.orns || []).map((o) => o.slot));
     let best = -1;
     let bd = reach;
+    if (isSkirt(kind)) {
+      SKIRT_SPOTS.forEach(([sx, fy], k) => {
+        const i = SLOTS.length + k;
+        if (taken.has(i) && i !== allow) return;
+        const d = Math.hypot(sx - x, fy - ANIMAL * 0.45 - y);
+        if (d < bd) [best, bd] = [i, d];
+      });
+      return best;
+    }
     SLOTS.forEach(([sx, sy], i) => {
       if (taken.has(i) && i !== allow) return;
       // the ornament hangs below its hook: aim with the ornament's middle
@@ -1554,17 +1639,22 @@ const TreeArt = (() => {
     return best;
   }
 
-  // The hung ornament under (x, y), or null.
+  // The hung ornament (or sitting animal) under (x, y), or null.
   function ornamentAt(spec, x, y) {
     let hit = null;
     for (const o of spec.orns || []) {
+      const spot = spotOf(o.slot);
+      if (spot) {
+        if (Math.abs(x - spot[0]) < ANIMAL * 0.4 && y > spot[1] - ANIMAL * 0.85 && y < spot[1] + 4) hit = o;
+        continue;
+      }
       const [sx, sy] = SLOTS[o.slot] || [];
       if (sx !== undefined && Math.abs(x - sx) < ORN * 0.42 && y > sy - 6 && y < sy + ORN * 0.9) hit = o;
     }
     return hit;
   }
 
-  return { W, H, SLOTS, ORN, KINDS: Object.keys(DRAW), PALETTE, PATTERNS, ROLES, PATTERNED, load, drawTree, drawOrnament, nearestSlot, ornamentAt, sparkle };
+  return { W, H, SLOTS, SKIRT_SPOTS, SKIRT_KINDS, PIC_KINDS, ORN, ANIMAL, KINDS: Object.keys(DRAW), PALETTE, PATTERNS, ROLES, PATTERNED, isSkirt, load, drawTree, drawOrnament, nearestSlot, ornamentAt, sparkle };
 })();
 
 if (typeof module !== 'undefined') module.exports = TreeArt;

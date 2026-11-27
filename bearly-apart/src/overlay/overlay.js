@@ -278,9 +278,11 @@ class Actor {
     const r = this.media.getBoundingClientRect();
     for (const o of after.orns || []) {
       if (had.has(`${o.slot}:${o.kind}`)) continue;
-      const [x, y] = TreeArt.SLOTS[o.slot] || [];
+      // a hook on the branches, or a spot round the skirt (a little animal)
+      const spot = TreeArt.SKIRT_SPOTS[o.slot - TreeArt.SLOTS.length];
+      const [x, y] = TreeArt.SLOTS[o.slot] ? [TreeArt.SLOTS[o.slot][0], TreeArt.SLOTS[o.slot][1] + 45] : spot ? [spot[0], spot[1] - TreeArt.ANIMAL * 0.45] : [];
       if (x === undefined) continue;
-      stampAt('sparkle.svg', r.left + ((TREE_PAD + x) / TREE_BOX) * r.width, r.top + ((y + 45) / TREE_BOX) * r.height, 90 * SCALE, 1100, 0);
+      stampAt('sparkle.svg', r.left + ((TREE_PAD + x) / TREE_BOX) * r.width, r.top + (y / TREE_BOX) * r.height, 90 * SCALE, 1100, 0);
     }
     if (after.star && !before.star) rain({ src: 'sparkle.svg', count: 14, ms: 3000, size: 40 });
   }

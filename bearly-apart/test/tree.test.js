@@ -4,9 +4,10 @@ const T = require('../src/main/tree');
 const A = require('../src/main/advent');
 const { TreeSession } = require('../src/main/tree-session');
 
-// Test doors: the ornaments pinned to season days 1..25 in the default order (so door 6 has the bell), the rest as in
-// the defaults (the star on 28, Christmas Eve).
-const TEST_DOORS = A.DEFAULT_CONTENTS.map((c, i) => (c.kind === 'ornament' ? { ...c, pin: i + 1 } : { ...c, pin: c.pin && c.pin > 25 ? c.pin : undefined }));
+// Test doors: one ornament per door pinned to season days 1..25 (so door 6 has the bell, door 17 the heart halves),
+// two snow days and a note, and the star on 28 (Christmas Eve). No lights door, so the lights come by date.
+const TEST_ORDER = ['bauble-zigzag', 'bauble-stripe', 'bauble-dots', 'star', 'snowflake', 'bell', 'candy-cane', 'gingerbread', 'bauble-snow', 'teardrop', 'pinecone', 'mitten', 'present', 'boba', 'plane', 'heart', 'heart-half', 'dudu', 'bubu', 'first-xmas', 'stocking', 'snowman', 'reindeer', 'cocoa', 'locket'];
+const TEST_DOORS = [...TEST_ORDER.map((item, i) => ({ kind: 'ornament', item, pin: i + 1 })), { kind: 'snow' }, { kind: 'snow' }, { kind: 'note', title: 'A note' }, { kind: 'star', title: 'Christmas Eve ⭐', pin: 28 }];
 const { fromNtfy, toTags } = require('../src/main/relay');
 
 const NY = 'America/New_York';
@@ -37,13 +38,14 @@ test('the season runs from November 27 to January 1, on the earlier of the two c
   assert.strictEqual(T.dayFor(at('2026-11-02T12:00:00Z'), [NY], 24), 24, 'a tester’s pretend day wins');
 });
 
-test('it grows through December: bare, then garland, then lights, and the star from Christmas Eve', () => {
+test('it grows through December: bare, then the garland, and the star from Christmas Eve (the lights are a door)', () => {
   assert.strictEqual(T.stageFor(0), null);
   assert.strictEqual(T.stageFor(1), 'bare');
   assert.strictEqual(T.stageFor(10), 'bare'); // Dec 6
   assert.strictEqual(T.stageFor(11), 'garland'); // Dec 7
-  assert.strictEqual(T.stageFor(18), 'lights'); // Dec 14
-  assert.strictEqual(T.stageFor(36), 'lights');
+  assert.strictEqual(T.stageFor(36), 'garland');
+  assert.strictEqual(T.stageFor(37), null);
+  assert.strictEqual(T.LIGHTS_DAY, 18, 'without a lights door, Dec 14 as before');
   assert.strictEqual(T.starDay(27), false);
   assert.strictEqual(T.starDay(28), true); // Christmas Eve
 });
@@ -270,8 +272,83 @@ test('the advent doors: the same shuffled order on both apps, pins kept, and the
   const messy = A.cleanContents([{ kind: 'ornament', item: 'nope' }, { kind: 'note', text: 'x', pin: 40 }, { kind: 'snow', pin: 3 }, { kind: 'snow', pin: 3 }, null], ['bell']);
   assert.strictEqual(messy.length, 29);
   assert.deepStrictEqual(messy.slice(0, 3).map((c) => [c.kind, c.pin]), [['note', undefined], ['snow', 3], ['snow', undefined]], 'bad items dropped, a day pinned only once');
-  const kinds = A.ornamentsFrom([{ kind: 'ornament', item: 'heart-half' }, { kind: 'ornament', item: 'bell' }, { kind: 'note' }], [0, 0, 1, 2], [1, 2, 3], 'heart-right');
-  assert.deepStrictEqual([...kinds].sort(), ['bell', 'heart-right']);
+  const kinds = A.ornamentsFrom([{ kind: 'ornament', item: 'heart-half' }, { kind: 'ornament', item: 'bell', more: ['goose', 'heart-half'] }, { kind: 'note' }], [0, 0, 1, 2], [1, 2, 3], 'heart-right');
+  assert.deepStrictEqual([...kinds].sort(), ['bell', 'goose', 'heart-right'], 'Santa’s extras count too');
+});
+
+test('the default doors: 29, the locket on Nov 27, the lights on Nov 28, every ornament and animal, extras from Santa', () => {
+  const contents = A.cleanContents(A.DEFAULT_CONTENTS, Object.keys(T.KINDS).concat('heart-half'));
+  assert.strictEqual(contents.length, 29);
+  const byDay = A.order(contents, A.seedFor(['aaron', 'yimei'], 2026));
+  assert.strictEqual(contents[byDay[1]].item, 'locket', 'Nov 27 stays the locket (already opened)');
+  assert.strictEqual(contents[byDay[2]].kind, 'lights', 'Nov 28 is the lights');
+  assert.strictEqual(A.lightsDay(contents, byDay), 2);
+  assert.strictEqual(contents[byDay[28]].kind, 'star');
+  const given = contents.flatMap((c) => (c.kind === 'ornament' ? [c.item, ...(c.more || [])] : []));
+  assert.strictEqual(new Set(given).size, given.length, 'nothing twice');
+  const all = Object.keys(T.KINDS).filter((k) => !k.startsWith('heart-')).concat('heart-half');
+  assert.deepStrictEqual([...given].sort(), all.sort(), 'every ornament and animal is behind some door');
+  assert.ok(contents.filter((c) => c.more?.length).length >= 10, 'plenty of doors with a second surprise');
+  // extras: known, each once, never the door's own, at most 3
+  const [m] = A.cleanContents([{ kind: 'ornament', item: 'bell', more: ['bell', 'goose', 'goose', 'nope', 'penguin', 'rudolph', 'holly'] }], Object.keys(T.KINDS));
+  assert.deepStrictEqual(m.more, ['goose', 'penguin', 'rudolph']);
+  assert.strictEqual(A.cleanContents([{ kind: 'ornament', item: 'bell', more: [] }])[0].more, undefined);
+});
+
+test('little animals sit round the tree skirt, ornaments hang on the branches', () => {
+  assert.strictEqual(T.isSkirt('goose'), true);
+  assert.strictEqual(T.isSkirt('bell'), false);
+  assert.ok(T.slotFits('goose', 36) && T.slotFits('goose', 36 + T.SKIRT - 1));
+  assert.ok(!T.slotFits('goose', 5) && !T.slotFits('goose', 36 + T.SKIRT));
+  assert.ok(T.slotFits('bell', 35) && !T.slotFits('bell', 36));
+  let s = run(T.emptyState(2026), [['aaron', { k: 'choose', m: 'shared' }], ['yimei', { k: 'choose', m: 'shared' }]]);
+  s = run(s, [
+    ['aaron', { k: 'hang', item: 'aaron~goose', tree: 'us', slot: 37 }, 2000],
+    ['yimei', { k: 'hang', item: 'yimei~penguin', tree: 'us', slot: 4 }, 2100],
+    ['yimei', { k: 'hang', item: 'yimei~bell', tree: 'us', slot: 38 }, 2200],
+  ]);
+  assert.deepStrictEqual(T.placements(s, 'us'), { 37: 'aaron~goose' }, 'an animal on a branch and a bell on the skirt are refused');
+  const back = T.clean(JSON.parse(JSON.stringify(s)), PEOPLE);
+  assert.deepStrictEqual(T.placements(back, 'us'), { 37: 'aaron~goose' }, 'skirt spots survive the relay');
+  const junk = T.clean({ ...s, items: { ...s.items, 'yimei~rudolph': { tr: 'us', s: 3, t: [3000, 'x'] } } }, PEOPLE);
+  assert.strictEqual(junk.items['yimei~rudolph'], undefined);
+});
+
+test('two apps: the lights door lights your tree, and Santa brings more surprises', async () => {
+  const w = world(); // Dec 15
+  const doors = () => A.DEFAULT_CONTENTS;
+  const a = w.computer('aaron', 'pc', 'yimei', 'brown');
+  const y = w.computer('yimei', 'mac', 'aaron', 'cream');
+  a.session.doors = doors;
+  y.session.doors = doors;
+  await y.session.act({ type: 'choose', mode: 'own' });
+  w.deliver();
+  assert.strictEqual(a.session.lightsUp('aaron'), false, 'no lights until the door is open, even on Dec 15');
+  assert.strictEqual(a.session.view().trees[0].lightsUp, false);
+  await a.session.act({ type: 'open', day: 2 });
+  w.deliver();
+  assert.strictEqual(a.opens[0].kind, 'lights');
+  assert.strictEqual(a.opens[0].title, 'The tree lights ✨');
+  assert.strictEqual(a.session.lightsUp('aaron'), true, 'his tree has its lights');
+  assert.strictEqual(a.session.lightsUp('yimei'), false, 'hers waits for her door');
+  assert.strictEqual(y.session.lightsUp('aaron'), true, 'the same on her computer');
+  assert.strictEqual(a.session.lightsUp('us'), true, 'a shared tree: either of you');
+  // A door with two things behind it.
+  const { contents, byDay } = a.session.calendar();
+  const d = [...Array(19).keys()].map((i) => i + 1).find((n) => contents[byDay[n]].more?.some(T.isSkirt));
+  assert.ok(d, 'some door before Dec 15 has a little animal from Santa');
+  await a.session.act({ type: 'open', day: d });
+  w.deliver();
+  const r = a.opens.at(-1);
+  assert.ok(r.more.length >= 1 && r.more.length <= A.MORE);
+  assert.ok(r.more[0].name && r.more[0].emoji);
+  const box = a.session.view().box.map((o) => o.kind);
+  assert.ok(box.includes(r.item) && r.more.every((m) => box.includes(m.item)), 'all of them are in the box');
+  const animal = a.session.view().box.find((o) => T.isSkirt(o.kind));
+  assert.strictEqual((await a.session.act({ type: 'hang', item: animal.id, tree: 'aaron', slot: 3 })).error, 'The little animals sit round the tree skirt.');
+  assert.ok((await a.session.act({ type: 'hang', item: animal.id, tree: 'aaron', slot: 40 })).ok);
+  w.deliver();
+  assert.ok(a.session.view().trees[0].orns.some((o) => o.slot === 40 && o.kind === animal.kind));
 });
 
 test('two apps: doors open at your own midnight, fill your box, and sync to your other computer', async () => {
@@ -323,7 +400,7 @@ test('the Christmas demo: the pretend partner hangs one of their own ornaments o
   assert.ok(op, 'she has ornaments to hang');
   assert.strictEqual(op.tree, 'aaron', 'own trees: it goes on mine, as a gift');
   assert.ok(op.item.startsWith('yimei~'));
-  assert.ok(op.slot >= 0 && op.slot < 36);
+  assert.ok(T.slotFits(T.parseItem(op.item).kind, op.slot), 'a spot of the right sort');
   a.session.onEvent({ type: 'tree', from: 'yimei', device: 'demo', status: 'op', text: JSON.stringify(op), at: w.now(), id: 'demo1' });
   assert.strictEqual(a.hangs.length, 1, 'her bear brings it over');
   assert.ok(a.session.view().trees[0].orns.some((o) => o.id === op.item));
@@ -335,7 +412,8 @@ test('two apps: an invite, one shared tree, and their bear brings over what they
   const y = w.computer('yimei', 'mac', 'aaron', 'cream');
   await openDoors(w, a, 15);
   await openDoors(w, y, 15);
-  assert.strictEqual(a.session.view().stage, 'lights');
+  assert.strictEqual(a.session.view().stage, 'garland');
+  assert.strictEqual(a.session.lightsUp('us'), true, 'no lights door: the lights are up by Dec 14');
   await a.session.act({ type: 'choose', mode: 'shared' });
   w.deliver();
   assert.strictEqual(y.invites, 1, 'she gets asked');

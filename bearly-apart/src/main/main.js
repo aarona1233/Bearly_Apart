@@ -111,8 +111,9 @@ function userAssetsDir() {
 }
 
 function resolveAsset(name) {
-  // The booth's, the tree's and the draft game's pictures keep to folders of their own.
-  const [, folder, file] = name.match(/^(booth|tree)\/([\w.-]+)$/) || [];
+  // The booth's, the tree's (and its picture ornaments in tree/items) and the draft game's pictures keep to folders
+  // of their own.
+  const [, folder, file] = name.match(/^(booth|tree)\/((?:items\/)?[\w.-]+)$/) || [];
   if (file) {
     const p = path.join(BUNDLED_ASSETS, folder, file);
     return fs.existsSync(p) ? p : null;
@@ -1005,7 +1006,8 @@ function makeTree({ file, demo = false }) {
     save: (d) => store.set(d),
     doors: loadDoors,
     onOpen: (r) => {
-      if (!demo) activity.add({ dir: 'out', text: `🎁 You opened door ${doorLabel(r.day)}${r.title ? `: ${r.title}` : ''}` });
+      const santa = r.more?.length ? ` (and Santa brought ${r.more.map((m) => `${m.emoji} ${m.name}`).join(', ')})` : '';
+      if (!demo) activity.add({ dir: 'out', text: `🎁 You opened door ${doorLabel(r.day)}${r.title ? `: ${r.title}` : ''}${santa}` });
       if (r.kind === 'snow') play({ scene: 'snow-day', priority: 5, label: '❄️ a snow day', vars: brain.vars() });
     },
     onChange: () => {
@@ -1014,10 +1016,10 @@ function makeTree({ file, demo = false }) {
     },
     onHang: (h) => {
       const whose = h.tree === 'us' ? 'our tree' : h.onMine ? 'your tree' : 'their tree';
-      if (!demo) activity.add({ dir: 'in', text: `🎄 ${partnerName()} hung a ${h.emoji} ${h.name} on ${whose}` });
+      if (!demo) activity.add({ dir: 'in', text: `🎄 ${partnerName()} ${hangVars(h.kind).ornHung} ${whose}` });
       // Their bear brings it over (at most one at a time: a run of hangs shows the last one only).
       player.queue = player.queue.filter((q) => q.scene !== 'tree-hang');
-      play({ scene: 'tree-hang', priority: 2, label: `🎄 ${partnerName()} decorated`, vars: brain.vars({ ornName: h.name, ornEmoji: h.emoji, treeWhose: whose, treeBefore: h.before, treeAfter: h.after }) });
+      play({ scene: 'tree-hang', priority: 2, label: `🎄 ${partnerName()} decorated`, vars: brain.vars({ ...hangVars(h.kind), treeWhose: whose, treeBefore: h.before, treeAfter: h.after }) });
     },
     onStar: () => {
       if (!demo) activity.add({ dir: 'in', text: '⭐ You put the star on the tree together' });
@@ -1111,7 +1113,7 @@ function demoAction(a) {
       'tree-open': { label: '🎄 the tree is up', vars: { treeAfter: spec } },
       'advent-ready': { label: `🎁 door ${doorLabel(day)} is ready`, vars: { door: String(doorLabel(day)) } },
       'snow-day': { label: '❄️ a snow day', vars: {} },
-      'tree-hang': { label: `🎄 ${partnerName()} decorated`, vars: { ornName: 'bell', ornEmoji: '🔔', treeWhose: 'your tree', treeBefore: spec, treeAfter: spec } },
+      'tree-hang': { label: `🎄 ${partnerName()} decorated`, vars: { ...hangVars('bell'), treeWhose: 'your tree', treeBefore: spec, treeAfter: spec } },
       'tree-star': { label: '⭐ the star is on', vars: { treeAfter: { ...spec, star: true } } },
     };
     const sc = scenes[a.scene];
@@ -1120,6 +1122,12 @@ function demoAction(a) {
     return { ok: true };
   }
   return null;
+}
+
+// What the delivery scene says about one ornament ("hung a 🔔 bell on") or little animal ("put a 🐧 penguin by").
+function hangVars(kind) {
+  const k = ORNAMENT_KINDS[kind] || { name: kind, emoji: '🎄' };
+  return { ornName: k.name, ornEmoji: k.emoji, ornHung: `${k.skirt ? 'put' : 'hung'} a ${k.emoji} ${k.name} ${k.skirt ? 'by' : 'on'}`, ornSaid: `${k.skirt ? 'brought you' : 'hung'} a ${k.name}` };
 }
 
 // The Tree tab's dot: an answer is waiting, or there are ornaments in the box to hang.
@@ -1192,7 +1200,7 @@ function treeAction(a) {
   if (a?.type === 'preview') {
     // The window's "show me" button: the hang scene with this tree, here.
     const spec = tree.spec(a.tree || tree.trees()[0]);
-    return player.play({ scene: 'tree-hang', priority: 9, label: '🎄 preview', preview: true, vars: brain.vars({ ornName: 'bell', ornEmoji: '🔔', treeWhose: 'our tree', treeBefore: spec, treeAfter: spec }) });
+    return player.play({ scene: 'tree-hang', priority: 9, label: '🎄 preview', preview: true, vars: brain.vars({ ...hangVars('bell'), treeWhose: 'our tree', treeBefore: spec, treeAfter: spec }) });
   }
   return tree.act(a);
 }

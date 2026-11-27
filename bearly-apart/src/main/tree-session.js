@@ -97,7 +97,15 @@ class TreeSession {
     return Object.keys(this.cur().opened?.[person] || {}).map(Number);
   }
 
-  // What's behind a door, as this person sees it (their own extra line, if Aaron wrote one for them).
+  // One ornament or animal as this person gets it (their half of the heart, their colour).
+  gift(item) {
+    const kind = item === 'heart-half' ? T.halfFor(this.config().me.character) : item;
+    const k = T.KINDS[kind];
+    return { item: kind, c: T.colorOf(T.itemId(this.me(), kind), this.people()), name: k?.name, emoji: k?.emoji, skirt: !!k?.skirt };
+  }
+
+  // What's behind a door, as this person sees it (their own extra line, if Aaron wrote one for them), with what
+  // Santa brings on top ("more").
   reward(day) {
     const { contents, byDay } = this.calendar();
     const c = contents[byDay[day]];
@@ -105,12 +113,23 @@ class TreeSession {
     const mine = c[`for${(this.config().me.name || '').replace(/^\w/, (x) => x.toUpperCase())}`];
     const out = { kind: c.kind, title: c.title, text: [c.text, mine].filter(Boolean).join('\n\n') };
     if (c.kind === 'ornament') {
-      const kind = c.item === 'heart-half' ? T.halfFor(this.config().me.character) : c.item;
-      Object.assign(out, { item: kind, c: T.colorOf(T.itemId(this.me(), kind), this.people()), name: T.KINDS[kind]?.name, emoji: T.KINDS[kind]?.emoji });
-      if (!out.title) out.title = `A ${out.name} for the tree ${out.emoji}`;
+      Object.assign(out, this.gift(c.item));
+      if (!out.title) out.title = out.skirt ? `A little ${out.name} for under the tree ${out.emoji}` : `A ${out.name} for the tree ${out.emoji}`;
+      if (c.more?.length) out.more = c.more.map((m) => this.gift(m));
     }
     if (c.kind === 'snow' && !out.title) out.title = 'A snow day ❄️';
+    if (c.kind === 'lights' && !out.title) out.title = 'The tree lights ✨';
     return out;
+  }
+
+  // Whether a tree has its lights: once its owner has opened the lights door (a shared tree: either of you). With
+  // no lights door behind the calendar, from LIGHTS_DAY.
+  lightsUp(tree, state = this.cur()) {
+    const { contents, byDay } = this.calendar();
+    const d = A.lightsDay(contents, byDay);
+    if (!d) return this.day() >= T.LIGHTS_DAY;
+    const who = tree === 'us' ? this.people() : [tree];
+    return who.some((p) => !!state.opened?.[p]?.[d]);
   }
 
   // The trees there are: ['us'], or [me, them], or none while still choosing.
@@ -158,6 +177,7 @@ class TreeSession {
       if (!it || it.owner !== this.me()) return { ok: false, error: 'That one isn’t yours to hang.' };
       if (!this.box().includes(a.item) && !T.whereIs(s, mode, people, a.item)) return { ok: false, error: 'That ornament isn’t in your box yet.' };
       if (!T.treesFor(mode, people).includes(a.tree)) return { ok: false, error: 'That tree isn’t here.' };
+      if (!T.slotFits(it.kind, Number(a.slot))) return { ok: false, error: T.isSkirt(it.kind) ? 'The little animals sit round the tree skirt.' : 'That goes on a branch.' };
       const taken = T.placements(s, a.tree)[a.slot];
       if (taken && taken !== a.item) return { ok: false, error: 'Something’s already hanging there.' };
       op = { k: 'hang', item: a.item, tree: a.tree, slot: Number(a.slot) };
@@ -303,10 +323,13 @@ class TreeSession {
     const items = T.unlockedItems(them, pc, this.day(), kinds.size ? kinds : null).filter((id) => !T.whereIs(s, mode, people, id));
     const tree = mode === 'shared' ? 'us' : this.me();
     const taken = T.placements(s, tree);
-    const free = [...Array(T.SLOTS).keys()].filter((i) => !taken[i]);
-    if (!items.length || !free.length) return null;
     const pick = (a) => a[Math.floor(this.rand() * a.length)];
-    const op = { k: 'hang', item: pick(items), tree, slot: pick(free) };
+    // Only ones that still have a free spot of their sort (branch or skirt).
+    const freeFor = (id) => [...Array(T.SLOTS + T.SKIRT).keys()].filter((i) => !taken[i] && T.slotFits(T.parseItem(id).kind, i));
+    const fits = items.filter((id) => freeFor(id).length);
+    if (!fits.length) return null;
+    const item = pick(fits);
+    const op = { k: 'hang', item, tree, slot: pick(freeFor(item)) };
     if (this.testing()) op.test = true;
     return op;
   }
@@ -329,12 +352,15 @@ class TreeSession {
     const names = { [c.me.id]: c.me.name || 'You', [c.partner.id]: c.partner.name || 'Your love' };
     const day = this.day();
     const stage = T.stageFor(day) || 'bare';
+    const lightsUp = this.lightsUp(tree, state);
     const p = T.placements(state, tree);
     return {
       tree,
       stage,
+      garland: stage === 'garland',
+      lightsUp,
       star: !!state.star,
-      lights: stage === 'lights' && this.bothHere(),
+      lights: lightsUp && this.bothHere(),
       // The same name on both computers: the two of you in a fixed order.
       name: tree === 'us' ? `${[...people].sort().map((p) => names[p]).join(' & ')}’s Tree` : `${names[tree] || 'Our'}’s Tree`,
       style: state.treeStyles?.[tree]?.s || {},

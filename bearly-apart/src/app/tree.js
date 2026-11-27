@@ -18,7 +18,10 @@ let trHover = 0;
 let trCal = null; // the calendar canvas
 let trBackdrop = null; // the village behind it
 
-TreeArt.load();
+// The picture ornaments load with the tree: once they're in, the box and reward pictures are drawn again.
+TreeArt.load().then(() => {
+  if (trShown && tv && !trDrag && !(trFx && performance.now() < trFx.end)) renderTree();
+});
 CalendarArt.load();
 
 function trCall(action) {
@@ -154,7 +157,7 @@ function trTreeStylerCard() {
   const d = trTreeDraft;
   const cur = { ...TREE_DEFAULTS, ...(tv.trees.find((t) => t.tree === d.tree)?.style || {}), ...d.style };
   const card = el('div', { className: 'card tr-styler', id: 'tr-styler' });
-  card.append(el('h2', { textContent: '🎨 Style the tree' }), el('p', { className: 'hint', textContent: `The tree changes as you pick. The garland shows from Dec 7, the lights from Dec 14 and the topper on Christmas Eve.${d.tree === 'us' ? ` ${tv.names.them} sees the same tree.` : ''}` }));
+  card.append(el('h2', { textContent: '🎨 Style the tree' }), el('p', { className: 'hint', textContent: `The tree changes as you pick. The lights show once you’ve opened their calendar door, the garland from Dec 7 and the topper on Christmas Eve.${d.tree === 'us' ? ` ${tv.names.them} sees the same tree.` : ''}` }));
   for (const [k, [label, opts]] of Object.entries(TREE_STYLE_OPTIONS)) {
     const row = el('div', { className: 'tr-swatches' });
     for (const [v, text] of Object.entries(opts))
@@ -232,7 +235,7 @@ function trDraw(now = performance.now()) {
   const ctx = trCanvas.getContext('2d');
   ctx.clearRect(0, 0, trCanvas.width, trCanvas.height);
   const hide = new Set(trDrag && trDrag.from >= 0 ? [trDrag.from] : []);
-  TreeArt.drawTree(ctx, spec, { t: now, hide, guides: !!trDrag, hot: trDrag?.hot ?? -1 });
+  TreeArt.drawTree(ctx, spec, { t: now, hide, guides: !!trDrag, skirt: TreeArt.isSkirt(trDrag?.kind), hot: trDrag?.hot ?? -1 });
 }
 
 function trLoop(now) {
@@ -285,7 +288,8 @@ const TR_DEC = 4;
 const TR_LAST = 36;
 const trDate = (d) => (d < 1 ? '' : d <= TR_DEC ? `November ${d + 26}` : d < TR_LAST ? `December ${d - TR_DEC}` : 'January 1');
 const trDoor = (d) => (d <= TR_DEC ? d + 26 : d - TR_DEC);
-const DAY_NAMES = { [7 + TR_DEC]: 'the garland', [14 + TR_DEC]: 'the lights', [24 + TR_DEC]: 'the star' };
+// (The lights are behind an advent door now, so they aren't announced by date.)
+const DAY_NAMES = { [7 + TR_DEC]: 'the garland', [24 + TR_DEC]: 'the star' };
 const TR_HOLIDAYS = { 1: 'November 27 💝', [24 + TR_DEC]: 'Christmas Eve', [25 + TR_DEC]: 'Christmas Day', [31 + TR_DEC]: 'New Year’s Eve' };
 
 function trDateLine() {
@@ -343,7 +347,7 @@ function renderTree() {
   const lines = el('div', { className: 'tr-lines' });
   if (tv.practice) lines.append(el('p', { className: 'hint', textContent: '🧪 Practice tree: only tester computers see it, and it’s cleared when the real tree goes up on November 27.' }));
   lines.append(el('p', { className: 'hint', textContent: trDateLine() }));
-  if (tv.stage === 'lights') lines.append(el('p', { className: 'hint', textContent: spec.lights ? `✨ The lights are on: you’re both here.` : `💡 The lights come on while you and ${them} are both at your computers.` }));
+  if (spec.lightsUp) lines.append(el('p', { className: 'hint', textContent: spec.lights ? `✨ The lights are on: you’re both here.` : `💡 The lights come on while you and ${them} are both at your computers.` }));
   if (onTheirs) lines.append(el('p', { className: 'hint', textContent: `Hang one of your ornaments on ${them}’s tree as a gift. Your bear carries it over to their screen.` }));
   root.append(lines);
 
@@ -356,7 +360,8 @@ function renderTree() {
   if (!tv.box.length) {
     box.append(el('p', { className: 'hint', textContent: 'All hung up! More ornaments are hiding behind the calendar doors.' }));
   } else {
-    box.append(el('p', { className: 'hint', textContent: `Drag one onto ${onTheirs ? `${them}’s` : 'the'} tree. Drag a hung one off to put it back. More are hiding behind the calendar doors.` }));
+    const friends = tv.box.some((o) => TreeArt.isSkirt(o.kind)) ? ' The little animals sit round the tree skirt.' : '';
+    box.append(el('p', { className: 'hint', textContent: `Drag one onto ${onTheirs ? `${them}’s` : 'the'} tree. Drag a hung one off to put it back.${friends} More are hiding behind the calendar doors.` }));
     const grid = el('div', { className: 'tr-grid' });
     for (const o of tv.box) {
       const cv = el('canvas', { width: 128, height: 128, className: 'tr-orn', title: `${o.emoji} ${o.name}: drag it onto the tree, or click to style it` });
@@ -496,8 +501,9 @@ function calLayer() {
     layer.append(img);
   }
   if (playing) {
-    const banner = el('div', { className: 'cal-banner', textContent: CalendarArt.eventText(trFx.type, prog) });
-    layer.append(banner);
+    const n = trFx.follow || 0;
+    const text = n ? `Wait… is that Santa?! 🎅 He left you ${n === 1 ? 'one more thing' : `${n} more things`}!` : CalendarArt.eventText(trFx.type, prog);
+    layer.append(el('div', { className: 'cal-banner', textContent: text }));
   }
 }
 
@@ -524,6 +530,7 @@ function calClick(d) {
   trCall({ type: 'open', day: d }).then((r) => {
     if (!r?.ok) {
       trFx = null;
+      trSantaPending = 0;
       calLayer();
     }
   });
@@ -534,14 +541,39 @@ function calClick(d) {
   const times = new Set();
   for (const b of CalendarArt.eventBears(trFx.type, CalendarArt.progress({ doors }))) for (const ms of [b.from, b.to]) if (ms) times.add(ms);
   for (const ms of times) at(CalendarArt.EVENT_AT + ms + 10, calLayer);
+  // Santa's extras stay a surprise until his sleigh has been.
+  trSantaPending = d;
   at(2300, () => {
     trReward = d;
     calShowReward();
   });
   at(CalendarArt.momentMs(d) + 50, () => {
+    const more = tv.calendar.doors[d - 1]?.reward?.more || [];
+    if (more.length && trShown && trView === 'calendar') return calSanta(d, more);
     trFx = null;
+    trSantaPending = 0;
     if (trShown && trView === 'calendar') renderTree();
   });
+}
+
+// A door with more than one thing behind it: after its moment, Santa's sleigh crosses the sky ("Wait… is that
+// Santa?!") and what he brings pops out of the same door, then the reward card shows everything.
+let trSantaPending = 0;
+function calSanta(d, more) {
+  trFxTimers.forEach(clearTimeout);
+  const ms = CalendarArt.EVENT_MS.santa;
+  // Straight into the event: the door is already open.
+  const t0 = performance.now() - CalendarArt.EVENT_AT;
+  trFx = { d, t0, type: 'santa', follow: more.length, end: t0 + CalendarArt.EVENT_AT + ms };
+  calLayer();
+  trFxTimers.push(
+    setTimeout(() => {
+      trFx = null;
+      trSantaPending = 0;
+      trReward = d;
+      if (trShown && trView === 'calendar') renderTree();
+    }, ms + 50),
+  );
 }
 
 function calDraw(now = performance.now()) {
@@ -579,15 +611,34 @@ function calRewardCard(door) {
   const pic = el('canvas', { width: 160, height: 160, className: 'cal-pic' });
   CalendarArt.icon(pic.getContext('2d'), r, 80, 80, 130);
   const body = el('div', {}, el('small', { className: 'hint', textContent: trDate(door.d) }), el('h2', { textContent: r.title || 'A surprise' }));
-  if (r.kind === 'ornament') body.append(el('p', { textContent: `A ${r.name} for the tree. It’s in your ornament box.` }));
+  if (r.kind === 'ornament') {
+    // The title already names it unless Aaron wrote his own.
+    const named = r.title?.includes(r.name);
+    const what = r.skirt ? `A little ${r.name} to sit round the tree skirt.` : `A ${r.name} for the tree.`;
+    body.append(el('p', { textContent: named ? `It’s in your ornament box${r.skirt ? ', ready to sit round the tree skirt' : ''}.` : `${what} It’s in your ornament box.` }));
+  }
   if (r.kind === 'snow') body.append(el('p', { textContent: 'Snow is falling on your screen ❄️' }));
   if (r.text) body.append(el('p', { className: 'cal-note', textContent: r.text }));
+  // What Santa brought on top (once his sleigh has been).
+  const more = trSantaPending === door.d ? [] : r.more || [];
+  if (more.length) {
+    const names = more.map((m) => `${/^[aeiou]/.test(m.name) ? 'an' : 'a'} ${m.name}`);
+    const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0];
+    body.append(el('p', { className: 'cal-santa', textContent: `🎅 Santa came by too: ${list}. ${more.length > 1 ? 'They’re' : 'It’s'} in your box.` }));
+    const row = el('div', { className: 'cal-more' });
+    for (const m of more) {
+      const cv = el('canvas', { width: 112, height: 112 });
+      CalendarArt.icon(cv.getContext('2d'), { kind: 'ornament', item: m.item, c: m.c }, 56, 56, 96);
+      row.append(el('figure', {}, cv, el('figcaption', { textContent: `${m.emoji} ${m.name}` })));
+    }
+    body.append(row);
+  }
   const row = el('div', { className: 'tr-row' });
-  if (r.kind === 'ornament' || r.kind === 'star')
+  if (r.kind === 'ornament' || r.kind === 'star' || r.kind === 'lights')
     row.append(
       el('button', {
         className: 'small',
-        textContent: r.kind === 'star' ? '⭐ Go to the tree' : '🎄 Hang it on the tree',
+        textContent: r.kind === 'star' ? '⭐ Go to the tree' : r.kind === 'lights' ? '🎄 See the tree' : more.length ? '🎄 Put them on the tree' : r.skirt ? '🎄 Put it by the tree' : '🎄 Hang it on the tree',
         onclick: () => {
           trView = 'tree';
           trReward = 0;
@@ -612,7 +663,7 @@ function calRewardCard(door) {
 
 // ---------- the door editor (tester only) ----------
 
-const CAL_KINDS = { ornament: '🎄 Ornament', note: '💌 Note', snow: '❄️ Snow day', star: '⭐ Star (Christmas Eve)' };
+const CAL_KINDS = { ornament: '🎄 Ornament', note: '💌 Note', snow: '❄️ Snow day', lights: '💡 Tree lights', star: '⭐ Star (Christmas Eve)' };
 
 function calEditor() {
   const card = el('details', { className: 'card cal-editor' });
@@ -625,7 +676,7 @@ function calEditor() {
     card.append(
       el('p', {
         className: 'hint',
-        textContent: `${tv.calendar.doors.length} surprises, one for each day from November 27 to Christmas Day. They go behind the doors in a shuffled order nobody sees, except the ones pinned to a day. ${r.source ? 'Saving writes them into the app, so build and publish to send them to her Mac.' : 'This is an installed app, so saving keeps them on this computer only. Save from the source copy (npm start) and publish to send them to her Mac.'}`,
+        textContent: `${tv.calendar.doors.length} surprises, one for each day from November 27 to Christmas Day. They go behind the doors in a shuffled order nobody sees, except the ones pinned to a day. An ornament door can hold extras that Santa brings when it opens. ${r.source ? 'Saving writes them into the app, so build and publish to send them to her Mac.' : 'This is an installed app, so saving keeps them on this computer only. Save from the source copy (npm start) and publish to send them to her Mac.'}`,
       }),
     );
     const rows = el('div', { className: 'cal-rows' });
@@ -633,9 +684,18 @@ function calEditor() {
       const kind = el('select');
       for (const [k, label] of Object.entries(CAL_KINDS)) kind.append(el('option', { value: k, textContent: label }));
       kind.value = d.kind;
+      const ornName = (o) => (o === 'heart-half' ? 'heart halves (one each)' : o.replace(/-/g, ' '));
       const item = el('select');
-      for (const o of r.ornaments) item.append(el('option', { value: o, textContent: o === 'heart-half' ? 'heart halves (one each)' : o.replace(/-/g, ' ') }));
+      for (const o of r.ornaments) item.append(el('option', { value: o, textContent: ornName(o) }));
       item.value = d.item || r.ornaments[0];
+      // up to three extras from Santa
+      const extras = [0, 1, 2].map((k) => {
+        const s = el('select', { title: 'Santa brings this too' });
+        s.append(el('option', { value: '', textContent: k ? '…and' : '🎅 + Santa' }));
+        for (const o of r.ornaments) s.append(el('option', { value: o, textContent: `🎅 ${ornName(o)}` }));
+        s.value = d.more?.[k] || '';
+        return s;
+      });
       const title = el('input', { value: d.title || '', placeholder: 'Title (optional)' });
       const text = el('textarea', { value: d.text || '', placeholder: 'Note for both of you' });
       const forHer = el('textarea', { value: d.forYimei || '', placeholder: 'Extra line only Yimei sees' });
@@ -645,11 +705,12 @@ function calEditor() {
       pin.value = d.pin ? String(d.pin) : '';
       const sync = () => {
         item.hidden = kind.value !== 'ornament';
+        for (const s of extras) s.hidden = kind.value !== 'ornament';
       };
       kind.onchange = sync;
       sync();
-      rows.append(el('div', { className: 'cal-row' }, el('b', { textContent: `${i + 1}` }), kind, item, pin, title, text, forHer));
-      return () => ({ kind: kind.value, item: item.value, title: title.value, text: text.value, forYimei: forHer.value, pin: pin.value ? Number(pin.value) : undefined });
+      rows.append(el('div', { className: 'cal-row' }, el('b', { textContent: `${i + 1}` }), kind, item, ...extras, pin, title, text, forHer));
+      return () => ({ kind: kind.value, item: item.value, more: extras.map((s) => s.value).filter(Boolean), title: title.value, text: text.value, forYimei: forHer.value, pin: pin.value ? Number(pin.value) : undefined });
     });
     card.append(
       rows,
@@ -739,7 +800,7 @@ let trTour = null; // { stop }: the tour opening every door in turn
 const trSleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function trDayName(d) {
-  const extra = { 1: ' · our day 💝', [7 + TR_DEC]: ' · garland', [14 + TR_DEC]: ' · lights', [24 + TR_DEC]: ' · Christmas Eve ⭐', [25 + TR_DEC]: ' · Christmas Day', [31 + TR_DEC]: ' · New Year’s Eve' }[d] || '';
+  const extra = { 1: ' · our day 💝', 2: ' · the lights 💡', [7 + TR_DEC]: ' · garland', [24 + TR_DEC]: ' · Christmas Eve ⭐', [25 + TR_DEC]: ' · Christmas Day', [31 + TR_DEC]: ' · New Year’s Eve' }[d] || '';
   return `${trDate(d)}${extra}`;
 }
 
@@ -830,7 +891,10 @@ async function trDemoTour() {
     }
     trCal.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     calClick(d);
-    await trSleep(CalendarArt.momentMs(d) + 1200);
+    await trSleep(CalendarArt.momentMs(d) + 400);
+    // Santa may come by after the door's moment.
+    for (let i = 0; i < 80 && trFx; i++) await trSleep(150);
+    await trSleep(800);
   }
   trTour = null;
   if (trShown) renderTree();
@@ -879,7 +943,7 @@ function trMove(e) {
   const s = trDrag.size;
   trDrag.ghost.style.transform = `translate(${e.clientX - s / 2}px, ${e.clientY - s * 0.25}px)`;
   const p = trToTree(e);
-  trDrag.hot = p.inside ? TreeArt.nearestSlot(trSpec(), p.x, p.y, 95, trDrag.from) : -1;
+  trDrag.hot = p.inside ? TreeArt.nearestSlot(trSpec(), p.x, p.y, TreeArt.isSkirt(trDrag.kind) ? 120 : 95, trDrag.from, trDrag.kind) : -1;
   trDraw();
 }
 

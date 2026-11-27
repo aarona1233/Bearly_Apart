@@ -3237,7 +3237,7 @@
     ]
   },
   "tree-hang": {
-    "caption": "🎄 {partner} hung a {ornEmoji} {ornName} on {treeWhose}",
+    "caption": "🎄 {partner} {ornHung} {treeWhose}",
     "captionMs": 6500,
     "actors": [
       {
@@ -3296,7 +3296,7 @@
           },
           {
             "do": "say",
-            "text": "I hung a {ornName} for you! {ornEmoji}",
+            "text": "I {ornSaid} for you! {ornEmoji}",
             "ms": 3200
           },
           {

@@ -6,7 +6,8 @@
 // whole copies can also be merged in any order and still agree. That's how an app that was offline catches up.
 
 const DAY_MS = 86_400_000;
-const SLOTS = 36;
+const SLOTS = 36; // hooks on the branches (0..35)
+const SKIRT = 8; // spots round the tree skirt for the little animals (36..43)
 const STAR_WINDOW_MS = 20_000; // the star goes on when you both click within this of each other
 const JOIN_DISTANCE = 130; // heart halves on spots this close (tree canvas px) meet as one heart
 
@@ -15,12 +16,10 @@ const JOIN_DISTANCE = 130; // heart halves on spots this close (tree canvas px) 
 // The advent calendar's door for each day is that day's number too (door 1 = Nov 27 ... door 29 = Dec 25).
 const DEC = 4; // season day = date in December + DEC
 const LAST_DAY = 31 + DEC + 1; // Jan 1
-const STAGES = [
-  // [season day, stage]
-  [1, 'bare'],
-  [7 + DEC, 'garland'], // Dec 7
-  [14 + DEC, 'lights'], // Dec 14
-];
+// The garland goes up on Dec 7. The lights are behind an advent door (Nov 28): a tree gets them when its owner opens
+// that door (a shared tree, when either of you does). Without a lights door they come on Dec 14, as they used to.
+const GARLAND_DAY = 7 + DEC;
+const LIGHTS_DAY = 14 + DEC;
 const STAR_DAY = 24 + DEC; // Christmas Eve
 
 // Each ornament: its name, how many colourways it has, and the December day it arrives in your box (a stand-in for
@@ -54,7 +53,53 @@ const KINDS = {
   snowman: { name: 'snowman', emoji: '⛄', colors: 1, day: 19 },
   reindeer: { name: 'reindeer', emoji: '🦌', colors: 2, day: 20 },
   cocoa: { name: 'hot cocoa', emoji: '☕', colors: 2, day: 21 },
+  // Picture ornaments and little animals (0.12.1), cut from the Sort art (tools/import-tree-items.py). The animals
+  // sit round the tree skirt instead of hanging (skirt: true).
+  'snow-buddy': { name: 'snow buddy', emoji: '⛄', colors: 1, day: 17, pic: true },
+  'gold-bell': { name: 'golden bell', emoji: '🔔', colors: 1, day: 17, pic: true },
+  'santa-star': { name: 'Santa star', emoji: '⭐', colors: 1, day: 17, pic: true },
+  'bow-cane': { name: 'bow candy cane', emoji: '🍬', colors: 1, day: 17, pic: true },
+  'ginger-santa': { name: 'Santa gingerbread', emoji: '🍪', colors: 1, day: 18, pic: true },
+  'mini-tree': { name: 'little tree', emoji: '🎄', colors: 1, day: 18, pic: true },
+  sweets: { name: 'handful of sweets', emoji: '🍬', colors: 1, day: 18, pic: true },
+  'gift-stripe': { name: 'striped gift', emoji: '🎁', colors: 1, day: 18, pic: true },
+  'gift-dots': { name: 'polka-dot gift', emoji: '🎁', colors: 1, day: 19, pic: true },
+  holly: { name: 'holly sprig', emoji: '🌿', colors: 1, day: 19, pic: true },
+  'bauble-tree': { name: 'tree bauble', emoji: '🔴', colors: 1, day: 19, pic: true },
+  'bauble-goldflake': { name: 'gold snowflake bauble', emoji: '🔴', colors: 1, day: 19, pic: true },
+  'bauble-wave': { name: 'green wave bauble', emoji: '🟢', colors: 1, day: 20, pic: true },
+  'bauble-mint': { name: 'peppermint bauble', emoji: '🍬', colors: 1, day: 20, pic: true },
+  'sock-flake': { name: 'snowflake stocking', emoji: '🧦', colors: 1, day: 20, pic: true },
+  'sock-tree': { name: 'tree stocking', emoji: '🧦', colors: 1, day: 20, pic: true },
+  'sock-dots': { name: 'polka-dot stocking', emoji: '🧦', colors: 1, day: 21, pic: true },
+  santa: { name: 'Santa', emoji: '🎅', colors: 1, day: 21, pic: true },
+  wreath: { name: 'wreath', emoji: '💚', colors: 1, day: 21, pic: true },
+  poinsettia: { name: 'poinsettia', emoji: '🌺', colors: 1, day: 21, pic: true },
+  'santa-hat': { name: 'Santa hat', emoji: '🎅', colors: 1, day: 22, pic: true },
+  'cocoa-mug': { name: 'cocoa mug', emoji: '☕', colors: 1, day: 22, pic: true },
+  'ginger-house': { name: 'gingerbread house', emoji: '🏠', colors: 1, day: 22, pic: true },
+  candle: { name: 'candle', emoji: '🕯️', colors: 1, day: 22, pic: true },
+  'santa-sack': { name: 'Santa sack', emoji: '🎁', colors: 1, day: 23, pic: true },
+  'jingle-bells': { name: 'pair of jingle bells', emoji: '🔔', colors: 1, day: 23, pic: true },
+  'reindeer-tree': { name: 'reindeer with a tree', emoji: '🦌', colors: 1, day: 17, pic: true, skirt: true },
+  rudolph: { name: 'red-nosed reindeer', emoji: '🦌', colors: 1, day: 18, pic: true, skirt: true },
+  penguin: { name: 'penguin', emoji: '🐧', colors: 1, day: 19, pic: true, skirt: true },
+  'polar-bear': { name: 'polar bear', emoji: '🐻‍❄️', colors: 1, day: 20, pic: true, skirt: true },
+  goose: { name: 'goose in lights', emoji: '🪿', colors: 1, day: 21, pic: true, skirt: true },
+  'reindeer-kiss': { name: 'reindeer kiss', emoji: '💋', colors: 1, day: 22, pic: true, skirt: true },
+  'penguin-hug': { name: 'penguin hug', emoji: '🐧', colors: 1, day: 23, pic: true, skirt: true },
+  'teddy-gift': { name: 'teddy with a gift', emoji: '🧸', colors: 1, day: 18, pic: true, skirt: true },
+  'teddy-antlers': { name: 'reindeer teddy', emoji: '🧸', colors: 1, day: 19, pic: true, skirt: true },
+  'teddy-tree': { name: 'teddy with a tree', emoji: '🧸', colors: 1, day: 20, pic: true, skirt: true },
+  'teddy-sleepy': { name: 'sleepy teddy', emoji: '🧸', colors: 1, day: 21, pic: true, skirt: true },
 };
+
+// Little animals go on the skirt spots, everything else on the branch hooks.
+const isSkirt = (kind) => !!KINDS[kind]?.skirt;
+function slotFits(kind, slot) {
+  if (!Number.isInteger(slot)) return false;
+  return isSkirt(kind) ? slot >= SLOTS && slot < SLOTS + SKIRT : slot >= 0 && slot < SLOTS;
+}
 
 // ---------- styles ----------
 // Each ornament can be restyled by its owner: main and accent colour, pattern (glass baubles), finish and size.
@@ -140,10 +185,10 @@ function dayFor(now, zones, testDay = 0) {
 
 const isUp = (day) => day >= 1 && day <= LAST_DAY;
 
+// 'bare' or 'garland' (null before the season). The lights aren't a stage any more: see LIGHTS_DAY.
 function stageFor(day) {
-  let s = null;
-  for (const [from, name] of STAGES) if (day >= from) s = name;
-  return s;
+  if (!isUp(day)) return null;
+  return day >= GARLAND_DAY ? 'garland' : 'bare';
 }
 
 const starDay = (day) => day >= STAR_DAY;
@@ -258,7 +303,7 @@ function apply(state, op, ev, people) {
     let place = { tr: '', s: -1, t };
     if (op.k === 'hang') {
       const slot = Number(op.slot);
-      if (!treesFor(mode, people).includes(op.tree) || !Number.isInteger(slot) || slot < 0 || slot >= SLOTS) return state;
+      if (!treesFor(mode, people).includes(op.tree) || !slotFits(it.kind, slot)) return state;
       // Someone got to this spot first (in relay order, the same on every computer): this one stays in its box.
       const there = placements(state, op.tree)[slot];
       if (there && there !== op.item) return state;
@@ -331,7 +376,7 @@ function clean(s, people) {
     if (!it || !people.includes(it.owner) || !v || !stamp(v.t)) continue;
     const slot = Number(v.s);
     const tr = typeof v.tr === 'string' && (v.tr === '' || v.tr === 'us' || people.includes(v.tr)) ? v.tr : null;
-    if (tr === null || (tr && (!Number.isInteger(slot) || slot < 0 || slot >= SLOTS))) continue;
+    if (tr === null || (tr && !slotFits(it.kind, slot))) continue;
     out.items[id] = { tr, s: tr ? slot : -1, t: stamp(v.t) };
   }
   out.star = Number.isFinite(s.star) ? s.star : null;
@@ -375,6 +420,11 @@ function fingerprint(state) {
 module.exports = {
   DAY_MS,
   SLOTS,
+  SKIRT,
+  isSkirt,
+  slotFits,
+  GARLAND_DAY,
+  LIGHTS_DAY,
   DEC,
   LAST_DAY,
   dateName,
