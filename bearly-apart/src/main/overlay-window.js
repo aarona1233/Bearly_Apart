@@ -8,10 +8,12 @@ const IS_MAC = process.platform === 'darwin';
 const IS_WIN = process.platform === 'win32';
 
 class OverlayWindow {
-  // getScene(name) -> scene definition or undefined; getScale() -> the bear size setting
-  constructor({ getScene, getScale, log }) {
+  // getScene(name) -> scene definition or undefined; getScale() -> the bear size setting; getChristmas() -> whether
+  // the captions wear their Christmas hats
+  constructor({ getScene, getScale, getChristmas = () => false, log }) {
     this.getScene = getScene;
     this.getScale = getScale;
+    this.getChristmas = getChristmas;
     this.log = log;
     this.win = new BrowserWindow({
       show: false,
@@ -123,7 +125,7 @@ class OverlayWindow {
       };
       const timeout = setTimeout(done, scene.maxMs || 90_000);
       ipcMain.once('scene-done', done);
-      this.win.webContents.send('play', { scene, vars: req.vars, ctx: { width: b.width, height: b.height, win, scale } });
+      this.win.webContents.send('play', { scene, vars: req.vars, ctx: { width: b.width, height: b.height, win, scale, christmas: !!this.getChristmas() } });
       this.win.showInactive();
       this.win.setAlwaysOnTop(true, 'screen-saver');
       // On Windows, hiding the window stops the mouse-move forwarding that tells the page what's under the pointer

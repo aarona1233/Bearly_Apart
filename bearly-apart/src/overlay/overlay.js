@@ -717,6 +717,8 @@ async function playScene(scene, vars, ctx) {
   H = ctx.height;
   SCALE = ctx.scale || 1;
   VARS = vars || {};
+  // In the Christmas season the captions and cards wear a Santa hat (overlay.css).
+  document.body.classList.toggle('christmas', !!ctx.christmas);
   // Without a known front window, pretend there's one in the middle of the screen.
   WIN = ctx.win || { x: W * 0.15, y: H * 0.3, width: W * 0.7, height: H * 0.5 };
   pending = [];

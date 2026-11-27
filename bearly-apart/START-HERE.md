@@ -72,6 +72,9 @@ A photo booth for the two of you. It is unlocked from **Tuesday, November 24, 20
 
 It's under **Rooms → Christmas**. It appears at **11:59 pm on November 26** (a minute before the 27th, on whichever of your clocks gets there first) and goes away after January 1. Both computers need 0.12 or newer. It has two views, **Calendar** and **Tree**.
 
+- **The Christmas look (0.12.2):** while the tree is up, the whole window dresses for Christmas: cranberry buttons, a pine-green tab, gold for what's picked, snow on every card, a string of lights across the top, a little snow falling behind the cards and a Santa hat on their bear in the header. Dark mode becomes a pine night. The bears' captions and love-note cards on your desktop wear a Santa hat too. **Settings → You → Christmas look** switches it off on that computer.
+- **The Christmas card on Send:** at the top of the Send tab, a countdown to Christmas and what's waiting: a door to open, the tree to choose, or things in your box to hang. Its button goes straight there.
+
 ### The advent calendar
 
 A gingerbread house with 29 doors, November 27 to Christmas Day. The doors carry their dates: 27 to 30 (marked NOV) and then 1 to 25. Nov 27 is the round door in the roof, with a bow; Christmas Eve and Christmas Day are the two tall front doors. Each door opens at your own midnight; missed doors wait for you.

@@ -64,6 +64,8 @@ const DEFAULT_CONFIG = {
   launchAtLogin: true,
   // The Mac downloads and installs new versions by itself (checked every hour).
   autoUpdate: true,
+  // The window dresses up for Christmas while the tree is up (Nov 27 to Jan 1). Settings can switch it off.
+  christmasLook: true,
   // Read-only GitHub key, only needed while the releases repo is private (Settings → Updates).
   updateToken: '',
 };

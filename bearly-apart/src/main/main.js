@@ -15,7 +15,7 @@ const { BoothSession } = require('./booth-session');
 const { localDate } = require('./booth');
 const { TreeSession } = require('./tree-session');
 const advent = require('./advent');
-const { KINDS: ORNAMENT_KINDS, doorLabel, LAST_DAY } = require('./tree');
+const { KINDS: ORNAMENT_KINDS, doorLabel, dateName, LAST_DAY } = require('./tree');
 const { Relay } = require('./relay');
 const { IMessageWatcher } = require('./imessage');
 const { Guard } = require('./guard');
@@ -313,6 +313,9 @@ function liveState() {
     check: lastCheck,
     halloween,
     halloweenOpen: halloweenOpen(),
+    // The Christmas look (app.css body.christmas): while the real tree is up, or the demo is on.
+    christmas: cfg().christmasLook !== false && !!(realTree?.isUp() || tree?.demo),
+    xmas: xmasLive(),
     candyRecap: (() => {
       const c = candyRecap();
       return c && !c.dismissed ? c.text : null;
@@ -1130,6 +1133,28 @@ function hangVars(kind) {
   return { ornName: k.name, ornEmoji: k.emoji, ornHung: `${k.skirt ? 'put' : 'hung'} a ${k.emoji} ${k.name} ${k.skirt ? 'by' : 'on'}`, ornSaid: `${k.skirt ? 'brought you' : 'hung'} a ${k.name}` };
 }
 
+// The Send tab's Christmas card: how far it is to Christmas, and what's waiting in the Christmas room (today's door,
+// things to hang, the tree to choose). Only in the season (or the demo), once paired.
+function xmasLive() {
+  if (!tree?.visible() || !cfg().partner.id) return null;
+  const v = tree.view();
+  if (!v.up && !v.demo) return null;
+  const today = v.calendar.today;
+  const door = v.calendar.doors[today - 1];
+  return {
+    day: v.day,
+    door: today,
+    label: today ? doorLabel(today) : 0,
+    next: today && today < v.calendar.doors.length ? doorLabel(today + 1) : 0,
+    date: dateName(today),
+    theyOpened: !!door?.theyOpened,
+    waiting: v.calendar.doors.filter((d) => d.ready && !d.opened).map((d) => doorLabel(d.d)),
+    box: v.mode ? v.box.length : 0,
+    choose: !v.mode && !v.myChoice,
+    demo: !!v.demo,
+  };
+}
+
 // The Tree tab's dot: an answer is waiting, or there are ornaments in the box to hang.
 function treeNeedsMe() {
   if (!tree?.visible() || !cfg().partner.id) return false;
@@ -1308,7 +1333,7 @@ app.whenReady().then(() => {
     return net.fetch(pathToFileURL(file).toString());
   });
 
-  overlay = new OverlayWindow({ getScene: (name) => scenes[name], getScale: () => cfg().scale, log });
+  overlay = new OverlayWindow({ getScene: (name) => scenes[name], getScale: () => cfg().scale, getChristmas: () => cfg().christmasLook !== false && !halloween && !!(realTree?.isUp() || tree?.demo), log });
   // If the see-through window's page dies, log it and bring it back rather than leaving bears invisible.
   // The candy game ended. If they asked for the candy (🍬 I want candy), tell them it arrived.
   overlay.onCandy = (r, req) => {

@@ -908,3 +908,185 @@ body.halloween::after {
     transform: translateY(-5px);
   }
 }
+
+/* ---------- Christmas (body.christmas, while the tree is up: Nov 27 to Jan 1) ----------
+   The same stickers in Christmas colours: cranberry for the main button, pine for the picked tab, gold for picked
+   chips. Snow sits on every card, a string of lights hangs across the top, and a little snow falls behind the cards.
+   Light is snowy cream; dark is a pine night. */
+body.christmas {
+  --bg: #fbf6ee;
+  --ink: #3f2420;
+  --muted: #7d6259;
+  --pink: #c63f49;
+  --on-pink: #ffffff;
+  --pink-strong: #b0323b;
+  --pink-soft: #edf3eb;
+  --caramel: #f2c14e;
+  --caramel-soft: #fbefcc;
+  --line: #e4d8ca;
+  --pine: #2f6b4f;
+  --snow: rgba(150, 178, 206, 0.5);
+  position: relative;
+}
+@media (prefers-color-scheme: dark) {
+  body.christmas {
+    --bg: #13201b;
+    --card: #1c2d26;
+    --ink: #f3eee5;
+    --muted: #a8bfb1;
+    --outline: #3c5a4b;
+    --drop: #060e0a;
+    --pink: #d7525b;
+    --pink-strong: #ff8f97;
+    --pink-soft: #253a31;
+    --caramel-soft: #3b3a22;
+    --line: #2e4a3d;
+    --pine: #3d8a63;
+    --snow: rgba(255, 255, 255, 0.34);
+  }
+}
+body.christmas .tabs button.on {
+  background: var(--pine);
+  color: #fff;
+}
+body.christmas .top {
+  padding-top: 28px;
+}
+/* A string of lights across the top of the window (it scrolls away with the page). */
+body.christmas::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 26px;
+  pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 26'%3E%3Cg opacity='.28'%3E%3Ccircle cx='12' cy='13.5' r='6.5' fill='%23ff6b6b'/%3E%3Ccircle cx='36' cy='13.5' r='6.5' fill='%23f2c14e'/%3E%3Ccircle cx='60' cy='13.5' r='6.5' fill='%237fc8f8'/%3E%3Ccircle cx='84' cy='13.5' r='6.5' fill='%238fe3a1'/%3E%3C/g%3E%3Cpath d='M0 3Q24 15 48 3Q72 15 96 3' fill='none' stroke='%232c5a42' stroke-width='1.6'/%3E%3Cg stroke='%234a251f' stroke-width='1.1'%3E%3Crect x='10.4' y='6.2' width='3.2' height='2.8' rx='.6' fill='%232c5a42'/%3E%3Crect x='34.4' y='6.2' width='3.2' height='2.8' rx='.6' fill='%232c5a42'/%3E%3Crect x='58.4' y='6.2' width='3.2' height='2.8' rx='.6' fill='%232c5a42'/%3E%3Crect x='82.4' y='6.2' width='3.2' height='2.8' rx='.6' fill='%232c5a42'/%3E%3Cellipse cx='12' cy='13.3' rx='3.1' ry='4.3' fill='%23ff6b6b'/%3E%3Cellipse cx='36' cy='13.3' rx='3.1' ry='4.3' fill='%23f2c14e'/%3E%3Cellipse cx='60' cy='13.3' rx='3.1' ry='4.3' fill='%237fc8f8'/%3E%3Cellipse cx='84' cy='13.3' rx='3.1' ry='4.3' fill='%238fe3a1'/%3E%3C/g%3E%3Cg fill='%23fff' opacity='.85'%3E%3Ccircle cx='11' cy='11.6' r='1'/%3E%3Ccircle cx='35' cy='11.6' r='1'/%3E%3Ccircle cx='59' cy='11.6' r='1'/%3E%3Ccircle cx='83' cy='11.6' r='1'/%3E%3C/g%3E%3C/svg%3E")
+    repeat-x 0 0 / 96px 26px;
+}
+/* Snow falling slowly behind the cards: one tall layer of flakes slid down by exactly one repeat (840 px), so it
+   loops without a jump and only moves on the graphics card. */
+body.christmas::after {
+  content: '';
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: -840px;
+  bottom: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 30px 40px, var(--snow) 2px, transparent 3px),
+    radial-gradient(circle at 120px 150px, var(--snow) 1.5px, transparent 2.5px),
+    radial-gradient(circle at 70px 230px, var(--snow) 2.5px, transparent 3.5px);
+  background-size: 140px 140px, 210px 210px, 280px 280px;
+  animation: snowfall 70s linear infinite;
+}
+@keyframes snowfall {
+  to {
+    transform: translateY(840px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.christmas::after {
+    animation: none;
+  }
+}
+/* Snow on every card: a white cap along the top edge with a drippy outline. */
+body.christmas .card {
+  position: relative;
+}
+body.christmas .card::before {
+  content: '';
+  position: absolute;
+  left: -1.5px;
+  right: -1.5px;
+  top: -1.5px;
+  height: 15px;
+  border: 1.5px solid var(--outline);
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+  pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 14'%3E%3Cpath d='M0 0H48V5.5C45 5.5 44 12 39 12S34 6 30 7 27 12 22 12 17 5 12 6 8 12 4 11 1 6 0 5.5Z' fill='%23fff'/%3E%3Cpath d='M48 5.5C45 5.5 44 12 39 12S34 6 30 7 27 12 22 12 17 5 12 6 8 12 4 11 1 6 0 5.5' fill='none' stroke='%234a251f' stroke-width='1.4'/%3E%3C/svg%3E")
+    repeat-x 0 0 / 48px 13.5px;
+}
+body.christmas .card > h2:first-child,
+body.christmas .card > .card-head:first-child,
+body.christmas details.card > summary {
+  padding-top: 4px;
+}
+/* The partner's bear in the header wears a Santa hat. */
+.bear-face .hat {
+  fill: #d94c55;
+  stroke: var(--outline);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+.bear-face .hat-trim {
+  fill: #fffdf9;
+  stroke: var(--outline);
+  stroke-width: 1.6;
+}
+@media (prefers-color-scheme: dark) {
+  .bear-face .hat,
+  .bear-face .hat-trim {
+    stroke: #120b09;
+  }
+}
+.bear-face {
+  overflow: visible;
+}
+
+/* The Send tab's Christmas card: a tear-off countdown and what's waiting in the Christmas room. */
+.xmas-card {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  background: linear-gradient(160deg, #2f6b4f, #224d39);
+  color: #fff8ee;
+}
+.xmas-card h2 {
+  margin: 0 0 2px;
+  padding-top: 0;
+}
+.xmas-card p {
+  margin: 0;
+  color: #d6eadc;
+}
+.xmas-count {
+  flex: none;
+  width: 66px;
+  text-align: center;
+  background: #fff8ee;
+  color: #c63f49;
+  border: 1.5px solid #4a251f;
+  border-radius: 14px;
+  padding: 6px 0 5px;
+  box-shadow: 0 2px 0 #4a251f;
+}
+.xmas-count b {
+  display: block;
+  font-size: 26px;
+  line-height: 1.05;
+}
+.xmas-count small {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  color: #4a251f;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.xmas-body {
+  flex: 1;
+  min-width: 180px;
+}
+.xmas-card button {
+  flex: none;
+  margin-left: auto;
+}
+.xmas-card button.ghost {
+  background: #fff8ee;
+  color: #4a251f;
+}

@@ -99,17 +99,20 @@ function renderUpdate() {
 
 function renderLive() {
   renderUpdate();
-  // Halloween mode dresses the window up (app.css, body.halloween).
+  // Halloween mode dresses the window up (app.css, body.halloween), and so does Christmas (body.christmas).
   document.body.classList.toggle('halloween', !!live.halloween);
+  document.body.classList.toggle('christmas', !!live.christmas && !live.halloween);
+  renderXmas();
   $('halloween-card').hidden = !live.halloween;
   // After Halloween: who gave whom how many candies (until it's closed).
   $('candy-card').hidden = !live.candyRecap;
   $('candy-text').textContent = live.candyRecap || '';
   const av = $('avatar');
-  const look = live.halloween ? 'pumpkin' : data.config.partner.character || 'brown';
+  const hat = !!live.christmas && !live.halloween;
+  const look = live.halloween ? 'pumpkin' : `${data.config.partner.character || 'brown'}${hat ? '+hat' : ''}`;
   if (av.dataset.look !== look) {
     av.dataset.look = look;
-    av.replaceChildren(live.halloween ? '🎃' : bearFace(look));
+    av.replaceChildren(live.halloween ? '🎃' : bearFace(data.config.partner.character || 'brown', { hat }));
   }
   for (const n of document.querySelectorAll('.partner-name')) n.textContent = partner();
   // Nothing of Halloween in the Animations tab before it starts (Oct 30 23:59), unless this computer is a tester.
@@ -203,7 +206,58 @@ function renderLive() {
 // ---------- send tab ----------------------------------------------------------
 
 // The window's own bear face (Dudu caramel or Bubu cream), drawn in the bears' outline colour.
-function bearFace(character) {
+// The Send tab's Christmas card: the countdown, and a shortcut to whatever is waiting in the Christmas room.
+function renderXmas() {
+  const x = live.xmas;
+  $('xmas-card').hidden = !x;
+  if (!x) return;
+  const d = x.day;
+  // Season days (src/main/tree.js): 28 is Christmas Eve, 29 Christmas Day, 35 New Year's Eve, 36 New Year's Day.
+  const [num, unit, title] =
+    d < 28
+      ? [String(29 - d), 'days to go', `Christmas with ${partner()}`]
+      : d === 28
+        ? ['⭐', 'tonight', 'It’s Christmas Eve']
+        : d === 29
+          ? ['🎄', 'today', 'Merry Christmas!']
+          : d < 35
+            ? ['❄️', 'holidays', `Holidays with ${partner()}`]
+            : d === 35
+              ? ['🥂', 'tonight', 'New Year’s Eve']
+              : ['✨', 'today', 'Happy New Year!'];
+  $('xmas-num').textContent = num;
+  $('xmas-unit').textContent = unit;
+  $('xmas-title').textContent = title;
+  let line;
+  let go;
+  if (x.waiting.length) {
+    const n = x.waiting.length;
+    line = n === 1 ? `🎁 Door ${x.waiting[0]} is ready to open.` : `🎁 ${n} doors are ready to open${n <= 4 ? ` (${x.waiting.join(', ')})` : ''}.`;
+    go = ['Open it', 'calendar', false];
+  } else if (x.choose) {
+    line = `🎄 Pick one tree together or your own trees.`;
+    go = ['Choose', 'tree', false];
+  } else if (x.box) {
+    line = `🎀 Your box has ${x.box} thing${x.box === 1 ? '' : 's'} to put on the tree.`;
+    go = ['Decorate', 'tree', false];
+  } else {
+    line = x.next ? `All caught up. Door ${x.next} opens at midnight.` : 'Every door is open. 💕';
+    go = ['See the tree', 'tree', true];
+  }
+  if (x.theyOpened) line += ` ${partner()} opened today’s door too.`;
+  $('xmas-line').textContent = (x.demo ? '🎬 Demo · ' : '') + line;
+  const b = $('xmas-go');
+  b.textContent = go[0];
+  b.dataset.view = go[1];
+  b.className = go[2] ? 'ghost' : '';
+}
+$('xmas-go').addEventListener('click', (e) => {
+  // trView lives in tree.js (the same window).
+  if (typeof trView !== 'undefined') trView = e.currentTarget.dataset.view || 'tree';
+  showTab('tree');
+});
+
+function bearFace(character, { hat = false } = {}) {
   const NS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('viewBox', '0 0 40 40');
@@ -224,6 +278,12 @@ function bearFace(character) {
   add('ellipse', { cx: 29, cy: 26, rx: 2.6, ry: 1.6, class: 'cheek' });
   add('ellipse', { cx: 20, cy: 25.2, rx: 1.8, ry: 1.2, class: 'eye' });
   add('path', { d: 'M17.6 27.6q2.4 2 4.8 0', class: 'mouth' });
+  if (hat) {
+    // a Santa hat, a little to one side
+    add('path', { d: 'M8.6 11.6Q10.4 3 20.6 2.4Q29.6 2 33.8 9.4L30.4 11.6Q28.4 7.6 24.6 8.2Z', class: 'hat' });
+    add('rect', { x: 6.6, y: 8.6, width: 25.6, height: 5, rx: 2.5, transform: 'rotate(-5 19.4 11.1)', class: 'hat-trim' });
+    add('circle', { cx: 33.6, cy: 10.4, r: 3.1, class: 'hat-trim' });
+  }
   return svg;
 }
 
@@ -363,6 +423,7 @@ function fillSettings() {
   c.missing.slice(0, 3).forEach((m, i) => ($(`miss-${i}`).value = m.hours));
   $('login').checked = c.launchAtLogin;
   $('auto-update').checked = c.autoUpdate !== false;
+  $('xmas-look').checked = c.christmasLook !== false;
   $('my-code').textContent = c.me.name ? data.pairing : 'Save your name first';
   $('pair-summary').textContent = c.partner.id ? `Connection · paired with ${partner()} 💞` : 'Connection · not paired yet';
   $('link-code').textContent = c.me.name && c.partner.id ? data.linkCode : 'Finish setting up first';
@@ -396,6 +457,7 @@ function collect() {
     missing: c.missing.map((m, i) => ({ ...m, hours: Number($(`miss-${i}`)?.value) || m.hours })),
     launchAtLogin: $('login').checked,
     autoUpdate: $('auto-update').checked,
+    christmasLook: $('xmas-look').checked,
   };
 }
 
