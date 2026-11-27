@@ -3235,5 +3235,342 @@
         ]
       }
     ]
+  },
+  "tree-hang": {
+    "caption": "🎄 {partner} hung a {ornEmoji} {ornName} on {treeWhose}",
+    "captionMs": 6500,
+    "actors": [
+      {
+        "tree": "treeBefore",
+        "size": 430,
+        "at": [
+          "right-230",
+          "bottom+6"
+        ],
+        "hidden": true,
+        "steps": [
+          {
+            "do": "show",
+            "ms": 500
+          },
+          {
+            "do": "wait",
+            "ms": 2900
+          },
+          {
+            "do": "tree",
+            "spec": "treeAfter"
+          },
+          {
+            "do": "wait",
+            "ms": 6200
+          },
+          {
+            "do": "fade",
+            "ms": 800
+          }
+        ]
+      },
+      {
+        "asset": "happy-{pc}.png",
+        "size": 165,
+        "at": [
+          "left-off",
+          "bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "wait",
+            "ms": 400
+          },
+          {
+            "do": "move",
+            "x": "right-510",
+            "ms": 2600
+          },
+          {
+            "do": "jump",
+            "height": 0.35,
+            "ms": 420
+          },
+          {
+            "do": "say",
+            "text": "I hung a {ornName} for you! {ornEmoji}",
+            "ms": 3200
+          },
+          {
+            "do": "asset",
+            "src": "wave-{pc}.png"
+          },
+          {
+            "do": "wait",
+            "ms": 3400
+          },
+          {
+            "do": "asset",
+            "src": "happy-{pc}.png"
+          },
+          {
+            "do": "move",
+            "x": "left-off",
+            "ms": 2400
+          }
+        ]
+      }
+    ]
+  },
+  "tree-star": {
+    "caption": "⭐ You put the star on together",
+    "sub": "Merry Christmas Eve 🎄",
+    "captionMs": 7000,
+    "rain": {
+      "src": "sparkle.svg",
+      "count": 18,
+      "ms": 4000
+    },
+    "actors": [
+      {
+        "tree": "treeAfter",
+        "size": 460,
+        "at": [
+          "center",
+          "bottom+6"
+        ],
+        "hidden": true,
+        "steps": [
+          {
+            "do": "show",
+            "ms": 600
+          },
+          {
+            "do": "wait",
+            "ms": 8000
+          },
+          {
+            "do": "fade",
+            "ms": 900
+          }
+        ]
+      },
+      {
+        "asset": "pair-hug.png",
+        "size": 190,
+        "at": [
+          "center+300",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "wait",
+            "ms": 500
+          },
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 700,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "Our star! ⭐",
+            "ms": 3000
+          },
+          {
+            "do": "wait",
+            "ms": 6000
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 700,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "tree-open": {
+    "caption": "🎄 Our Christmas tree is up",
+    "sub": "Open Bearly Apart → Tree to decorate it",
+    "captionMs": 7000,
+    "rain": {
+      "src": "sparkle.svg",
+      "count": 8,
+      "ms": 3000
+    },
+    "actors": [
+      {
+        "tree": "treeAfter",
+        "size": 430,
+        "at": [
+          "right-230",
+          "bottom+6"
+        ],
+        "hidden": true,
+        "steps": [
+          {
+            "do": "show",
+            "ms": 600
+          },
+          {
+            "do": "wait",
+            "ms": 7600
+          },
+          {
+            "do": "fade",
+            "ms": 800
+          }
+        ]
+      },
+      {
+        "asset": "happy-{pc}.png",
+        "size": 165,
+        "at": [
+          "left-off",
+          "bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "wait",
+            "ms": 300
+          },
+          {
+            "do": "move",
+            "x": "right-510",
+            "ms": 2400
+          },
+          {
+            "do": "say",
+            "text": "The tree is up! Let’s decorate it together 🎄",
+            "ms": 3600
+          },
+          {
+            "do": "asset",
+            "src": "wave-{pc}.png"
+          },
+          {
+            "do": "wait",
+            "ms": 3600
+          },
+          {
+            "do": "asset",
+            "src": "happy-{pc}.png"
+          },
+          {
+            "do": "move",
+            "x": "left-off",
+            "ms": 2200
+          }
+        ]
+      }
+    ]
+  },
+  "snow-day": {
+    "caption": "❄️ A snow day",
+    "sub": "Behind today’s door",
+    "captionMs": 6000,
+    "rain": {
+      "src": "snowflake.svg",
+      "count": 70,
+      "ms": 14000,
+      "size": 34
+    },
+    "actors": [
+      {
+        "asset": "happy-{pc}.png",
+        "size": 165,
+        "at": [
+          "center+260",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "wait",
+            "ms": 1500
+          },
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 700,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "It’s snowing! ❄️",
+            "ms": 3200
+          },
+          {
+            "do": "jump",
+            "times": 2,
+            "height": 0.2,
+            "ms": 420
+          },
+          {
+            "do": "wait",
+            "ms": 6500
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 700,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
+  },
+  "advent-ready": {
+    "caption": "🎁 Door {door} is ready",
+    "sub": "Open Bearly Apart → Christmas",
+    "captionMs": 6500,
+    "rain": {
+      "src": "sparkle.svg",
+      "count": 8,
+      "ms": 3000
+    },
+    "actors": [
+      {
+        "asset": "wave-{pc}.png",
+        "size": 165,
+        "at": [
+          "right-120",
+          "off-bottom"
+        ],
+        "pokeable": true,
+        "steps": [
+          {
+            "do": "move",
+            "y": "bottom",
+            "ms": 650,
+            "hop": false,
+            "ease": "ease-out"
+          },
+          {
+            "do": "say",
+            "text": "Door {door} is ready! 🎁",
+            "ms": 3400
+          },
+          {
+            "do": "wait",
+            "ms": 3800
+          },
+          {
+            "do": "move",
+            "y": "off-bottom",
+            "ms": 600,
+            "hop": false,
+            "ease": "ease-in"
+          }
+        ]
+      }
+    ]
   }
 }

@@ -1,0 +1,393 @@
+/* The Tree tab (tree.js). The tree sits on a night-blue panel so the lights and the star's glow show. */
+.tr-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.tr-head h2 {
+  margin: 0;
+}
+
+.tr-stage {
+  position: relative;
+  background: radial-gradient(ellipse at 50% 30%, #3b4a72 0%, #2f3b5c 55%, #232c46 100%);
+  border-radius: 18px;
+  padding: 10px 10px 4px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.tr-canvas {
+  display: block;
+  width: min(100%, 360px);
+  aspect-ratio: 800 / 1100;
+  margin: 0 auto;
+  touch-action: none;
+  cursor: grab;
+}
+.tr-switch {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 1;
+}
+
+.tr-lines p {
+  margin: 2px 0;
+}
+
+.tr-box h2 {
+  margin-bottom: 2px;
+}
+.tr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+.tr-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 2px 4px;
+  border-radius: 12px;
+  background: var(--pink-soft);
+}
+.tr-cell small {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.15;
+}
+.tr-orn {
+  width: 60px;
+  height: 60px;
+  cursor: grab;
+  touch-action: none;
+}
+.tr-orn:hover {
+  transform: rotate(-6deg) scale(1.06);
+  transition: transform 0.15s;
+}
+.tr-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 50;
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.3));
+}
+
+.tr-choose h2 {
+  margin-top: 0;
+}
+.tr-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 10px 0;
+}
+.tr-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 10px;
+  height: auto;
+  white-space: normal;
+  text-align: center;
+}
+.tr-option .tr-icon {
+  font-size: 34px;
+}
+.tr-option small {
+  color: var(--muted);
+  font-weight: normal;
+}
+.tr-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tr-star {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #fff4d6, #ffe7a3);
+  color: #5b3a1e;
+}
+.tr-star p {
+  margin: 0;
+}
+.tr-tester select {
+  margin-top: 6px;
+}
+
+/* the stylers */
+.tr-styler h2 {
+  margin: 0 0 2px;
+}
+.tr-styler-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.tr-preview {
+  width: 110px;
+  height: 110px;
+  flex: none;
+  border-radius: 16px;
+  background: radial-gradient(circle at 50% 40%, #3b4a72, #232c46);
+}
+.tr-styler-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0;
+}
+.tr-row-label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.tr-row-label > b {
+  font-size: 13px;
+}
+.tr-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.tr-swatch {
+  width: 26px;
+  height: 26px;
+  min-width: 0;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.25);
+  box-shadow: none;
+}
+.tr-swatch.on {
+  outline: 3px solid var(--pink-strong);
+  outline-offset: 2px;
+}
+.tr-chip {
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--pink-soft);
+  color: var(--ink);
+  border: 2px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: auto;
+}
+.tr-chip.on {
+  border-color: var(--pink-strong);
+  background: var(--card);
+}
+.tr-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+}
+.tr-strip {
+  display: inline-flex;
+}
+.tr-strip i {
+  width: 8px;
+  height: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+.tr-patterns {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+  gap: 6px;
+}
+.tr-pattern {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 2px;
+  height: auto;
+  border-radius: 12px;
+  background: #2f3b5c;
+  border: 2px solid transparent;
+}
+.tr-pattern.on {
+  border-color: var(--pink-strong);
+}
+.tr-pattern canvas {
+  width: 46px;
+  height: 46px;
+}
+.tr-pattern small {
+  font-size: 10px;
+  color: #fff;
+}
+
+/* the advent calendar */
+.tr-views {
+  display: flex;
+  gap: 6px;
+}
+.tr-cal {
+  padding-top: 34px;
+  padding-bottom: 0;
+}
+.cal-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.cal-wrap {
+  position: relative;
+  width: min(100%, 420px);
+  margin: 0 auto;
+}
+.cal-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1200 / 1500;
+}
+.cal-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.cal-bear {
+  position: absolute;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  object-position: bottom;
+}
+.cal-bear.visit {
+  animation: cal-pop 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+  transform-origin: 50% 100%;
+}
+.cal-bear.home.dudu {
+  animation: cal-peek 3.2s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+@keyframes cal-pop {
+  from {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes cal-peek {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3%);
+  }
+}
+.cal-banner {
+  position: absolute;
+  /* centred with margins, not a transform: the pop-in animation uses transform */
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  top: 2%;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(255, 250, 242, 0.95);
+  color: #4a251f;
+  font-weight: 700;
+  font-size: 14px;
+  text-align: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  animation: cal-pop 0.4s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+  width: max-content;
+  max-width: 80%;
+  line-height: 1.25;
+}
+.cal-reward {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.cal-reward h2 {
+  margin: 0 0 4px;
+}
+.cal-pic {
+  width: 80px;
+  height: 80px;
+  flex: none;
+}
+.cal-note {
+  white-space: pre-wrap;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.cal-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 8px 0;
+  max-height: 520px;
+  overflow: auto;
+}
+.cal-row {
+  display: grid;
+  grid-template-columns: 24px 1fr 1fr 90px;
+  gap: 4px;
+  align-items: start;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.cal-row input,
+.cal-row textarea {
+  grid-column: 2 / 5;
+  font: inherit;
+  font-size: 13px;
+}
+.cal-row textarea {
+  min-height: 38px;
+}
+
+/* the Christmas demo's controls */
+.tr-demo {
+  background: var(--caramel-soft);
+}
+.tr-demo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.tr-demo-day {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.tr-demo-day select {
+  flex: 1;
+  min-width: 0;
+  background: var(--card);
+}
+.tr-demo-sub {
+  margin: 10px 0 6px;
+  font-size: 12px;
+}

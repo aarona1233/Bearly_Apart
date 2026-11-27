@@ -95,7 +95,8 @@ class Actor {
     this.bob.className = 'bob';
     this.zoom.style.width = this.face.style.width = this.bob.style.width = '100%';
     this.zoom.style.height = this.face.style.height = this.bob.style.height = '100%';
-    this.media = media(def.asset);
+    // "tree": the name of a variable holding a tree to draw (tree-art.js), instead of a picture.
+    this.media = def.tree ? treeProp(VARS[def.tree]) : media(def.asset);
     this.bob.append(this.media);
     this.face.append(this.bob);
     this.zoom.append(this.face);
@@ -236,6 +237,8 @@ class Actor {
         return this.haunt(s);
       case 'candy-game':
         return candyGame(this, s);
+      case 'tree':
+        return this.treeChange(s);
       default:
         console.warn('unknown step', s);
     }
@@ -264,12 +267,65 @@ class Actor {
     this.place();
   }
 
+  // { do: 'tree', spec: 'treeAfter' }: the tree prop changes to another tree; whatever ornament is new sparkles.
+  treeChange(s) {
+    const before = this.media.spec || { orns: [] };
+    const after = VARS[s.spec];
+    if (!after || this.media.tagName !== 'CANVAS') return;
+    this.media.spec = after;
+    drawTreeProp(this.media, after);
+    const had = new Set((before.orns || []).map((o) => `${o.slot}:${o.kind}`));
+    const r = this.media.getBoundingClientRect();
+    for (const o of after.orns || []) {
+      if (had.has(`${o.slot}:${o.kind}`)) continue;
+      const [x, y] = TreeArt.SLOTS[o.slot] || [];
+      if (x === undefined) continue;
+      stampAt('sparkle.svg', r.left + ((TREE_PAD + x) / TREE_BOX) * r.width, r.top + ((y + 45) / TREE_BOX) * r.height, 90 * SCALE, 1100, 0);
+    }
+    if (after.star && !before.star) rain({ src: 'sparkle.svg', count: 14, ms: 3000, size: 40 });
+  }
+
   async runSteps() {
     for (const s of this.def.steps || []) {
       if (s.if && !fill(`{${s.if}}`).trim()) continue; // e.g. only show the note card if there is a note
       await this.step(s);
     }
   }
+}
+
+// ---- the Christmas tree as a prop (drawn by ../app/tree-art.js) ----
+// The tree is 800 x 1100; it sits in a square 1100 box so the actor's square size fits it.
+const TREE_BOX = 1100;
+const TREE_PAD = (TREE_BOX - 800) / 2;
+TreeArt.load();
+
+function drawTreeProp(cv, spec) {
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, TREE_BOX, TREE_BOX);
+  ctx.save();
+  ctx.translate(TREE_PAD, 0);
+  TreeArt.drawTree(ctx, spec || {}, {});
+  ctx.restore();
+}
+
+function treeProp(spec) {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = TREE_BOX;
+  cv.className = 'tree-prop';
+  cv.spec = spec;
+  TreeArt.load().then(() => drawTreeProp(cv, cv.spec));
+  // Redrawn a dozen times a second while it's on screen, so the lights twinkle and the ornaments sway.
+  let last = 0;
+  const tick = (now) => {
+    if (!cv.isConnected && last) return;
+    if (now - last > 80) {
+      last = now;
+      drawTreeProp(cv, cv.spec);
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+  return cv;
 }
 
 function stampAt(src, cx, cy, size, life, rotate) {

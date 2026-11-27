@@ -30,22 +30,39 @@ const timeOf = (ms) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', mi
 
 // ---------- tabs ------------------------------------------------------------
 
+// Three tabs (Send, Rooms, Bears) plus the gear. Rooms and the gear each hold a few pages, picked in a second row.
+const GROUPS = { rooms: ['tree', 'booth', 'draft'], gear: ['settings', 'check'] };
+const groupOf = (name) => Object.keys(GROUPS).find((g) => GROUPS[g].includes(name)) || '';
+let lastRoom = '';
+// The rooms there are right now (each shows only in its season, or once unlocked).
+const openRooms = () => GROUPS.rooms.filter((r) => !$(`${r}-tab`).hidden);
+
 function showTab(name) {
   const access = name === 'access'; // after an update: only the Full Disk Access step of setup
   if (access) name = 'setup';
-  else if (!document.querySelector(`[data-page="${name}"]`) || (name === 'setup' && data.config.setupDone)) name = 'send';
+  if (name === 'rooms') name = openRooms().includes(lastRoom) ? lastRoom : openRooms()[0] || 'send';
+  if (name === 'gear') name = 'settings';
+  if (!access && (!document.querySelector(`[data-page="${name}"]`) || (name === 'setup' && data.config.setupDone))) name = 'send';
   document.body.classList.toggle('setup', name === 'setup');
   if (access) startAccessCheck();
   else if (name === 'setup') startSetup();
-  for (const b of document.querySelectorAll('.tabs button')) b.classList.toggle('on', b.dataset.tab === name);
+  const group = groupOf(name);
+  if (group === 'rooms') lastRoom = name;
+  // The main row lights up the group's tab (Rooms, or the gear); the second row the page itself.
+  const main = group === 'gear' ? 'gear-tab' : group === 'rooms' ? 'rooms-tab' : '';
+  for (const b of document.querySelectorAll('.tabs [data-tab], #gear-tab')) b.classList.toggle('on', main ? b.id === main : b.dataset.tab === name);
+  for (const b of document.querySelectorAll('.subtabs [data-tab]')) b.classList.toggle('on', b.dataset.tab === name);
+  for (const n of document.querySelectorAll('.subtabs')) n.hidden = n.dataset.group !== group;
   for (const s of document.querySelectorAll('[data-page]')) s.classList.toggle('on', s.dataset.page === name);
+  window.scrollTo(0, 0);
   if (name === 'send' && location.hash === '#send') $('note').focus();
   if (name === 'draft') renderDraft(true);
   // booth.js loads after this file, and the window can open straight onto the Booth tab before it has run.
   if (name === 'booth') typeof renderBooth === 'function' && renderBooth(true);
   else if (typeof boothLeft === 'function') boothLeft();
+  if (typeof treeShown === 'function') treeShown(name === 'tree');
 }
-for (const b of document.querySelectorAll('.tabs button')) b.addEventListener('click', () => showTab(b.dataset.tab));
+for (const b of document.querySelectorAll('[data-tab]')) b.addEventListener('click', () => showTab(b.dataset.tab));
 window.ba.onShowTab((tab) => {
   showTab(tab);
   if (tab === 'send') $('note').focus();
@@ -88,7 +105,13 @@ function renderLive() {
   // After Halloween: who gave whom how many candies (until it's closed).
   $('candy-card').hidden = !live.candyRecap;
   $('candy-text').textContent = live.candyRecap || '';
-  document.querySelector('.avatar').textContent = live.halloween ? '🎃' : '🐻';
+  const av = $('avatar');
+  const look = live.halloween ? 'pumpkin' : data.config.partner.character || 'brown';
+  if (av.dataset.look !== look) {
+    av.dataset.look = look;
+    av.replaceChildren(live.halloween ? '🎃' : bearFace(look));
+  }
+  for (const n of document.querySelectorAll('.partner-name')) n.textContent = partner();
   // Nothing of Halloween in the Animations tab before it starts (Oct 30 23:59), unless this computer is a tester.
   for (const t of document.querySelectorAll('.tile[data-season="halloween"]')) t.hidden = !live.halloweenOpen;
   $('tester-locked').hidden = !!live.tester;
@@ -133,7 +156,7 @@ function renderLive() {
   $('note-send').disabled = $('note-later').disabled = !live.paired;
 
   const mine = live.myStatus && s[live.myStatus.name];
-  $('my-status').textContent = mine ? `You: ${mine.emoji} ${mine.short} · set ${ago(live.myStatus.at)}` : 'You haven’t set a status.';
+  $('my-status').textContent = mine ? `${mine.emoji} ${mine.short} · ${ago(live.myStatus.at)}` : 'Not set';
   $('status-clear').hidden = !mine;
   for (const chip of document.querySelectorAll('.chip')) {
     chip.classList.toggle('on', chip.dataset.status === live.myStatus?.name);
@@ -147,6 +170,18 @@ function renderLive() {
   $('draft-dot').hidden = !live.draftTurn;
   $('booth-tab').hidden = !live.booth?.tab;
   $('booth-dot').hidden = !live.booth?.needsMe;
+  $('tree-tab').hidden = !live.tree?.tab;
+  $('tree-dot').hidden = !live.tree?.needsMe;
+  // Rooms shows when any room is open; its dot when any room is waiting for you.
+  $('rooms-tab').hidden = !openRooms().length;
+  $('rooms-dot').hidden = GROUPS.rooms.every((r) => $(`${r}-dot`).hidden || $(`${r}-tab`).hidden);
+  // A room that closes while it's on screen sends you to another one.
+  const on = document.querySelector('[data-page].on')?.dataset.page;
+  if (groupOf(on) === 'rooms' && $(`${on}-tab`).hidden) showTab('rooms');
+  $('check-dot').hidden = !live.check?.results?.some((r) => r.status === 'fail');
+  $('gear-dot').hidden = $('check-dot').hidden && !['available', 'error'].includes(live.update?.status);
+  // Presence changes switch the lights: the open tree asks again.
+  if (typeof treeLive === 'function') treeLive();
   renderDevices();
   renderCheck();
   const list = $('activity');
@@ -167,9 +202,43 @@ function renderLive() {
 
 // ---------- send tab ----------------------------------------------------------
 
-// A big emoji button that shows … while sending, then ✓ or ✗.
-function sendButton(emoji, label, send) {
-  const b = el('button', { className: 'send-btn' }, el('span', { className: 'emoji', textContent: emoji }), el('span', { className: 'lbl', textContent: label }), el('span', { className: 'tick' }));
+// The window's own bear face (Dudu caramel or Bubu cream), drawn in the bears' outline colour.
+function bearFace(character) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 40 40');
+  svg.setAttribute('class', `bear-face ${character === 'cream' ? 'cream' : 'brown'}`);
+  const add = (tag, attrs) => {
+    const e = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    svg.append(e);
+  };
+  add('circle', { cx: 9.5, cy: 10.5, r: 5.5, class: 'fur' });
+  add('circle', { cx: 30.5, cy: 10.5, r: 5.5, class: 'fur' });
+  add('circle', { cx: 9.5, cy: 10.5, r: 2.4, class: 'inner' });
+  add('circle', { cx: 30.5, cy: 10.5, r: 2.4, class: 'inner' });
+  add('ellipse', { cx: 20, cy: 22, rx: 14.5, ry: 13, class: 'fur' });
+  add('circle', { cx: 14.6, cy: 21, r: 1.6, class: 'eye' });
+  add('circle', { cx: 25.4, cy: 21, r: 1.6, class: 'eye' });
+  add('ellipse', { cx: 11, cy: 26, rx: 2.6, ry: 1.6, class: 'cheek' });
+  add('ellipse', { cx: 29, cy: 26, rx: 2.6, ry: 1.6, class: 'cheek' });
+  add('ellipse', { cx: 20, cy: 25.2, rx: 1.8, ry: 1.2, class: 'eye' });
+  add('path', { d: 'M17.6 27.6q2.4 2 4.8 0', class: 'mouth' });
+  return svg;
+}
+
+// The picture a send plays on their screen, with my bear in it.
+function sendThumb(scene) {
+  const asset = data.scenes.find((s) => s.name === scene)?.asset;
+  if (!asset) return '';
+  const c = data.config;
+  return `ba://asset/${encodeURIComponent(asset.replace(/\{pc\}/g, c.me.character).replace(/\{mc\}/g, c.partner.character))}`;
+}
+
+// A send button that shows … while sending, then ✓ or ✗. With a picture, it's one of the big quick sends.
+function sendButton(emoji, label, send, pic = '') {
+  const face = pic ? el('img', { className: 'pic', src: pic, alt: '' }) : el('span', { className: 'emoji', textContent: emoji });
+  const b = el('button', { className: `send-btn${pic ? ' big' : ''}`, title: label }, face, el('span', { className: 'lbl', textContent: label }), el('span', { className: 'tick' }));
   b.addEventListener('click', async () => {
     b.className = 'send-btn sending';
     b.querySelector('.tick').textContent = '';
@@ -178,16 +247,28 @@ function sendButton(emoji, label, send) {
     b.querySelector('.tick').textContent = r.ok ? '✓' : '✗';
     if (!r.ok) toast(`Couldn’t send: ${r.error}`);
     else if (r.away) toast(`Sent! ${partner()} is away; it’ll be waiting for them 💌`);
-    setTimeout(() => (b.className = 'send-btn'), 2500);
+    setTimeout(() => (b.className = `send-btn${pic ? ' big' : ''}`), 2500);
   });
   return b;
 }
 
 function buildSend() {
   $('send-hint').textContent = `Plays on ${partner()}’s screen right away. If they’re away or busy it waits, then shows up when they’re back.`;
-  $('send-grid').replaceChildren(...Object.entries(data.sendables).map(([type, s]) => sendButton(s.emoji, s.short, () => window.ba.send(type))));
+  $('send-grid').replaceChildren(...Object.entries(data.sendables).map(([type, s]) => sendButton(s.emoji, s.short, () => window.ba.send(type), sendThumb(type))));
   const gifts = Object.entries(data.gifts);
-  $('more-grid').replaceChildren(...gifts.filter(([, g]) => !g.season).map(([gift, g]) => sendButton(g.emoji, g.label, () => window.ba.send('gift', { gift }))));
+  const more = gifts.filter(([, g]) => !g.season);
+  $('more-grid').replaceChildren(
+    ...more.map(([gift, g]) => {
+      const b = sendButton(g.emoji, g.label, () => window.ba.send('gift', { gift }));
+      b.dataset.find = `${gift} ${g.label}`.toLowerCase();
+      return b;
+    }),
+  );
+  $('more-count').textContent = `${more.length} more sends`;
+  $('more-peek').textContent = `${more
+    .slice(0, 4)
+    .map(([, g]) => g.label)
+    .join(', ')}…`;
   // Halloween (shown while the mode is on): ask for candy, plus the Halloween gifts.
   $('halloween-hint').textContent = `🍬 I want candy sends your bear trick-or-treating on ${partner()}’s screen: they drag a candy into its bucket, and you hear when it lands.`;
   $('halloween-grid').replaceChildren(
@@ -195,7 +276,7 @@ function buildSend() {
     ...gifts.filter(([, g]) => g.season === 'halloween').map(([gift, g]) => sendButton(g.emoji, g.label, () => window.ba.send('gift', { gift }))),
   );
 
-  $('status-hint').textContent = `Let ${partner()} know what you’re up to. Their bear acts it out on their screen once, and it stays next to your name in their 💗 menu until you change or clear it.`;
+  $('status-hint').textContent = `${partner()}’s bear acts it out once, and it stays next to your name on their side until you change or clear it.`;
   $('status-chips').replaceChildren(
     ...Object.entries(data.statuses).map(([name, s]) => {
       const chip = el('button', { className: 'chip', textContent: `${s.emoji} ${s.short}` });
@@ -205,6 +286,17 @@ function buildSend() {
     }),
   );
 }
+
+// The drawer's search: shows the sends whose name has what you typed.
+$('more-search').addEventListener('input', () => {
+  const q = $('more-search').value.trim().toLowerCase();
+  let shown = 0;
+  for (const b of $('more-grid').children) {
+    b.hidden = !!q && !b.dataset.find.includes(q);
+    shown += b.hidden ? 0 : 1;
+  }
+  $('more-none').hidden = shown > 0;
+});
 
 async function setStatus(name, text) {
   const r = await window.ba.send('status', { status: name });
@@ -456,6 +548,15 @@ $('auto-update').addEventListener('change', async () => {
   data.config.autoUpdate = $('auto-update').checked;
 });
 $('open-profile').addEventListener('click', () => window.ba.open('profile'));
+// Bears tab → the Christmas demo: a pretend December on this computer only (tree.js draws its controls).
+$('demo-open').addEventListener('click', async () => {
+  const r = await window.ba.tree({ type: 'demo', on: true });
+  if (r?.ok === false) return toast(r.error);
+  // The Christmas room shows once the app says so: wait for that before going there.
+  trView = 'calendar'; // tree.js: the demo starts on the calendar
+  for (let i = 0; i < 20 && $('tree-tab').hidden; i++) await new Promise((res) => setTimeout(res, 100));
+  showTab('tree');
+});
 $('open-gifs').addEventListener('click', () => window.ba.open('gifs'));
 
 window.ba.onLive((l) => {

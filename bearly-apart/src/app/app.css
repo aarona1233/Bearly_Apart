@@ -1,28 +1,47 @@
+/* The look: cream paper (light) and espresso (dark), drawn like the bears: a dark cocoa outline (#4a251f, the
+   bears' own ink), Dudu's caramel (#dca68b), Bubu's cream and a blush pink. Cards and buttons are "stickers": a
+   crisp outline and a hard little drop instead of a blurry shadow. Pink is kept for the main thing to press. */
 :root {
-  --bg: #fff6f8;
+  --bg: #fffaf5;
   --card: #ffffff;
-  --ink: #5b3a46;
-  --muted: #9a7a86;
-  --pink: #ff8fb1;
-  --pink-strong: #f2648f;
-  --pink-soft: #ffe1ea;
-  --line: #f3d3dd;
-  --ok: #2f9e6b;
-  --bad: #d64545;
-  --warn-bg: #fff1d6;
+  --ink: #4a251f;
+  --muted: #86655a;
+  --outline: #4a251f;
+  --drop: #4a251f;
+  --pink: #e87a90; /* the main button */
+  --on-pink: #4a251f;
+  --pink-strong: #c24d68; /* pink text */
+  --pink-soft: #f7ebe3; /* raised surfaces, second buttons */
+  --caramel: #dca68b; /* picked, selected */
+  --caramel-soft: #f4e0d4;
+  --line: #ead9cd;
+  --pine: #5c7c66;
+  --berry: #c95d63;
+  --ok: #2f8a5e;
+  --bad: #c43d3d;
+  --warn-bg: #fdefd2;
   --warn-ink: #6b4a00;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #23191d;
-    --card: #2e2227;
-    --ink: #f6e4ea;
-    --muted: #b796a3;
-    --pink-soft: #4a2a36;
-    --line: #4a3640;
-    --ok: #5fd39c;
-    --bad: #ff7a7a;
+    --bg: #221715;
+    --card: #2e201d;
+    --ink: #f7ece6;
+    --muted: #c2a396;
+    --outline: #5e4239;
+    --drop: #120b09;
+    --pink: #eb8599;
+    --on-pink: #2a1411;
+    --pink-strong: #f39aac;
+    --pink-soft: #3a2925;
+    --caramel: #dca68b;
+    --caramel-soft: #4a342c;
+    --line: #47322c;
+    --pine: #7ca388;
+    --berry: #e07a7f;
+    --ok: #6fd3a0;
+    --bad: #ff8080;
     --warn-bg: #4a3a10;
     --warn-ink: #ffe7a8;
     color-scheme: dark;
@@ -35,10 +54,14 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font: 14px/1.45 ui-rounded, 'SF Pro Rounded', system-ui, sans-serif;
+  font: 14px/1.45 ui-rounded, 'SF Pro Rounded', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
 }
 [hidden] {
   display: none !important;
+}
+:focus-visible {
+  outline: 2.5px solid var(--caramel);
+  outline-offset: 2px;
 }
 
 /* ---------- header, tabs, banner ---------- */
@@ -47,7 +70,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 20px 10px;
+  padding: 14px 16px 10px;
 }
 .who {
   display: flex;
@@ -58,6 +81,7 @@ body {
 .who b {
   display: block;
   font-size: 18px;
+  line-height: 1.2;
 }
 .who small {
   display: block;
@@ -67,12 +91,61 @@ body {
   text-overflow: ellipsis;
 }
 .avatar {
-  font-size: 30px;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+}
+.bear-face {
+  width: 42px;
+  height: 42px;
+}
+.bear-face .fur {
+  fill: #dca68b;
+  stroke: var(--outline);
+  stroke-width: 2;
+}
+.bear-face.cream .fur {
+  fill: #fffdf9;
+}
+.bear-face .inner {
+  fill: #c98f73;
+}
+.bear-face.cream .inner {
+  fill: #f3d6cf;
+}
+.bear-face .eye {
+  fill: #4a251f;
+}
+.bear-face .cheek {
+  fill: #f2a3b3;
+}
+.bear-face .mouth {
+  fill: none;
+  stroke: #4a251f;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+@media (prefers-color-scheme: dark) {
+  .bear-face .fur {
+    stroke: #120b09;
+  }
+}
+.top-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
 }
 .conn {
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--pink-soft);
 }
 .conn.on {
   color: var(--ok);
@@ -80,30 +153,112 @@ body {
 .conn.off {
   color: var(--muted);
 }
+/* Line icons: one 20×20 grid, rounded ends, the same ink as the text. */
+.tabs svg,
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+.tabs svg .fill {
+  fill: currentColor;
+  stroke: none;
+}
+button.icon-btn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: var(--card);
+  color: var(--ink);
+  border: 1.5px solid var(--outline);
+  box-shadow: 0 2px 0 var(--drop);
+}
+button.icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
+button.icon-btn.on {
+  background: var(--caramel);
+  color: #4a251f;
+}
 .tabs {
   display: flex;
   gap: 6px;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--line);
+  margin: 0 16px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--pink-soft);
+  border: 1.5px solid var(--outline);
 }
-.tabs button {
+.tabs button,
+.subtabs button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  position: relative;
   background: none;
   color: var(--muted);
-  border-radius: 10px 10px 0 0;
-  padding: 9px 10px;
-  border-bottom: 3px solid transparent;
+  padding: 7px 10px;
   white-space: nowrap;
+  box-shadow: none;
+  border: 0;
+}
+.tabs button:hover,
+.subtabs button:hover {
+  color: var(--ink);
 }
 .tabs button.on {
+  background: var(--ink);
+  color: var(--bg);
+}
+.subtabs {
+  display: flex;
+  gap: 4px;
+  margin: 10px 16px 0;
+  border-bottom: 1.5px solid var(--line);
+}
+.subtabs button {
+  flex: none;
+  border-radius: 10px 10px 0 0;
+  padding: 7px 12px 8px;
+  margin-bottom: -1.5px;
+  border-bottom: 3px solid transparent;
+}
+.subtabs button.on {
   color: var(--ink);
-  border-bottom-color: var(--pink);
+  border-bottom-color: var(--caramel);
+}
+.tab-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  margin-left: 2px;
+  border-radius: 50%;
+  background: var(--pink);
+  border: 1.5px solid var(--outline);
+}
+.icon-btn .tab-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
 }
 .banner {
   margin: 12px 16px 0;
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--warn-bg);
   color: var(--warn-ink);
+  border: 1.5px solid var(--outline);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -124,14 +279,25 @@ section[data-page].on {
 /* ---------- cards & form bits ---------- */
 .card {
   background: var(--card);
-  border: 1px solid var(--line);
+  border: 1.5px solid var(--outline);
+  box-shadow: 0 3px 0 var(--drop);
   border-radius: 16px;
   padding: 16px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 h2 {
-  font-size: 15px;
+  font-size: 16px;
   margin: 0 0 6px;
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.card-head h2 {
+  margin: 0;
 }
 summary {
   font-weight: 700;
@@ -140,6 +306,10 @@ summary {
 .hint {
   color: var(--muted);
   margin: 0 0 10px;
+}
+.hint.fine {
+  font-size: 12px;
+  margin: 8px 0 0;
 }
 label {
   display: block;
@@ -155,17 +325,28 @@ textarea,
 select {
   width: 100%;
   padding: 9px 11px;
-  border-radius: 10px;
-  border: 1px solid var(--line);
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
   background: var(--bg);
   color: var(--ink);
   font: inherit;
+}
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--caramel);
+  outline: none;
 }
 textarea {
   resize: vertical;
 }
 input[type='range'] {
   padding: 0;
+  border: 0;
+  accent-color: var(--caramel);
+}
+input[type='checkbox'] {
+  accent-color: var(--caramel);
 }
 .row {
   display: flex;
@@ -184,15 +365,22 @@ input[type='range'] {
 .check input {
   width: auto;
 }
+/* Buttons: pink pill stickers for the main action; cream ones for everything else. */
 button {
   font: inherit;
   font-weight: 700;
-  border: 0;
+  border: 1.5px solid var(--outline);
   border-radius: 999px;
-  padding: 9px 16px;
+  padding: 8px 16px;
   background: var(--pink);
-  color: #fff;
+  color: var(--on-pink);
+  box-shadow: 0 2px 0 var(--drop);
   cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+button:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 var(--drop);
 }
 button:disabled {
   opacity: 0.5;
@@ -205,6 +393,7 @@ button.ghost {
 button.small {
   padding: 4px 12px;
   font-size: 12px;
+  box-shadow: 0 1.5px 0 var(--drop);
 }
 .actions {
   display: flex;
@@ -217,7 +406,7 @@ code.pair {
   word-break: break-all;
   background: var(--pink-soft);
   padding: 10px;
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 12px;
   user-select: all;
 }
@@ -227,7 +416,7 @@ code.pre {
 .warn {
   background: var(--warn-bg);
   color: var(--warn-ink);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 10px;
   margin-top: 8px;
 }
@@ -237,6 +426,29 @@ code.pre {
   padding: 10px 0;
   background: linear-gradient(transparent, var(--bg) 40%);
   text-align: right;
+}
+details.card > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+details.card > summary::-webkit-details-marker {
+  display: none;
+}
+details.card > summary::after {
+  content: '›';
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  transition: transform 0.15s;
+}
+details.card[open] > summary::after {
+  transform: rotate(90deg);
+}
+details.card[open] > summary {
+  margin-bottom: 8px;
 }
 
 /* ---------- send tab ---------- */
@@ -250,33 +462,51 @@ code.pre {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 12px 4px 10px;
-  border-radius: 16px;
+  padding: 10px 4px 8px;
+  border-radius: 14px;
   background: var(--pink-soft);
   color: var(--ink);
   position: relative;
+  min-width: 0;
 }
 .send-btn .emoji {
-  font-size: 28px;
+  font-size: 24px;
   line-height: 1.1;
+}
+.send-btn .pic {
+  width: 100%;
+  max-width: 64px;
+  aspect-ratio: 1;
+  object-fit: contain;
+  pointer-events: none;
+}
+.send-btn.big {
+  background: var(--card);
+  padding: 6px 4px 8px;
+}
+.send-btn.big:hover {
+  background: var(--caramel-soft);
 }
 .send-btn .lbl {
   font-size: 12px;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.more-title {
-  font-size: 13px;
-  color: var(--muted);
-  margin: 14px 0 8px;
+.send-grid.more {
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
 }
 .send-grid.more .send-btn {
-  padding: 9px 4px 8px;
+  padding: 8px 4px 7px;
+  box-shadow: 0 1.5px 0 var(--drop);
 }
 .send-grid.more .emoji {
-  font-size: 22px;
+  font-size: 20px;
 }
 .send-grid.more .lbl {
   font-size: 11px;
-  line-height: 1.2;
 }
 .send-btn.sending {
   opacity: 0.6;
@@ -293,29 +523,73 @@ code.pre {
 .send-btn.failed .tick {
   color: var(--bad);
 }
+.drawer {
+  margin-top: 12px;
+  border-radius: 14px;
+  background: var(--pink-soft);
+  padding: 10px 12px;
+}
+.drawer > summary {
+  list-style: none;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.drawer > summary::-webkit-details-marker {
+  display: none;
+}
+.drawer .plus {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid var(--outline);
+  background: var(--card);
+  font-weight: 800;
+  line-height: 1;
+  transition: transform 0.15s;
+}
+.drawer[open] .plus {
+  transform: rotate(45deg);
+}
+.drawer small {
+  color: var(--muted);
+}
+.drawer input {
+  margin: 10px 0;
+  background: var(--card);
+}
 .mine {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 8px;
   font-weight: 600;
+  font-size: 13px;
+  color: var(--muted);
+  min-width: 0;
 }
 .chips {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
+/* The status chips scroll sideways in one row instead of stacking up. */
+.chips.scroll {
+  padding-bottom: 2px;
+}
 .chip {
+  flex: none;
   background: var(--bg);
   color: var(--ink);
-  border: 1px solid var(--line);
   font-weight: 600;
-  padding: 6px 12px;
+  padding: 5px 12px;
+  box-shadow: 0 1.5px 0 var(--drop);
 }
 .chip.on {
-  background: var(--pink);
-  border-color: var(--pink);
-  color: #fff;
+  background: var(--caramel);
+  color: #4a251f;
 }
 .activity {
   list-style: none;
@@ -351,7 +625,24 @@ code.pre {
   color: var(--muted);
 }
 
-/* ---------- animations tab ---------- */
+/* ---------- bears tab ---------- */
+.demo-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: linear-gradient(160deg, #2f3b5c, #232c46);
+  color: #fff6ee;
+  border-color: var(--outline);
+}
+.demo-card .hint {
+  color: #d9cfe6;
+}
+.demo-art {
+  flex: none;
+  font-size: 40px;
+  line-height: 1;
+  padding-top: 2px;
+}
 .gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -364,7 +655,7 @@ code.pre {
   text-align: center;
   gap: 4px;
   padding: 10px;
-  border: 1px solid var(--line);
+  border: 1.5px solid var(--line);
   border-radius: 14px;
   background: var(--bg);
 }
@@ -560,11 +851,13 @@ body.halloween {
   --bad: #ff8a8a;
   --warn-bg: #4a3410;
   --warn-ink: #ffe0a8;
+  --outline: #5b4580;
+  --drop: #0d0817;
+  --on-pink: #2b1530;
+  --caramel: #ff8a2b;
+  --caramel-soft: #43305e;
   color-scheme: dark;
   background: linear-gradient(#1d1430, #2a1840) fixed;
-}
-body.halloween button {
-  color: #2b1530;
 }
 body.halloween button.ghost,
 body.halloween .send-btn,
@@ -572,10 +865,8 @@ body.halloween .tabs button {
   color: var(--ink);
 }
 body.halloween .tabs button.on {
-  border-bottom-color: var(--pink);
-}
-body.halloween .card {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  background: var(--pink);
+  color: #2b1530;
 }
 .card.spooky {
   border-color: var(--pink);

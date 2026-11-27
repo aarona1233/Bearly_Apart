@@ -45,6 +45,9 @@ Quit it, then delete `~/.config/Bearly Apart`, `~/.local/share/applications/bear
 
 ---
 
+## The window (0.12)
+
+Three tabs and a gear. **Send** has your status, five quick sends (each shows the bear it plays), a drawer with every other send (with a search), the love note and Recent. **Rooms** holds the seasonal and two-player rooms: Christmas, Booth and Draft, picked in a second row; its dot shows when any room is waiting for you. **Bears** is every animation to preview, plus the Christmas demo. The **gear** (top right) has Settings and Check. Light and dark follow the computer, in cream and espresso with the bears' brown outline.
 
 ## 🎲 The Draft tab (Bearly Draft)
 
@@ -64,6 +67,32 @@ A photo booth for the two of you. It is unlocked from **Tuesday, November 24, 20
 - **Extras:** six strip designs in any of twelve colours, seven filters, holiday decorations (Thanksgiving, Christmas, Valentine’s, New Year, Halloween, birthday, anniversary) with sticker packs to match, name tags showing whose side is whose, tiny Bubu and Dudu in the corners, both local times, a date stamp, stickers, a then & now photo as a fifth frame, a note on the back, and a 4x6 print sheet with two strips (one each). Saved strips go to Pictures › Bearly Apart.
 - **Privacy:** the photos travel as ntfy attachments sealed with a key only your two apps have (it’s made fresh for each visit). The relay only ever holds noise, and keeps it for about 3 hours.
 - **Her Mac** asks once to allow the camera. If it was refused: System Settings → Privacy & Security → Camera → switch on Bearly Apart.
+
+## 🎄 The Christmas tab: advent calendar and tree
+
+It's under **Rooms → Christmas**. It appears at **11:59 pm on November 26** (a minute before the 27th, on whichever of your clocks gets there first) and goes away after January 1. Both computers need 0.12 or newer. It has two views, **Calendar** and **Tree**.
+
+### The advent calendar
+
+A gingerbread house with 29 doors, November 27 to Christmas Day. The doors carry their dates: 27 to 30 (marked NOV) and then 1 to 25. Nov 27 is the round door in the roof, with a bow; Christmas Eve and Christmas Day are the two tall front doors. Each door opens at your own midnight; missed doors wait for you.
+
+- **Opening:** click a door that glows. It swings open and shows what was behind it: an ornament for the tree, a love note, a snow day (snow falls on your screen) or, on Christmas Eve, the star. Opened doors stay open. You each open your own; you can see when they've opened theirs.
+- **Reminder:** once a day, when you're at the computer and it isn't quiet hours, their bear pops up to say today's door is ready, with a notification.
+- **What's behind the doors:** both apps put the same thing behind the same door. The order is shuffled from your two names and the year, so nobody sees it in advance. Nov 27 (the "27" locket) and Christmas Eve (the star) are pinned.
+- **Filling the doors (you):** unlock the tester section, open the Calendar view and use **Door editor**. Change what each of the 29 doors holds (ornament, note, snow day), write the notes, add a line only she sees, or pin something to a day. Save it from the source copy (`npm start`), then build and publish so her Mac gets it. The doors ship inside the app in `assets/advent/doors.dat`, encoded so a peek in the app folder doesn't spoil them. Until you edit them, the doors hold all 26 ornaments (25 doors, the heart door gives each of you a half), two snow days, one note and the star. The five added in 0.12 are the 27 locket, a stocking, a snowman, a reindeer and a hot cocoa.
+
+### The tree
+
+A Christmas tree to decorate together. The ornaments come from the calendar doors.
+
+- **One tree or two:** the first time, you each choose *One tree together* or *Our own trees*. One tree needs both of you to pick it; if either of you picks your own, you each get one. It stays that way until the tree comes down.
+- **Decorating:** drag an ornament from your box onto the tree; it snaps to the nearest free spot. Drag one of yours off the tree to put it back. With two trees you can switch to theirs and hang one of your ornaments there as a gift.
+- **Their screen:** when you hang something, your bear hops onto their screen, the ornament appears on the tree with a sparkle, and your bear waves.
+- **Ornaments:** each ornament door puts one in your box (21 in all). You each get your own colours. Each of you has half of a heart: hang the two halves on spots next to each other and they join into one.
+- **It grows:** bare from November 27, the gold garland from December 7, the lights from December 14. The lights only twinkle while you're both at your computers.
+- **The star:** on Christmas Eve, the star goes on only if you both click *Put the star on together* within 20 seconds of each other. When one of you clicks, the other gets a notification.
+- **Testing early:** before November 27 the tab shows only on a computer with the tester section unlocked, as a practice tree. Only other tester computers see it, and it's cleared when the real tree goes up. The tester box in the tab can pretend it's any day of the season.
+- **Christmas demo:** **Bears → Open the demo** (or **🎬 Demo** at the top of the Christmas room) runs a whole pretend season on this computer only, on its own copy of the tree. Pick any day from November 27 to January 1, open doors (or **Open every door** to watch them all in turn), decorate, put the star on, and play the desktop scenes from their buttons. A pretend partner picks the same trees, opens the same doors and clicks the star with you. Nothing is sent, and **Exit demo** goes back to the real tree untouched.
 
 ## 1. Build the downloads (you, on your PC)
 
@@ -292,7 +321,7 @@ Making the art again (after changing the GIFs): `npx electron tools/import-gifs.
 
 ## If something isn't working: the Check tab
 
-Every copy has a **🩺 Check** tab (also in the 💗 menu: *Check that everything works…*). It tests the connection, a
+Every copy has a **Check** page (the gear at the top right → Check, also in the 💗 menu: *Check that everything works…*). It tests the connection, a
 real send-and-receive, every animation for both bears, whether bears can play right now (and why not), statuses,
 text reading on a Mac, starting with the computer and updates, and, if ticked, **asks the other person's app how it's
 doing** (its version, connection, text access, and why its bears might be waiting). It also runs by itself after

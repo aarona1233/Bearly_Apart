@@ -13,6 +13,9 @@ const { DraftSession } = require('./draft-session');
 const { askOllama, judgeFileHtml } = require('./draft-judge');
 const { BoothSession } = require('./booth-session');
 const { localDate } = require('./booth');
+const { TreeSession } = require('./tree-session');
+const advent = require('./advent');
+const { KINDS: ORNAMENT_KINDS, doorLabel, LAST_DAY } = require('./tree');
 const { Relay } = require('./relay');
 const { IMessageWatcher } = require('./imessage');
 const { Guard } = require('./guard');
@@ -89,7 +92,7 @@ log.setFile(path.join(app.getPath('userData'), 'bearly-apart.log'));
 // An unexpected error in the background part goes into the log instead of a crash dialog: the app keeps going.
 process.on('uncaughtException', (err) => log('[crash] uncaught error:', err));
 process.on('unhandledRejection', (err) => log('[crash] unhandled promise:', err));
-let stores, relay, imessage, guard, player, brain, overlay, ui, updater, draftGame, booth;
+let stores, relay, imessage, guard, player, brain, overlay, ui, updater, draftGame, booth, tree;
 const activity = new Activity();
 let scenes = {};
 let justUpdated = false; // a newer version than last time, on an already set-up install
@@ -108,10 +111,10 @@ function userAssetsDir() {
 }
 
 function resolveAsset(name) {
-  // The draft game's pictures and sounds keep to a folder of their own.
-  const boothFile = name.match(/^booth\/([\w.-]+)$/)?.[1];
-  if (boothFile) {
-    const p = path.join(BUNDLED_ASSETS, 'booth', boothFile);
+  // The booth's, the tree's and the draft game's pictures keep to folders of their own.
+  const [, folder, file] = name.match(/^(booth|tree)\/([\w.-]+)$/) || [];
+  if (file) {
+    const p = path.join(BUNDLED_ASSETS, folder, file);
     return fs.existsSync(p) ? p : null;
   }
   const draftFile = name.match(/^draft\/((?:art\/)?[\w.-]+)$/)?.[1];
@@ -318,6 +321,7 @@ function liveState() {
     // Hidden until the booth unlocks too, unless a game is already going (a tester can start one early).
     draftOpen: !!booth?.draftUnlocked() || !!draftGame?.state,
     booth: booth ? { tab: booth.canShoot() || booth.view().sessions.some((s) => s.status === 'done'), open: booth.isOpen(), needsMe: booth.needsMe() } : null,
+    tree: tree ? { tab: tree.visible(), needsMe: treeNeedsMe() } : null,
     activity: activity.items,
   };
 }
@@ -964,6 +968,235 @@ function boothAssets() {
   return Object.fromEntries(fs.readdirSync(dir).filter((f) => f.endsWith('.png')).map((f) => [f.slice(0, -4), `data:image/png;base64,${fs.readFileSync(path.join(dir, f)).toString('base64')}`]));
 }
 
+// ---------- the Christmas tree (tree.js, tree-session.js) ---------------------------------
+
+// What's behind the advent doors: assets/advent/doors.dat, shipped encoded inside the app. A copy saved by the door
+// editor on an installed app (not the source) lives in the profile and wins on that computer only.
+const DOORS_FILE = path.join(BUNDLED_ASSETS, 'advent', 'doors.dat');
+const localDoorsFile = () => path.join(app.getPath('userData'), 'advent-doors.dat');
+let doorCache = null;
+function loadDoors() {
+  if (doorCache) return doorCache;
+  for (const f of [localDoorsFile(), DOORS_FILE]) {
+    try {
+      const d = advent.decode(fs.readFileSync(f, 'utf8'));
+      if (d) return (doorCache = d);
+    } catch {
+      /* not there */
+    }
+  }
+  return (doorCache = advent.DEFAULT_CONTENTS);
+}
+
+// The tree the window shows (`tree`) is the real one, or the Christmas demo's while that is on. The relay only ever
+// talks to the real one (`realTree`).
+let realTree = null;
+let demoTree = null;
+let demoSeq = 0;
+
+function makeTree({ file, demo = false }) {
+  const store = new JsonFile(file, {});
+  // In the demo, scenes play right away on this screen (previews), whatever else is going on.
+  const play = (item) => player.play(demo ? { ...item, priority: 9, preview: true } : item);
+  return new TreeSession({
+    config: cfg,
+    publish: demo ? demoPublish : (status, text) => brain.send('tree', { status, text }),
+    load: () => store.data,
+    save: (d) => store.set(d),
+    doors: loadDoors,
+    onOpen: (r) => {
+      if (!demo) activity.add({ dir: 'out', text: `🎁 You opened door ${doorLabel(r.day)}${r.title ? `: ${r.title}` : ''}` });
+      if (r.kind === 'snow') play({ scene: 'snow-day', priority: 5, label: '❄️ a snow day', vars: brain.vars() });
+    },
+    onChange: () => {
+      ui?.sendTree();
+      ui?.refresh();
+    },
+    onHang: (h) => {
+      const whose = h.tree === 'us' ? 'our tree' : h.onMine ? 'your tree' : 'their tree';
+      if (!demo) activity.add({ dir: 'in', text: `🎄 ${partnerName()} hung a ${h.emoji} ${h.name} on ${whose}` });
+      // Their bear brings it over (at most one at a time: a run of hangs shows the last one only).
+      player.queue = player.queue.filter((q) => q.scene !== 'tree-hang');
+      play({ scene: 'tree-hang', priority: 2, label: `🎄 ${partnerName()} decorated`, vars: brain.vars({ ornName: h.name, ornEmoji: h.emoji, treeWhose: whose, treeBefore: h.before, treeAfter: h.after }) });
+    },
+    onStar: () => {
+      if (!demo) activity.add({ dir: 'in', text: '⭐ You put the star on the tree together' });
+      const t = demo ? demoTree : realTree;
+      const spec = t.spec(t.trees()[0] || 'us');
+      play({ scene: 'tree-star', priority: 4, label: '⭐ the star is on', vars: brain.vars({ treeAfter: spec }) });
+    },
+    onTapAsk: () => {
+      if (demo) return;
+      activity.add({ dir: 'in', text: `⭐ ${partnerName()} is holding up the star` });
+      notifyTree(`${partnerName()} is holding up the star! Open the Tree tab and click ⭐ within 20 seconds.`);
+    },
+    onInvite: () => {
+      if (demo) return;
+      activity.add({ dir: 'in', text: `🎄 ${partnerName()} wants one tree together` });
+      notifyTree(`${partnerName()} wants one tree together this year. Open the Tree tab to answer.`);
+    },
+    testDay: demo ? () => st().treeDemoDay || 1 : () => st().treeTestDay || 0,
+    tester: demo ? () => true : () => !!st().testerUnlocked,
+    demo,
+    bothHere: demo ? () => true : () => presence === 'here' && st().partnerPresence?.state === 'here',
+    device: st().deviceId,
+    log,
+  });
+}
+
+function startTree() {
+  realTree = makeTree({ file: path.join(app.getPath('userData'), 'tree.json') });
+  tree = realTree;
+  if (st().treeDemo) setTreeDemo(true);
+}
+
+// ---------- the Christmas demo -------------------------------------------------------------------
+// A whole pretend December on this computer only: its own tree (tree-demo.json), any day you pick, and a pretend
+// partner who answers (chooses the same trees, opens the same doors, clicks the star with you). Nothing goes to the
+// relay, so the other app never hears of it.
+const demoFile = () => path.join(app.getPath('userData'), 'tree-demo.json');
+
+function setTreeDemo(on) {
+  stores.state.set({ treeDemo: !!on });
+  demoTree = on ? makeTree({ file: demoFile(), demo: true }) : null;
+  tree = demoTree || realTree;
+  log(`[tree] demo ${on ? 'on' : 'off'}`);
+  ui?.sendTree();
+  ui?.refresh();
+}
+
+// What the demo "sends" comes straight back as if from the relay, and the pretend partner answers some of it.
+function demoEcho(from, device, status, body) {
+  if (!demoTree) return;
+  demoTree.onEvent({ type: 'tree', from, device, status, text: JSON.stringify(body), at: Date.now(), id: `demo${++demoSeq}` });
+}
+async function demoPublish(status, text) {
+  const body = JSON.parse(text);
+  setTimeout(() => demoEcho(cfg().me.id, st().deviceId, status, body), 120);
+  if (status !== 'op') return;
+  const them = (op, ms) => setTimeout(() => demoEcho(cfg().partner.id, 'demo', 'op', body.test ? { ...op, test: true } : op), ms);
+  if (body.k === 'choose') them({ k: 'choose', m: body.m }, 1200);
+  if (body.k === 'open') them({ k: 'open', day: body.day }, 2500);
+  if (body.k === 'tap') them({ k: 'tap' }, 1800);
+}
+
+function demoAction(a) {
+  if (a.type === 'demo') {
+    if (!!a.on !== !!demoTree) setTreeDemo(!!a.on);
+    return { ok: true };
+  }
+  if (!demoTree) return { ok: false, error: 'The demo isn’t on.' };
+  if (a.type === 'demo-day') {
+    stores.state.set({ treeDemoDay: Math.max(1, Math.min(LAST_DAY, Math.round(Number(a.day) || 1))) });
+    ui?.sendTree();
+    ui?.refresh();
+    return { ok: true };
+  }
+  if (a.type === 'demo-reset') {
+    fs.rmSync(demoFile(), { force: true });
+    stores.state.set({ treeDemoDay: 1 });
+    setTreeDemo(true);
+    return { ok: true };
+  }
+  if (a.type === 'demo-hang') {
+    const op = demoTree.partnerHangOp();
+    if (!op) return { ok: false, error: demoTree.mode() ? `${partnerName()} has nothing left to hang.` : 'Pick your trees first.' };
+    demoEcho(cfg().partner.id, 'demo', 'op', op);
+    return { ok: true };
+  }
+  if (a.type === 'demo-scene') {
+    const spec = demoTree.spec(demoTree.trees()[0] || cfg().me.id);
+    const day = demoTree.doorDay() || 1;
+    const scenes = {
+      'tree-open': { label: '🎄 the tree is up', vars: { treeAfter: spec } },
+      'advent-ready': { label: `🎁 door ${doorLabel(day)} is ready`, vars: { door: String(doorLabel(day)) } },
+      'snow-day': { label: '❄️ a snow day', vars: {} },
+      'tree-hang': { label: `🎄 ${partnerName()} decorated`, vars: { ornName: 'bell', ornEmoji: '🔔', treeWhose: 'your tree', treeBefore: spec, treeAfter: spec } },
+      'tree-star': { label: '⭐ the star is on', vars: { treeAfter: { ...spec, star: true } } },
+    };
+    const sc = scenes[a.scene];
+    if (!sc) return { ok: false, error: 'unknown scene' };
+    player.play({ scene: a.scene, priority: 9, preview: true, label: sc.label, vars: brain.vars(sc.vars) });
+    return { ok: true };
+  }
+  return null;
+}
+
+// The Tree tab's dot: an answer is waiting, or there are ornaments in the box to hang.
+function treeNeedsMe() {
+  if (!tree?.visible() || !cfg().partner.id) return false;
+  const v = tree.view();
+  const doorWaiting = v.calendar.doors.some((d) => d.ready && !d.opened);
+  return doorWaiting || (!v.mode && !v.myChoice) || (!!v.mode && v.box.length > 0 && v.up);
+}
+
+let treeNotification = null;
+function notifyTree(body) {
+  if (ui?.win && !ui.win.isDestroyed() && ui.win.isFocused()) return;
+  if (!Notification.isSupported()) return;
+  treeNotification = new Notification({ title: '🎄 Bearly Apart', body, silent: inRange(cfg().quietHours) || st().snoozedUntil > Date.now() });
+  treeNotification.on('click', () => ui.openWindow('tree'));
+  treeNotification.show();
+}
+
+// Checked every 30 seconds, so a new day is noticed within half a minute of midnight (and after sleep or a locked
+// screen). Only while you're at the computer and outside quiet hours; otherwise it waits.
+// Once a season, the first time after the tree goes up, their bear says so. Then once a day: today's door is ready.
+function treeTick() {
+  if (!realTree?.isUp() || realTree.testing() || !cfg().setupDone || !cfg().partner.id) return;
+  if (inRange(cfg().quietHours) || powerMonitor.getSystemIdleTime() > 120 || guard?.locked) return;
+  const year = realTree.year();
+  if (st().treeOpenShown !== year) {
+    stores.state.set({ treeOpenShown: year });
+    player.play({ scene: 'tree-open', priority: 4, label: '🎄 the tree is up', vars: brain.vars({ treeAfter: realTree.spec(realTree.trees()[0] || cfg().me.id) }) });
+    return ui?.refresh();
+  }
+  const day = realTree.doorDay();
+  const key = `${year}-${day}`;
+  if (day >= 1 && !realTree.openedDays().includes(day) && st().doorKnock !== key) {
+    stores.state.set({ doorKnock: key });
+    player.play({ scene: 'advent-ready', priority: 3, label: `🎁 door ${doorLabel(day)} is ready`, vars: brain.vars({ door: String(doorLabel(day)) }) });
+    notifyTree(`🎁 Door ${doorLabel(day)} is ready. Open Bearly Apart → Rooms → Christmas to open it.`);
+    ui?.refresh();
+  }
+}
+
+function treeAction(a) {
+  if (typeof a?.type === 'string' && a.type.startsWith('demo')) return demoAction(a) || { ok: false, error: 'unknown action' };
+  if (a?.type === 'test-day') {
+    if (!st().testerUnlocked) return { ok: false, error: 'locked' };
+    const day = Math.max(0, Math.min(LAST_DAY, Math.round(Number(a.day) || 0)));
+    stores.state.set({ treeTestDay: day });
+    ui?.sendTree();
+    ui?.refresh();
+    return { ok: true };
+  }
+  // The door editor (tester only): what's behind every door, and saving it.
+  if (a?.type === 'doors-get') {
+    if (!st().testerUnlocked) return { ok: false, error: 'locked' };
+    return { ok: true, doors: advent.cleanContents(loadDoors()), ornaments: Object.keys(ORNAMENT_KINDS).filter((k) => !k.startsWith('heart-')).concat('heart-half'), source: !app.isPackaged };
+  }
+  if (a?.type === 'doors-save') {
+    if (!st().testerUnlocked) return { ok: false, error: 'locked' };
+    const doors = advent.cleanContents(a.doors);
+    // From the source (npm start) it goes into the app itself, ready to build and publish; an installed app keeps it
+    // for this computer only.
+    const target = app.isPackaged ? localDoorsFile() : DOORS_FILE;
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, advent.encode(doors));
+    doorCache = null;
+    log(`[advent] doors saved to ${app.isPackaged ? 'this computer' : 'the app source'}`);
+    ui?.sendTree();
+    return { ok: true, where: app.isPackaged ? 'this computer only' : 'the app (build and publish to send it)' };
+  }
+  if (a?.type === 'preview') {
+    // The window's "show me" button: the hang scene with this tree, here.
+    const spec = tree.spec(a.tree || tree.trees()[0]);
+    return player.play({ scene: 'tree-hang', priority: 9, label: '🎄 preview', preview: true, vars: brain.vars({ ornName: 'bell', ornEmoji: '🔔', treeWhose: 'our tree', treeBefore: spec, treeAfter: spec }) });
+  }
+  return tree.act(a);
+}
+
 // ---------- the draft game ------------------------------------------------------
 
 function startDraftGame() {
@@ -1137,10 +1370,16 @@ app.whenReady().then(() => {
   };
   startDraftGame();
   startBooth();
+  startTree();
   relay.on('event', (ev) => {
     if (ev.type === 'booth') {
       if (ev.from !== cfg().me.id && ev.from !== cfg().partner.id) return;
       return booth.onEvent(ev);
+    }
+    if (ev.type === 'tree') {
+      if (ev.from !== cfg().me.id && ev.from !== cfg().partner.id) return;
+      if (ev.from === cfg().partner.id && ev.status === 'op') brain.heard(ev);
+      return realTree.onEvent(ev);
     }
     // The draft game keeps its own books. Its echo matters too: a move only counts once it's back from the relay.
     if (ev.type === 'draft') {
@@ -1165,6 +1404,7 @@ app.whenReady().then(() => {
     if (up) announcePresence(); // whatever changed while offline
     if (up) draftGame.onConnected(); // moves the relay no longer has
     if (up) booth.onConnected(); // photos the relay no longer has
+    if (up) realTree.onConnected(); // ornaments hung while this computer was off
   });
 
   // BA_CHATDB points the watcher at a fake chat.db so the iMessage path can be tested off a Mac.
@@ -1195,7 +1435,7 @@ app.whenReady().then(() => {
     pairingCode: () => encodePairing(cfg()),
     linkCode: () => encodeLink(cfg()),
     deviceName: DEVICE_NAME,
-    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, checkTextAccess, relaunch, checkForUpdates, setUpdateKey, runChecks, checkReport, fetchPartnerLog, toggleHoliday, unlockTester, lockTester, testCandy, dismissCandyRecap, draftAction, draftView: () => draftGame.view(), boothAction, boothView: () => booth.view(), boothPhotos: (sid) => booth.photos(sid), boothAssets, logFile: () => log.file() },
+    actions: { sendEvent, preview, snooze, snoozeUntilMorning, saveSettings, pair, resetPairing, userAssetsDir, checkTextAccess, relaunch, checkForUpdates, setUpdateKey, runChecks, checkReport, fetchPartnerLog, toggleHoliday, unlockTester, lockTester, testCandy, dismissCandyRecap, draftAction, draftView: () => draftGame.view(), boothAction, boothView: () => booth.view(), boothPhotos: (sid) => booth.photos(sid), boothAssets, treeAction, treeView: () => tree.view(), logFile: () => log.file() },
   });
   activity.on('change', () => ui.refresh());
   ui.start();
@@ -1230,6 +1470,7 @@ app.whenReady().then(() => {
   setInterval(() => brain.tick({ idleSec: powerMonitor.getSystemIdleTime() }), 30_000);
   setInterval(holidayTick, 30_000);
   setInterval(boothTick, 30_000);
+  setInterval(treeTick, 30_000);
   setTimeout(holidayTick, 5_000);
 
   justUpdated = cfg().setupDone && st().lastVersion !== app.getVersion();

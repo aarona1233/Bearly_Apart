@@ -130,7 +130,25 @@ class OverlayWindow {
       // (so after the first scene nothing could be hovered, clicked or dragged). Turn it on again for every scene.
       this.setClickable(false);
       const capture = this.startCapture(req.scene);
+      this.checkSize(b, () => finished);
     });
+  }
+
+  // Moving the window to a screen with different scaling (Windows: a 100% and a 125% monitor) can leave it, or its
+  // page, at the old size rescaled, so the bears at the bottom of the scene fall outside it. Once things settle, check
+  // both against the screen and put the window right if they're off (and say so in the log).
+  checkSize(b, over) {
+    setTimeout(async () => {
+      if (over() || this.win.isDestroyed()) return;
+      const g = this.win.getBounds();
+      const page = await this.win.webContents.executeJavaScript('[innerWidth, innerHeight]').catch(() => null);
+      const off = (w, h) => Math.abs(w - b.width) > 2 || Math.abs(h - b.height) > 2;
+      if (!off(g.width, g.height) && g.x === b.x && g.y === b.y && (!page || !off(page[0], page[1]))) return;
+      this.log(`[render] the bear window was ${g.width}x${g.height} at ${g.x},${g.y} (page ${page?.join('x')}), not the screen's ${b.width}x${b.height} at ${b.x},${b.y}: fixing it`);
+      // Nudge the size so the window really re-lays out, then set it exactly.
+      this.win.setBounds({ ...b, width: b.width - 1 });
+      this.win.setBounds(b);
+    }, 400);
   }
 
   // BA_CAPTURE=dir saves a frame every 400ms while a scene plays (for testing without eyes).

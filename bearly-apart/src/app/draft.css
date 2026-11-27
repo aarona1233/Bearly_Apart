@@ -19,37 +19,11 @@
   }
 }
 
-.tab-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  margin-left: 5px;
-  border-radius: 50%;
-  background: var(--pink-strong);
-  vertical-align: 2px;
-}
-
 .toast {
   border-radius: 16px;
   text-align: center;
   width: max-content;
   z-index: 5;
-}
-
-/* Five tabs have to fit the narrowest window. */
-.tabs {
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-@media (max-width: 480px) {
-  .tabs {
-    gap: 2px;
-    padding: 0 8px;
-  }
-  .tabs button {
-    padding: 8px 6px;
-    font-size: 13px;
-  }
 }
 
 #draft-root h2 {
@@ -164,6 +138,7 @@
   margin: 6px 0 0;
 }
 .d-check input {
+  flex: none;
   width: auto;
   margin: 0;
 }
@@ -180,16 +155,12 @@
   gap: 14px;
 }
 button.d-go {
-  background: var(--pink-strong);
-  color: #fff;
+  background: var(--pink);
+  color: var(--on-pink);
   border-radius: 14px;
   padding: 12px 18px;
   font-size: 15px;
-  box-shadow: 0 3px 0 rgba(120, 40, 70, 0.35);
-}
-button.d-go:active:not(:disabled) {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 rgba(120, 40, 70, 0.35);
+  box-shadow: 0 3px 0 var(--drop);
 }
 .d-startbar button.d-go {
   flex: 1 1 100%;

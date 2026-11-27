@@ -7,26 +7,45 @@
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="draft.css" />
     <link rel="stylesheet" href="booth.css" />
+    <link rel="stylesheet" href="tree.css" />
   </head>
   <body>
     <header class="top">
       <div class="who">
-        <span class="avatar">🐻</span>
+        <span class="avatar" id="avatar"></span>
         <div>
           <b id="partner-name">Bearly Apart</b>
           <small id="partner-sub"></small>
         </div>
       </div>
-      <span class="conn" id="conn"></span>
+      <div class="top-right">
+        <span class="conn" id="conn"></span>
+        <button class="icon-btn" data-tab="settings" id="gear-tab" title="Settings and check" aria-label="Settings and check">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.2 8.7 18.1 8.9 18.1 11.1 16.2 11.3 15.3 13.5 16.5 15 15 16.5 13.5 15.3 11.3 16.2 11.1 18.1 8.9 18.1 8.7 16.2 6.5 15.3 5 16.5 3.5 15 4.7 13.5 3.8 11.3 1.9 11.1 1.9 8.9 3.8 8.7 4.7 6.5 3.5 5 5 3.5 6.5 4.7 8.7 3.8 8.9 1.9 11.1 1.9 11.3 3.8 13.5 4.7 15 3.5 16.5 5 15.3 6.5Z" /><circle cx="10" cy="10" r="2.6" /></svg>
+          <span class="tab-dot" id="gear-dot" hidden></span>
+        </button>
+      </div>
     </header>
 
     <nav class="tabs">
-      <button data-tab="send">💌 Send</button>
+      <button data-tab="send">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M17.5 2.6 2.6 8.7l6 2.7 2.7 6z" /><path d="m8.6 11.4 3.6-3.6" /></svg>Send
+      </button>
+      <button data-tab="rooms" id="rooms-tab" hidden>
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 9.2 10 3.2l7 6" /><path d="M4.8 8v8.6h10.4V8" /><path d="M8.4 16.6v-4.4h3.2v4.4" /></svg>Rooms<span class="tab-dot" id="rooms-dot" hidden></span>
+      </button>
+      <button data-tab="animations">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="5.4" cy="5.6" r="2.2" /><circle cx="14.6" cy="5.6" r="2.2" /><circle cx="10" cy="11" r="6" /><circle cx="10" cy="12.8" r="1" class="fill" /></svg>Bears
+      </button>
+    </nav>
+    <nav class="subtabs" data-group="rooms" hidden>
+      <button data-tab="tree" id="tree-tab" hidden>🎄 Christmas<span class="tab-dot" id="tree-dot" hidden></span></button>
       <button data-tab="booth" id="booth-tab" hidden>📸 Booth<span class="tab-dot" id="booth-dot" hidden></span></button>
       <button data-tab="draft" id="draft-tab" hidden>🎲 Draft<span class="tab-dot" id="draft-dot" hidden></span></button>
-      <button data-tab="animations">🎬 Animations</button>
-      <button data-tab="settings">⚙️ Settings</button>
-      <button data-tab="check">🩺 Check</button>
+    </nav>
+    <nav class="subtabs" data-group="gear" hidden>
+      <button data-tab="settings">Settings</button>
+      <button data-tab="check">Check<span class="tab-dot" id="check-dot" hidden></span></button>
     </nav>
 
     <div class="banner" id="banner" hidden></div>
@@ -58,8 +77,8 @@
           <input id="w-name" placeholder="e.g. Aaron" />
           <label>Pick your bear</label>
           <div class="bears">
-            <button class="bear" data-bear="brown"><img src="ba://asset/dudu-happy.png" alt="" /><b>Dudu</b><small>brown bear</small></button>
-            <button class="bear" data-bear="cream"><img src="ba://asset/bubu-happy.png" alt="" /><b>Bubu</b><small>white bear</small></button>
+            <button class="bear" data-bear="brown"><img src="ba://asset/happy-brown.png" alt="" /><b>Dudu</b><small>brown bear</small></button>
+            <button class="bear" data-bear="cream"><img src="ba://asset/happy-cream.png" alt="" /><b>Bubu</b><small>white bear</small></button>
           </div>
           <label for="w-handles">Your iPhone number <small>optional: lets their Mac notice when you text them</small></label>
           <input id="w-handles" placeholder="+1 555 123 4567" />
@@ -149,32 +168,35 @@
           <div class="send-grid" id="halloween-grid"></div>
         </div>
 
+        <div class="card status-card">
+          <div class="card-head">
+            <h2>My status</h2>
+            <span class="mine"><span id="my-status"></span><button class="ghost small" id="status-clear" hidden>Clear</button></span>
+          </div>
+          <div class="chips scroll" id="status-chips"></div>
+          <p class="hint fine" id="status-hint"></p>
+        </div>
+
         <div class="card">
-          <h2>Send a little something</h2>
+          <h2>Quick sends</h2>
           <p class="hint" id="send-hint"></p>
-          <div class="send-grid" id="send-grid"></div>
-          <h3 class="more-title">More</h3>
-          <div class="send-grid more" id="more-grid"></div>
+          <div class="send-grid hero" id="send-grid"></div>
+          <details class="drawer" id="more-drawer">
+            <summary><span class="plus">+</span> <b id="more-count">More sends</b> <small id="more-peek"></small></summary>
+            <input id="more-search" type="search" placeholder="Find a send… (boba, nap, dance)" autocomplete="off" />
+            <div class="send-grid more" id="more-grid"></div>
+            <p class="hint" id="more-none" hidden>Nothing called that.</p>
+          </details>
         </div>
 
         <div class="card">
-          <h2>💌 Love note</h2>
-          <textarea id="note" rows="4" maxlength="2000" placeholder="I can't stop thinking about you…"></textarea>
+          <h2>Love note</h2>
+          <textarea id="note" rows="3" maxlength="2000" placeholder="I can't stop thinking about you…"></textarea>
           <div class="actions">
-            <button id="note-send">Send now 💕</button>
-            <button class="ghost" id="note-later">Save for their morning 🫙</button>
+            <button id="note-send">Send now</button>
+            <button class="ghost" id="note-later">For their morning 🫙</button>
           </div>
-          <p class="hint" id="note-hint"></p>
-        </div>
-
-        <div class="card">
-          <h2>📣 My status</h2>
-          <p class="hint" id="status-hint"></p>
-          <div class="mine">
-            <span id="my-status"></span>
-            <button class="ghost small" id="status-clear" hidden>Clear</button>
-          </div>
-          <div class="chips" id="status-chips"></div>
+          <p class="hint fine" id="note-hint"></p>
         </div>
 
         <div class="card">
@@ -187,9 +209,19 @@
       <!-- ============================ ANIMATIONS =========================== -->
       <section data-page="draft"><div id="draft-root"></div></section>
       <section data-page="booth"><div id="booth-root"></div></section>
+      <section data-page="tree"><div id="tree-root"></div></section>
 
       <section data-page="animations">
+        <div class="card demo-card">
+          <div class="demo-art">🎄</div>
+          <div>
+            <h2>Christmas demo</h2>
+            <p class="hint">Try the whole December on this computer: every advent door, the tree, the star and the bears on your desktop. Pick any day. Nothing is sent to <span class="partner-name">them</span>.</p>
+            <div class="actions"><button id="demo-open">Open the demo</button></div>
+          </div>
+        </div>
         <div class="card">
+          <h2>All the bears</h2>
           <p class="hint">Press ▶ to play one on <b>this</b> screen. It's only a preview: nothing is sent.</p>
           <div class="gallery" id="gallery"></div>
         </div>
@@ -387,5 +419,8 @@
     <script src="draft.js"></script>
     <script src="booth-strip.js"></script>
     <script src="booth.js"></script>
+    <script src="tree-art.js"></script>
+    <script src="calendar-art.js"></script>
+    <script src="tree.js"></script>
   </body>
 </html>

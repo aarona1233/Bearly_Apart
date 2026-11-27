@@ -1,7 +1,7 @@
 // The app window (Send / Animations / Settings) and the tray/menu-bar menu, plus the IPC between them.
 const path = require('path');
 const fs = require('fs');
-const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell, clipboard } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell, clipboard, nativeTheme } = require('electron');
 const { findPairingCode } = require('./store');
 const { STATUSES, SENDABLES, GIFTS, SCENES: SCENE_ORDER, sceneInfo } = require('./catalog');
 
@@ -88,6 +88,10 @@ class UI {
     if (this.win && !this.win.isDestroyed()) this.win.webContents.send('booth', this.actions.boothView());
   }
 
+  sendTree() {
+    if (this.win && !this.win.isDestroyed()) this.win.webContents.send('tree', this.actions.treeView());
+  }
+
   sendBoothNote(text) {
     if (this.win && !this.win.isDestroyed()) this.win.webContents.send('booth-note', text);
   }
@@ -114,7 +118,7 @@ class UI {
       minHeight: 500,
       fullscreenable: false,
       title: 'Bearly Apart',
-      backgroundColor: '#fff6f8',
+      backgroundColor: nativeTheme.shouldUseDarkColors ? '#221715' : '#fffaf5',
       autoHideMenuBar: true,
       webPreferences: { preload: path.join(SRC, 'app', 'preload.js'), sandbox: true, contextIsolation: true },
     });
@@ -152,6 +156,7 @@ class UI {
     }
     if (live.draftTurn && live.draftOpen) items.push({ label: '🎲  Your move in Draft…', click: () => this.openWindow('draft') });
     if (live.booth?.open) items.push({ label: live.booth.needsMe ? '📸  The photo booth is waiting for you…' : '📸  Photo booth…', click: () => this.openWindow('booth') });
+    if (live.tree?.tab) items.push({ label: live.tree.needsMe ? '🎄  The tree is waiting for you…' : '🎄  Christmas tree…', click: () => this.openWindow('tree') });
     items.push({ type: 'separator' });
     for (const [type, s] of Object.entries(SENDABLES)) {
       items.push({ label: `${s.emoji}  Send ${s.short.toLowerCase()}`, enabled: paired, click: () => this.actions.sendEvent(type, {}, { notify: true }) });
@@ -229,7 +234,7 @@ class UI {
       .map((name) => {
         const asset = this.getScene(name)?.actors?.[0]?.asset || '';
         const file = asset.replace(/\{pc\}/g, c.partner.character).replace(/\{mc\}/g, c.me.character);
-        return { ...sceneInfo(name), thumb: file ? `ba://asset/${encodeURIComponent(file)}` : '' };
+        return { ...sceneInfo(name), thumb: file ? `ba://asset/${encodeURIComponent(file)}` : '', asset };
       });
   }
 
@@ -307,6 +312,8 @@ class UI {
     ipcMain.handle('app:booth-get', () => actions.boothView());
     ipcMain.handle('app:booth-photos', (_, sid) => actions.boothPhotos(String(sid)));
     ipcMain.handle('app:booth-assets', () => actions.boothAssets());
+    ipcMain.handle('app:tree', (_, action) => actions.treeAction(action));
+    ipcMain.handle('app:tree-get', () => actions.treeView());
     ipcMain.handle('app:tester-candy', (_, where) => actions.testCandy(where === 'there' ? 'there' : 'here'));
     // From the overlay: someone clicked a bear.
     ipcMain.on('poke-back', () => actions.sendEvent('poke'));

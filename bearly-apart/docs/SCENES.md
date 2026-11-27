@@ -44,6 +44,8 @@ An actor's position is **its feet**: `x` is the horizontal center and `y` is the
 `asset`, `size` (px at a ~900pt-tall screen), `at`, `face` (`left`/`right`), `faces: "left"` if your GIF's character
 faces left, `hidden: true` (appears on a `show` step), `pokeable: true` (clicking it sends a poke back), `frame: true` (for a GIF
 that keeps its painted background: shown as a little picture with a white border).
+`tree: "<variable>"` instead of `asset` draws the Christmas tree held in that variable (`treeBefore`, `treeAfter`), live,
+with twinkling lights (src/app/tree-art.js). Only the tree scenes pass those variables.
 
 ## Steps
 | `do` | Options | |
@@ -59,5 +61,6 @@ that keeps its painted background: shown as a little picture with a white border
 | `show`, `fade` | `ms` | pop in / fade out |
 | `face` | `dir` | turn around |
 | `wait` | `ms` | |
+| `tree` | `spec` | a tree actor changes to the tree in that variable; any new ornament sparkles |
 
 Any step can have `"if": "note"`, which skips the step when that variable is empty.

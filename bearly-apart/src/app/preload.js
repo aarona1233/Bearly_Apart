@@ -35,4 +35,7 @@ contextBridge.exposeInMainWorld('ba', {
   boothAssets: () => ipcRenderer.invoke('app:booth-assets'),
   onBooth: (fn) => ipcRenderer.on('booth', (_, view) => fn(view)),
   onBoothNote: (fn) => ipcRenderer.on('booth-note', (_, text) => fn(text)),
+  tree: (action) => ipcRenderer.invoke('app:tree', action),
+  treeGet: () => ipcRenderer.invoke('app:tree-get'),
+  onTree: (fn) => ipcRenderer.on('tree', (_, view) => fn(view)),
 });
